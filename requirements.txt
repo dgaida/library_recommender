@@ -1,0 +1,8 @@
+# Zusätzliche Abhängigkeiten für Google-Suche und Zusammenfassung
+ddgs>=9.0.0
+groq>=0.4.0
+
+# Bereits vorhandene Abhängigkeiten (falls noch nicht installiert)
+gradio>=4.0.0
+requests>=2.31.0
+beautifulsoup4>=4.12.0
