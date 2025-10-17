@@ -5,7 +5,10 @@ from library.search import KoelnLibrarySearch
 from recommender.recommender import Recommender
 from recommender.state import AppState
 from data_sources.films import fetch_wikipedia_titles
+from data_sources.fbw_films import fetch_fbw_films, fetch_oscar_best_picture_winners
+
 from data_sources.albums import fetch_radioeins_albums
+from data_sources.books import fetch_books_from_site
 from preprocessing.filters import filter_existing_albums
 from utils.search_utils import get_media_summary, extract_title_and_author
 
@@ -13,28 +16,149 @@ from utils.io import DATA_DIR, save_recommendations_to_markdown
 
 FILMS_FILE = os.path.join(DATA_DIR, "films.json")
 ALBUMS_FILE = os.path.join(DATA_DIR, "albums.json")
+BOOKS_FILE = os.path.join(DATA_DIR, "books.json")
+
+
+def load_or_fetch_books():
+    """
+    Lädt Bücher aus dem lokalen Cache oder ruft sie von der Quelle ab.
+
+    Falls bereits eine `books.json` im `DATA_DIR` existiert, wird diese Datei geladen.
+    Andernfalls werden die Daten mit `fetch_books_from_site()` von der angegebenen Webseite
+    abgerufen, aufbereitet (Titel, Autor, Beschreibung) und anschließend als JSON gespeichert.
+
+    Returns:
+        list[dict]: Liste von Büchern mit Schlüsseln:
+            - "title" (str): Titel des Buches
+            - "author" (str): Autor/Autorin
+            - "type" (str): Immer "Buch"
+            - "description" (str): Beschreibungstext des Buches
+    """
+    if os.path.exists(BOOKS_FILE):
+        with open(BOOKS_FILE, "r", encoding="utf-8") as f:
+            books = json.load(f)
+        print(f"DEBUG: {len(books)} Bücher aus Cache geladen.")
+    else:
+        #
+        books = [{"title": t["title"], "author": t["author"], "type": "Buch",
+                  "description": t["description"]} for t in fetch_books_from_site()]
+        with open(BOOKS_FILE, "w", encoding="utf-8") as f:
+            json.dump(books, f, ensure_ascii=False, indent=2)
+        print(f"DEBUG: {len(books)} Bücher geladen und gespeichert.")
+    return books
+
+
+# def load_or_fetch_films():
+#     """
+#     Lädt Filme aus dem lokalen Cache oder von Wikipedia.
+#
+#     Falls bereits eine `films.json` existiert, wird diese Datei geladen.
+#     Ansonsten werden die Daten mit `fetch_wikipedia_titles()` aus der Wikipedia-Seite
+#     zu den besten Filmen geladen, in das passende Format gebracht und anschließend als
+#     JSON-Datei gespeichert.
+#
+#     Returns:
+#         list[dict]: Liste von Filmen mit Schlüsseln:
+#             - "title" (str): Titel des Films
+#             - "author" (str): Regisseur/in
+#             - "type" (str): Immer "DVD"
+#     """
+#     if os.path.exists(FILMS_FILE):
+#         with open(FILMS_FILE, "r", encoding="utf-8") as f:
+#             films = json.load(f)
+#         print(f"DEBUG: {len(films)} Filme aus Cache geladen.")
+#     else:
+#         films = [{"title": t["title"], "author": t["regie"], "type": "DVD"} for t in fetch_wikipedia_titles()]
+#         with open(FILMS_FILE, "w", encoding="utf-8") as f:
+#             json.dump(films, f, ensure_ascii=False, indent=2)
+#         print(f"DEBUG: {len(films)} Filme von Wikipedia geladen und gespeichert.")
+#     return films
 
 
 def load_or_fetch_films():
+    """
+    Lädt Filme aus dem lokalen Cache oder von externen Quellen (Wikipedia + FBW).
+
+    Falls bereits eine `films.json` existiert, wird diese Datei geladen.
+    Andernfalls werden die Daten kombiniert aus:
+      - `fetch_wikipedia_titles()` (Wikipedia-Liste)
+      - `fetch_fbw_films()` (FBW-Filmbewertungsstelle)
+    Duplikate werden anhand des Titels entfernt, alphabetisch sortiert
+    und anschließend in `films.json` gespeichert.
+
+    Returns:
+        list[dict]: Liste von Filmen mit Schlüsseln:
+            - "title" (str): Titel des Films
+            - "author" (str): Regisseur/in
+            - "type" (str): Immer "DVD"
+            - "description" (str, optional): Kurzbeschreibung (falls von FBW verfügbar)
+    """
     if os.path.exists(FILMS_FILE):
         with open(FILMS_FILE, "r", encoding="utf-8") as f:
             films = json.load(f)
         print(f"DEBUG: {len(films)} Filme aus Cache geladen.")
     else:
-        films = [{"title": t["title"], "author": t["regie"]} for t in fetch_wikipedia_titles()]
+        # Wikipedia-Filme laden
+        wiki_films = [
+            {"title": t["title"], "author": t.get("regie", ""), "type": "DVD"}
+            for t in fetch_wikipedia_titles()
+        ]
+        print(f"DEBUG: {len(wiki_films)} Filme von Wikipedia geladen.")
+
+        # FBW-Filme laden
+        fbw_films = fetch_fbw_films(max_pages=150)
+        print(f"DEBUG: {len(fbw_films)} Filme von FBW geladen.")
+
+        oscar_films = fetch_oscar_best_picture_winners()
+
+        combined = wiki_films + fbw_films + oscar_films
+
+        # Kombinieren und Duplikate anhand des Titels entfernen
+        # combined = wiki_films + fbw_films
+        unique_films = {}
+        for f in combined:
+            title = f["title"].strip()
+            # falls derselbe Titel doppelt vorkommt, überschreibt FBW den Wikipedia-Eintrag (wegen mehr Infos)
+            unique_films[title.lower()] = f
+
+        # Alphabetisch nach Titel sortieren
+        sorted_films = sorted(unique_films.values(), key=lambda x: x["title"].lower())
+
         with open(FILMS_FILE, "w", encoding="utf-8") as f:
-            json.dump(films, f, ensure_ascii=False, indent=2)
-        print(f"DEBUG: {len(films)} Filme von Wikipedia geladen und gespeichert.")
+            json.dump(sorted_films, f, ensure_ascii=False, indent=2)
+
+        print(f"DEBUG: {len(sorted_films)} Filme kombiniert, bereinigt und gespeichert.")
+        films = sorted_films
+
     return films
 
 
 def load_or_fetch_albums():
+    """
+    Lädt Musikalben aus dem lokalen Cache oder von Radioeins.
+
+    Falls bereits eine `albums.json` existiert, wird diese Datei geladen.
+    Ansonsten werden die Daten mit `fetch_radioeins_albums()` von der Radioeins-Webseite
+    abgerufen, in das passende Format gebracht und anschließend als JSON gespeichert.
+    Danach werden Alben mit `filter_existing_albums` herausgefiltert, die bereits im
+    lokalen Musikarchiv vorhanden sind.
+
+    Returns:
+        list[dict]: Liste von Alben mit Schlüsseln:
+            - "title" (str): Titel des Albums
+            - "author" (str): Künstler/in oder Band
+            - "type" (str): Immer "CD"
+    """
     if os.path.exists(ALBUMS_FILE):
         with open(ALBUMS_FILE, "r", encoding="utf-8") as f:
             albums = json.load(f)
         print(f"DEBUG: {len(albums)} Alben aus Cache geladen.")
     else:
-        albums = [{"title": a[0], "author": a[1]} for a in fetch_radioeins_albums()]
+        # TODO: Titel und Autor verdreht. müsste eigentlich a[1] und a[0] sein
+        # weiß aber nicht wozu das führt in nachfolgenden Schritten
+        # in der state.json wird jetzt der Autor gespeichert und dieser komplett abgelehnt
+        # und nicht das Album. das ist schlecht
+        albums = [{"title": a[1], "author": a[0], "type": "CD"} for a in fetch_radioeins_albums()]
         with open(ALBUMS_FILE, "w", encoding="utf-8") as f:
             json.dump(albums, f, ensure_ascii=False, indent=2)
         print(f"DEBUG: {len(albums)} Alben von Radioeins geladen und gespeichert.")
@@ -241,7 +365,7 @@ def save_current_recommendations():
 
 
 def initialize_recommendations():
-    """Lädt initiale Vorschläge für Filme und Alben beim Start der App"""
+    """Lädt initiale Vorschläge für Filme, Alben und Bücher beim Start der App"""
     print("DEBUG: Lade initiale Vorschläge...")
 
     # Filme laden
@@ -252,23 +376,28 @@ def initialize_recommendations():
     album_suggestions = get_n_suggestions("albums", 4)
     current_suggestions["albums"] = album_suggestions
 
-    # Bücher (erstmal leer)
-    current_suggestions["books"] = []
+    # Bücher laden
+    book_suggestions = get_n_suggestions("books", 4)
+    current_suggestions["books"] = book_suggestions
 
     # Automatisch in Datei speichern
     try:
         recommendations = {
             "films": film_suggestions,
             "albums": album_suggestions,
-            "books": []
+            "books": book_suggestions,
         }
         filename = save_recommendations_to_markdown(recommendations)
-        total_count = len(film_suggestions) + len(album_suggestions)
+        total_count = (
+            len(film_suggestions)
+            + len(album_suggestions)
+            + len(book_suggestions)
+        )
         print(f"DEBUG: {total_count} initiale Empfehlungen in '{filename}' gespeichert")
     except Exception as e:
         print(f"DEBUG: Fehler beim Speichern der initialen Empfehlungen: {e}")
 
-    return film_suggestions, album_suggestions
+    return film_suggestions, album_suggestions, book_suggestions
 
 
 def get_initial_choices(suggestions):
@@ -382,18 +511,19 @@ recommender = Recommender(library_search, state)
 print("DEBUG: Lade Datenquellen...")
 films = load_or_fetch_films()
 albums = load_or_fetch_albums()
-books = []  # später einfügen
+books = load_or_fetch_books()
 
 # Globale Variablen für aktuelle Vorschläge
 current_suggestions = {"films": [], "albums": [], "books": []}
 
 # Lade initiale Vorschläge
 print("DEBUG: Initialisiere Empfehlungen...")
-initial_films, initial_albums = initialize_recommendations()
+initial_films, initial_albums, initial_books = initialize_recommendations()
 
 # Erstelle initiale Auswahloptionen
 initial_film_choices = get_initial_choices(initial_films)
 initial_album_choices = get_initial_choices(initial_albums)
+initial_book_choices = get_initial_choices(initial_books)
 
 
 with gr.Blocks(css=css, title="Bibliothek-Empfehlungen") as demo:
@@ -509,7 +639,7 @@ with gr.Blocks(css=css, title="Bibliothek-Empfehlungen") as demo:
         with gr.Column(elem_classes=["suggestion-container"]):
             book_checkbox = gr.CheckboxGroup(
                 label="Empfohlene Bücher",
-                choices=[],
+                choices=initial_book_choices,
                 value=[],
                 interactive=True,
                 info="Wählen Sie Bücher aus der Liste aus, um sie zu entfernen"
@@ -532,7 +662,8 @@ with gr.Blocks(css=css, title="Bibliothek-Empfehlungen") as demo:
 
             book_info = gr.Textbox(
                 label="Information",
-                value="Bücher-Empfehlungen werden später hinzugefügt",
+                value=f"{len(initial_books)} Bücher beim Start geladen. Wählen Sie Titel aus, um sie zu entfernen."
+                if initial_books else "Keine Bücher verfügbar.",
                 interactive=False,
                 elem_classes=["suggestion-info"]
             )

@@ -114,7 +114,7 @@ Antwort (maximal 2 Sätze auf Deutsch):"""
                     "content": prompt
                 }
             ],
-            model="gemma2-9b-it",  # Schnelles Modell
+            model="meta-llama/llama-guard-4-12b",  # Schnelles Modell
             temperature=0.3,
             max_tokens=150
         )

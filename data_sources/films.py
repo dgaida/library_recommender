@@ -72,7 +72,7 @@ def fetch_wikipedia_titles():
             german_title = cells[idx_deutscher_titel - 1].get_text(strip=True)
             regisseur = cells[idx_deutscher_titel].get_text(strip=True)
             if german_title:
-                titles.append({"title": german_title + " DVD", "regie": regisseur})
+                titles.append({"title": german_title, "regie": regisseur})
 
     print(f"DEBUG: Insgesamt {len(titles)} deutsche Titel extrahiert.")
     return titles

@@ -51,7 +51,7 @@ class KoelnLibrarySearch:
         query_string = " Und ".join(query_parts)
         self._advanced_search(query_string, page_size)
 
-    def _advanced_search(self, query, page_size=20):
+    def _advanced_search(self, query, page_size=20, verbose=False):
         """
         Führt eine erweiterte Suche im Bibliothekskatalog durch, analog zur Webseite.
         Args:
@@ -62,7 +62,8 @@ class KoelnLibrarySearch:
 
             # Schritt 1: Formularseite laden
             form_url = f"{self.base_url}/alswww2.dll/APS_ZONES?fn=AdvancedSearch&Style=Portal3&SubStyle=&Lang=GER&ResponseEncoding=utf-8"
-            print("DEBUG: Rufe zuerst die Hauptseite auf für fn=AdvancedSearch...")
+            if verbose:
+                print("DEBUG: Rufe zuerst die Hauptseite auf für fn=AdvancedSearch...")
             main_response = self.safe_get(form_url, timeout=15)
             main_response.raise_for_status()
             print(f"DEBUG: Hauptseite Status: {main_response.status_code}")
@@ -190,25 +191,31 @@ class KoelnLibrarySearch:
             )
             search_response.raise_for_status()
 
-            print(f"DEBUG: HTTP Status Code: {search_response.status_code}")
-
             if verbose:
+                print(f"DEBUG: HTTP Status Code: {search_response.status_code}")
                 print(f"DEBUG: Response URL: {search_response.url}")
                 print(f"DEBUG: Response Content Length: {len(search_response.text)} Zeichen")
 
-            # Prüfen, ob wir auf der Ergebnisseite sind
-            # if #"Schnellsuche" in search_response.text and
+            # Prüfen ob wir auf der Ergebnisseite sind
             if "Ergebnisse" not in search_response.text:
-                print("DEBUG: Anscheinend wieder auf Startseite gelandet - versuche POST-Request")
+                soup = BeautifulSoup(search_response.text, "html.parser")
+                error_advice_table = soup.find("table", {"id": "ErrorAdvice"})
+                no_hits_text = "Leider wurden keine Titel zu Ihrer Suchanfrage gefunden." in search_response.text
 
-                # Versuche POST statt GET
-                search_response = self.session.post(
-                    search_url,
-                    data=params,
-                    timeout=15
-                )
-                search_response.raise_for_status()
-                print(f"DEBUG: POST Status Code: {search_response.status_code}")
+                if error_advice_table or no_hits_text:
+                    print("DEBUG: Keine Treffer laut Fehlermeldung gefunden – kein POST-Request notwendig")
+                    return []  # direkt abbrechen, keine Ergebnisse
+                else:
+                    print("DEBUG: Anscheinend wieder auf Startseite gelandet - versuche POST-Request")
+
+                    # Versuche POST statt GET
+                    search_response = self.session.post(
+                        search_url,
+                        data=params,
+                        timeout=15
+                    )
+                    search_response.raise_for_status()
+                    print(f"DEBUG: POST Status Code: {search_response.status_code}")
 
             if verbose:
                 # Ersten Teil der Antwort anzeigen
@@ -254,13 +261,15 @@ class KoelnLibrarySearch:
         Returns:
             tuple[str, requests.Response]: (search_url, main_response)
         """
-        print(f"DEBUG: Rufe zuerst die Hauptseite auf für fn={fn}...")
+        if verbose:
+            print(f"DEBUG: Rufe zuerst die Hauptseite auf für fn={fn}...")
         main_response = self.safe_get(
             f"{self.search_url}?fn={fn}&Style=Portal3&SubStyle=&Lang=GER&ResponseEncoding=utf-8",
             timeout=15
         )
         main_response.raise_for_status()
-        print(f"DEBUG: Hauptseite Status: {main_response.status_code}")
+        if verbose:
+            print(f"DEBUG: Hauptseite Status: {main_response.status_code}")
 
         # Suche nach dem Objektnamen in der HTML-Datei
         soup = BeautifulSoup(main_response.text, 'html.parser')
@@ -268,7 +277,8 @@ class KoelnLibrarySearch:
         if form:
             action = form.get('action')
             if action:
-                print(f"DEBUG: Form Action gefunden: {action}")
+                if verbose:
+                    print(f"DEBUG: Form Action gefunden: {action}")
                 search_url = f"{self.base_url}/alswww2.dll/{action}"
             else:
                 search_url = self.search_url
@@ -411,7 +421,8 @@ class KoelnLibrarySearch:
                                     'id')):
                                 # Filter: ignoriere JavaScript-Aufrufe
                                 if "documentManager" in text or "StockUpdateRequest" in text:
-                                    print("DEBUG: Ignoriere Script-Text:", text)
+                                    if verbose:
+                                        print("DEBUG: Ignoriere Script-Text:", text)
                                 else:
                                     next_siblings.append(text)
                             elif hasattr(current, 'get') and current.get('id') and 'stock_header' in current.get('id'):
@@ -477,7 +488,8 @@ class KoelnLibrarySearch:
                                     availability_info[current_location].append(elem_text)
                                     print(f"DEBUG: Bestand-Info für {current_location}: {elem_text[:50]}...")
 
-            print(f"DEBUG: Finale availability_info: {availability_info}")
+            if verbose:
+                print(f"DEBUG: Finale availability_info: {availability_info}")
             return availability_info
 
         except Exception as e:
@@ -508,12 +520,13 @@ class KoelnLibrarySearch:
 
         return ""
 
-    def _extract_item_data(self, item):
+    def _extract_item_data(self, item, verbose=False):
         """
         Extrahiert Daten aus einem einzelnen Suchergebnis
 
         Args:
             item: BeautifulSoup-Element eines Suchergebnisses
+            verbose (bool): If True, prints more to the console
 
         Returns:
             dict: Extrahierte Daten oder None
@@ -546,7 +559,8 @@ class KoelnLibrarySearch:
                     link = self.base_url + '/' + href
                 else:
                     link = href
-                print(f"DEBUG: Extrahierter Detail-Link: {link}")
+                if verbose:
+                    print(f"DEBUG: Extrahierter Detail-Link: {link}")
 
         # Autor und andere Metadaten suchen
         author = ""

@@ -8,7 +8,7 @@ from dotenv import load_dotenv
 import time
 import sys
 from library.search import KoelnLibrarySearch
-from gui.app import demo
+from gui import launch_app
 
 load_dotenv(dotenv_path="secrets.env")
 
@@ -79,4 +79,4 @@ if __name__ == "__main__":
         sys.exit(1)
 
     # Gradio-App starten
-    demo.launch()
+    launch_app(share=False, inbrowser=True)
