@@ -9,9 +9,16 @@ Eine intelligente Empfehlungs-App für die **Stadtbibliothek Köln**, die verfü
 ## ✨ Features
 
 ### 🎯 **Intelligente Empfehlungen**
-- **Filme**: Basiert auf BBC Culture's 100 Greatest Films of the 21st Century
+- **Filme**: Kombination aus
+  - BBC Culture’s *100 Greatest Films of the 21st Century*
+  - FBW-Filme mit „Prädikat besonders wertvoll“
+  - Oscar-prämierte Filme („Bester Film“)
+  - Automatische Zusammenführung und alphabetische Sortierung
+  - Lokaler JSON-Cache für schnelleren Start
 - **Musik**: Basiert auf Radio Eins Top 100 Alben 2019
-- **Bücher**: Erweiterbar für zukünftige Buchempfehlungen
+- **Bücher**: Basiert auf *New York Times Kanon des 21. Jahrhunderts*  
+  (von [die-besten-aller-zeiten.de](https://www.die-besten-aller-zeiten.de/buecher/kanon/new-york-times-21-jahrhundert.html))  
+  Mit Autorenangaben und Beschreibungstexten
 
 ### 🔍 **Verfügbarkeitsprüfung**
 - Automatische Suche im Online-Katalog der Stadtbibliothek Köln
@@ -28,6 +35,11 @@ Eine intelligente Empfehlungs-App für die **Stadtbibliothek Köln**, die verfü
 - Empfehlungen als übersichtliche Markdown-Datei speichern
 - Automatische Dokumentation mit Verfügbarkeitsstatus
 - Zeitstempel und Kategorien-Übersicht
+
+### 🧠 **Daten-Caching**
+- Alle Film- und Albumdaten werden nach dem ersten Laden in `data/*.json` gespeichert
+- Beim nächsten Start wird automatisch der Cache genutzt (schneller Start)
+- Aktualisierung bei Änderungen an den Datenquellen möglich
 
 ### 🎵 **MP3-Archiv Integration**
 - Filtert bereits vorhandene Alben aus dem lokalen MP3-Archiv
@@ -85,8 +97,12 @@ Die App öffnet sich automatisch im Browser unter `http://localhost:7860`
 3. Basiert auf Radio Eins Empfehlungen
 
 ### 📚 **Bücher-Tab**
-- Vorbereitet für zukünftige Erweiterungen
-- Gleiche UI-Struktur wie Filme und Musik
+1. Automatische Vorschläge aus dem *New York Times Kanon des 21. Jahrhunderts*
+2. Jedes Buch enthält **Titel**, **Autor** und **Kurzbeschreibung**
+3. Identische Interaktion wie bei Filmen und Musik:
+   - Mehrfachauswahl
+   - Entfernen und Neuvorschläge
+   - Google-Suche zur weiteren Information
 
 ### 💾 **Empfehlungen speichern**
 - **"Alle Empfehlungen speichern"** Button oben
@@ -103,14 +119,16 @@ library-recommender/
 ├── README.md                      # Diese Datei
 ├── 
 ├── data/                          # Automatisch erstellte Daten
-│   ├── films.json                 # Cache für Filmempfehlungen  
+│   ├── films.json                 # Cache für Filme (BBC + FBW + Oscar, alphabetisch sortiert)
 │   ├── albums.json                # Cache für Albumempfehlungen
+│   ├── books.json                 # Cache für Bücher (New York Times Kanon, mit Beschreibung)
 │   └── state.json                 # Abgelehnte Medien (persistent)
 │
 ├── data_sources/                  # Datenquellen
 │   ├── albums.py                  # Radio Eins Album-Liste
 │   ├── films.py                   # BBC Culture Film-Liste
-│   └── books.py                   # (Leer, für zukünftige Erweiterung)
+│   ├── fbw_films.py               # Deutsche Filme mit Prädikat „besonders wertvoll“ und Oscar-prämierte Filme (Bester Film)
+│   └── books.py                   # NYT-Buchkanon (21. Jahrhundert, mit Beschreibung)
 │
 ├── gui/                           # GUI
 │   └── app.py                     # Hauptanwendung (Gradio UI)  
@@ -145,8 +163,11 @@ Die App ist für die **Stadtbibliothek Köln** konfiguriert. Für andere Bibliot
 ## 🔧 Technische Details
 
 ### Datenquellen
-- **Filme**: [BBC Culture's 100 Greatest Films](https://de.wikipedia.org/wiki/BBC_Culture%E2%80%99s_100_Greatest_Films_of_the_21st_Century)
+- **Filme (BBC)**: [BBC Culture’s 100 Greatest Films](https://de.wikipedia.org/wiki/BBC_Culture%E2%80%99s_100_Greatest_Films_of_the_21st_Century)
+- **Filme (FBW)**: [Deutsche Filmbewertungsstelle – Prädikat besonders wertvoll](https://www.fbw-filmbewertung.com/filme)
+- **Filme (Oscar)**: [Wikipedia – Oscar/Bester Film](https://de.wikipedia.org/wiki/Oscar/Bester_Film)
 - **Musik**: [Radio Eins Die 100 besten Alben 2019](https://www.radioeins.de/musik/top_100/die-100-besten-2019/alben/)
+- **Bücher**: [Die besten Bücher – New York Times Kanon des 21. Jahrhunderts](https://www.die-besten-aller-zeiten.de/buecher/kanon/new-york-times-21-jahrhundert.html)
 - **Katalog**: [Stadtbibliothek Köln Online-Katalog](https://katalog.stbib-koeln.de)
 
 ### Algorithmen
