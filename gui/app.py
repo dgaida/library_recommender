@@ -13,6 +13,7 @@ from data_sources.mp3_analysis import add_top_artist_albums_to_collection
 
 from data_sources.albums import fetch_radioeins_albums
 from data_sources.books import fetch_books_from_site
+from data_sources.guides import fetch_guides_from_site
 from preprocessing.filters import filter_existing_albums
 from utils.search_utils import get_media_summary, extract_title_and_author
 
@@ -28,35 +29,55 @@ def load_or_fetch_books():
     Lädt Bücher aus dem lokalen Cache oder ruft sie von der Quelle ab.
 
     Falls bereits eine `books.json` im `DATA_DIR` existiert, wird diese Datei geladen.
-    Andernfalls werden die Daten mit `fetch_books_from_site()` von der angegebenen Webseite
-    abgerufen, aufbereitet (Titel, Autor, Beschreibung) und anschließend als JSON gespeichert.
+    Andernfalls werden die Daten mit `fetch_books_from_site()` (Bücher) und
+    `fetch_guides_from_site()` (Ratgeber) von den angegebenen Webseiten abgerufen,
+    aufbereitet und anschließend als JSON gespeichert.
 
     Returns:
-        list[dict]: Liste von Büchern mit Schlüsseln:
-            - "title" (str): Titel des Buches
+        list[dict]: Liste von Büchern und Ratgebern mit Schlüsseln:
+            - "title" (str): Titel
             - "author" (str): Autor/Autorin
-            - "type" (str): Immer "Buch"
-            - "description" (str): Beschreibungstext des Buches
+            - "type" (str): "Buch" oder "Ratgeber"
+            - "description" (str): Beschreibung
     """
     if os.path.exists(BOOKS_FILE):
         with open(BOOKS_FILE, "r", encoding="utf-8") as f:
             books = json.load(f)
         print(f"DEBUG: {len(books)} Bücher aus Cache geladen.")
     else:
-        #
-        books = [
-            {
+        # Bücher (New York Times Kanon)
+        books_data = fetch_books_from_site()
+
+        # Ratgeber (21. Jahrhundert)
+        guides_data = fetch_guides_from_site()
+
+        books = []
+
+        # Normale Bücher
+        for t in books_data:
+            books.append({
                 "title": t["title"],
                 "author": t["author"],
                 "type": "Buch",
                 "description": t["description"],
-                "source": t.get("source", "")
-            }
-            for t in fetch_books_from_site()
-        ]
+                "source": t.get("source", "New York Times Kanon 21. Jahrhundert")
+            })
+
+        # Ratgeber hinzufügen
+        for g in guides_data:
+            books.append({
+                "title": g["title"],
+                "author": g["author"],
+                "type": "Buch",
+                "description": g["description"],
+                "source": "Die besten Ratgeber des 21. Jahrhunderts"
+            })
+
         with open(BOOKS_FILE, "w", encoding="utf-8") as f:
             json.dump(books, f, ensure_ascii=False, indent=2)
-        print(f"DEBUG: {len(books)} Bücher geladen und gespeichert.")
+
+        print(f"DEBUG: {len(books)} Bücher & Ratgeber geladen und gespeichert.")
+
     return books
 
 
