@@ -24,6 +24,7 @@ import os
 import time
 
 from utils.io import DATA_DIR
+from utils.sources import SOURCE_FBW_EXCEPTIONAL, SOURCE_OSCAR_BEST_PICTURE
 
 
 BASE_URL = "https://www.fbw-filmbewertung.com"
@@ -99,6 +100,7 @@ def fetch_fbw_films(max_pages=5, delay=1.0):
                 "description": description,
                 "url": link,
                 "type": "DVD",
+                "source": SOURCE_FBW_EXCEPTIONAL
             }
             all_films.append(film_info)
 
@@ -180,7 +182,8 @@ def fetch_oscar_best_picture_winners(url="https://de.wikipedia.org/wiki/Oscar/Be
                 "producer": producer,
                 "title": title,
                 "url": film_url,
-                "type": "DVD"
+                "type": "DVD",
+                "source": SOURCE_OSCAR_BEST_PICTURE
             })
 
     print(f"DEBUG: {len(results)} Oscar-Gewinnerfilme gefunden.")

@@ -8,6 +8,9 @@ from data_sources.films import fetch_wikipedia_titles
 from data_sources.fbw_films import fetch_fbw_films, fetch_oscar_best_picture_winners
 from data_sources.oscar_music import add_oscar_music_to_albums
 
+from utils.sources import format_source_for_display, SOURCE_RADIO_EINS_TOP_100, get_source_emoji
+from data_sources.mp3_analysis import add_top_artist_albums_to_collection
+
 from data_sources.albums import fetch_radioeins_albums
 from data_sources.books import fetch_books_from_site
 from preprocessing.filters import filter_existing_albums
@@ -41,39 +44,20 @@ def load_or_fetch_books():
         print(f"DEBUG: {len(books)} Bücher aus Cache geladen.")
     else:
         #
-        books = [{"title": t["title"], "author": t["author"], "type": "Buch",
-                  "description": t["description"]} for t in fetch_books_from_site()]
+        books = [
+            {
+                "title": t["title"],
+                "author": t["author"],
+                "type": "Buch",
+                "description": t["description"],
+                "source": t.get("source", "")
+            }
+            for t in fetch_books_from_site()
+        ]
         with open(BOOKS_FILE, "w", encoding="utf-8") as f:
             json.dump(books, f, ensure_ascii=False, indent=2)
         print(f"DEBUG: {len(books)} Bücher geladen und gespeichert.")
     return books
-
-
-# def load_or_fetch_films():
-#     """
-#     Lädt Filme aus dem lokalen Cache oder von Wikipedia.
-#
-#     Falls bereits eine `films.json` existiert, wird diese Datei geladen.
-#     Ansonsten werden die Daten mit `fetch_wikipedia_titles()` aus der Wikipedia-Seite
-#     zu den besten Filmen geladen, in das passende Format gebracht und anschließend als
-#     JSON-Datei gespeichert.
-#
-#     Returns:
-#         list[dict]: Liste von Filmen mit Schlüsseln:
-#             - "title" (str): Titel des Films
-#             - "author" (str): Regisseur/in
-#             - "type" (str): Immer "DVD"
-#     """
-#     if os.path.exists(FILMS_FILE):
-#         with open(FILMS_FILE, "r", encoding="utf-8") as f:
-#             films = json.load(f)
-#         print(f"DEBUG: {len(films)} Filme aus Cache geladen.")
-#     else:
-#         films = [{"title": t["title"], "author": t["regie"], "type": "DVD"} for t in fetch_wikipedia_titles()]
-#         with open(FILMS_FILE, "w", encoding="utf-8") as f:
-#             json.dump(films, f, ensure_ascii=False, indent=2)
-#         print(f"DEBUG: {len(films)} Filme von Wikipedia geladen und gespeichert.")
-#     return films
 
 
 def load_or_fetch_films():
@@ -101,7 +85,12 @@ def load_or_fetch_films():
     else:
         # Wikipedia-Filme laden
         wiki_films = [
-            {"title": t["title"], "author": t.get("regie", ""), "type": "DVD"}
+            {
+                "title": t["title"],
+                "author": t.get("regie", ""),
+                "type": "DVD",
+                "source": t.get("source", "")
+            }
             for t in fetch_wikipedia_titles()
         ]
         print(f"DEBUG: {len(wiki_films)} Filme von Wikipedia geladen.")
@@ -157,7 +146,15 @@ def load_or_fetch_albums():
         print(f"DEBUG: {len(albums)} Alben aus Cache geladen.")
     else:
         # Radio Eins Alben laden
-        albums = [{"title": a[1], "author": a[0], "type": "CD"} for a in fetch_radioeins_albums()]
+        albums = [
+            {
+                "title": a[1],
+                "author": a[0],
+                "type": "CD",
+                "source": SOURCE_RADIO_EINS_TOP_100
+            }
+            for a in fetch_radioeins_albums()
+        ]
         with open(ALBUMS_FILE, "w", encoding="utf-8") as f:
             json.dump(albums, f, ensure_ascii=False, indent=2)
         print(f"DEBUG: {len(albums)} Alben von Radioeins geladen und gespeichert.")
@@ -166,10 +163,14 @@ def load_or_fetch_albums():
         print("DEBUG: Füge Oscar-Filmmusik hinzu...")
         add_oscar_music_to_albums()
 
+        # NEU: Top-Interpreten-Alben hinzufügen
+        print("DEBUG: Analysiere MP3-Archiv für personalisierte Empfehlungen...")
+        add_top_artist_albums_to_collection("H:\\MP3 Archiv", top_n=10)
+
         # Neu laden nach Oscar-Update
         with open(ALBUMS_FILE, "r", encoding="utf-8") as f:
             albums = json.load(f)
-        print(f"DEBUG: {len(albums)} Alben nach Oscar-Update geladen.")
+        print(f"DEBUG: {len(albums)} Alben nach allen Updates geladen.")
 
     albums = filter_existing_albums(albums, "H:\\MP3 Archiv")
 
@@ -236,6 +237,10 @@ def on_selection_change(selected_items, category):
                     detail_text += f"\n  Autor/Künstler: {s['author']}"
                 if s.get('bib_number'):
                     detail_text += f"\n  Verfügbarkeit: {s['bib_number']}"
+                # Quelle anzeigen
+                if s.get('source'):
+                    source_formatted = format_source_for_display(s['source'])
+                    detail_text += f"\n  Quelle: {source_formatted}"
                 detail_text += "\n\n"
                 break
 
@@ -418,6 +423,11 @@ def get_initial_choices(suggestions):
         display_text = f"{s['title']}"
         if s.get('author'):
             display_text += f" - {s['author']}"
+        # Emoji am Anfang
+        if s.get('source'):
+            emoji = get_source_emoji(s['source'])
+            if emoji:
+                display_text = f"{emoji} {display_text}"
         choices.append(display_text)
     return choices
 

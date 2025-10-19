@@ -24,6 +24,8 @@ import os
 import time
 
 from utils.io import DATA_DIR
+from utils.sources import SOURCE_OSCAR_BEST_SCORE
+
 
 ALBUMS_FILE = os.path.join(DATA_DIR, "albums.json")
 WIKI_URL = "https://de.wikipedia.org/wiki/Oscar/Beste_Filmmusik"
@@ -133,7 +135,8 @@ def fetch_oscar_music_winners():
                 "title": f"{film_title} (Soundtrack)",
                 "author": composers,
                 "type": "CD",
-                "year": year_value
+                "year": year_value,
+                "source": SOURCE_OSCAR_BEST_SCORE
             }
 
             results.append(entry)
