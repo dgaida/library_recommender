@@ -170,7 +170,7 @@ def load_or_fetch_albums():
 
 def suggest(category):
     """Erstellt neue Vorschläge für eine Kategorie"""
-    suggestions = get_n_suggestions(category, 4)
+    suggestions = get_n_suggestions(category, 6)
 
     # Aktualisiere globale Vorschläge
     current_suggestions[category] = suggestions
@@ -369,15 +369,15 @@ def initialize_recommendations():
     print("DEBUG: Lade initiale Vorschläge...")
 
     # Filme laden
-    film_suggestions = get_n_suggestions("films", 4)
+    film_suggestions = get_n_suggestions("films", 6)
     current_suggestions["films"] = film_suggestions
 
     # Alben laden
-    album_suggestions = get_n_suggestions("albums", 4)
+    album_suggestions = get_n_suggestions("albums", 6)
     current_suggestions["albums"] = album_suggestions
 
     # Bücher laden
-    book_suggestions = get_n_suggestions("books", 4)
+    book_suggestions = get_n_suggestions("books", 6)
     current_suggestions["books"] = book_suggestions
 
     # Automatisch in Datei speichern
