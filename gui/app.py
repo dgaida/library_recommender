@@ -6,6 +6,7 @@ from recommender.recommender import Recommender
 from recommender.state import AppState
 from data_sources.films import fetch_wikipedia_titles
 from data_sources.fbw_films import fetch_fbw_films, fetch_oscar_best_picture_winners
+from data_sources.oscar_music import add_oscar_music_to_albums
 
 from data_sources.albums import fetch_radioeins_albums
 from data_sources.books import fetch_books_from_site
@@ -135,18 +136,19 @@ def load_or_fetch_films():
 
 def load_or_fetch_albums():
     """
-    Lädt Musikalben aus dem lokalen Cache oder von Radioeins.
+    Lädt Musikalben aus dem lokalen Cache oder von Radioeins und Oscar-Filmmusik.
 
     Falls bereits eine `albums.json` existiert, wird diese Datei geladen.
-    Ansonsten werden die Daten mit `fetch_radioeins_albums()` von der Radioeins-Webseite
-    abgerufen, in das passende Format gebracht und anschließend als JSON gespeichert.
+    Ansonsten werden die Daten kombiniert aus:
+      - `fetch_radioeins_albums()` (Radio Eins Top 100)
+      - `add_oscar_music_to_albums()` (Oscar-Gewinner Filmmusik)
     Danach werden Alben mit `filter_existing_albums` herausgefiltert, die bereits im
     lokalen Musikarchiv vorhanden sind.
 
     Returns:
         list[dict]: Liste von Alben mit Schlüsseln:
             - "title" (str): Titel des Albums
-            - "author" (str): Künstler/in oder Band
+            - "author" (str): Künstler/in oder Band/Komponist
             - "type" (str): Immer "CD"
     """
     if os.path.exists(ALBUMS_FILE):
@@ -154,14 +156,20 @@ def load_or_fetch_albums():
             albums = json.load(f)
         print(f"DEBUG: {len(albums)} Alben aus Cache geladen.")
     else:
-        # TODO: Titel und Autor verdreht. müsste eigentlich a[1] und a[0] sein
-        # weiß aber nicht wozu das führt in nachfolgenden Schritten
-        # in der state.json wird jetzt der Autor gespeichert und dieser komplett abgelehnt
-        # und nicht das Album. das ist schlecht
+        # Radio Eins Alben laden
         albums = [{"title": a[1], "author": a[0], "type": "CD"} for a in fetch_radioeins_albums()]
         with open(ALBUMS_FILE, "w", encoding="utf-8") as f:
             json.dump(albums, f, ensure_ascii=False, indent=2)
         print(f"DEBUG: {len(albums)} Alben von Radioeins geladen und gespeichert.")
+
+        # Oscar-Filmmusik hinzufügen
+        print("DEBUG: Füge Oscar-Filmmusik hinzu...")
+        add_oscar_music_to_albums()
+
+        # Neu laden nach Oscar-Update
+        with open(ALBUMS_FILE, "r", encoding="utf-8") as f:
+            albums = json.load(f)
+        print(f"DEBUG: {len(albums)} Alben nach Oscar-Update geladen.")
 
     albums = filter_existing_albums(albums, "H:\\MP3 Archiv")
 

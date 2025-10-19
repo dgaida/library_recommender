@@ -1,5 +1,6 @@
 import random
 from .state import AppState
+from utils.blacklist import get_blacklist
 
 
 class Recommender:
@@ -14,6 +15,7 @@ class Recommender:
     def __init__(self, library_search, state: AppState):
         self.library_search = library_search
         self.state = state
+        self.blacklist = get_blacklist()
 
     def _pick_available_items(self, items, category, n=4, verbose=False):
         """
@@ -29,6 +31,12 @@ class Recommender:
         """
         results = []
         for item in items:
+            # NEU: Überspringe, wenn geblacklistet
+            if self.blacklist.is_blacklisted(category, item):
+                if verbose:
+                    print(f"DEBUG: ignore {item['title']} because it's blacklisted")
+                continue
+
             # Überspringe, wenn schon vorgeschlagen
             if self.state.is_already_suggested(category, item):
                 if verbose:
@@ -44,6 +52,16 @@ class Recommender:
 
             # Suche in Bibliothek
             hits = self.library_search.search(query)
+
+            # NEU: KEINE TREFFER → Blacklist
+            if not hits or len(hits) == 0:
+                print(f"⚫ Keine Treffer für '{item['title']}' - wird geblacklistet")
+                self.blacklist.add_to_blacklist(
+                    category,
+                    item,
+                    reason="Keine Treffer in Bibliothekskatalog"
+                )
+                continue
 
             # Prüfen, ob verfügbar (nur auf zentralbibliothek_info)
             available = [

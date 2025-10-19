@@ -180,7 +180,7 @@ def fetch_oscar_best_picture_winners(url="https://de.wikipedia.org/wiki/Oscar/Be
                 "producer": producer,
                 "title": title,
                 "url": film_url,
-                "type": "Oscar Bester Film"
+                "type": "DVD"
             })
 
     print(f"DEBUG: {len(results)} Oscar-Gewinnerfilme gefunden.")
