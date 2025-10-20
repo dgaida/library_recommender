@@ -1,6 +1,7 @@
 import gradio as gr
 import os
 import json
+import re
 from library.search import KoelnLibrarySearch
 from recommender.recommender import Recommender
 from recommender.state import AppState
@@ -8,7 +9,7 @@ from data_sources.films import fetch_wikipedia_titles
 from data_sources.fbw_films import fetch_fbw_films, fetch_oscar_best_picture_winners
 from data_sources.oscar_music import add_oscar_music_to_albums
 
-from utils.sources import format_source_for_display, SOURCE_RADIO_EINS_TOP_100, get_source_emoji
+from utils.sources import format_source_for_display, SOURCE_RADIO_EINS_TOP_100, get_source_emoji, SOURCE_NYT_CANON
 from data_sources.mp3_analysis import add_top_artist_albums_to_collection
 
 from data_sources.albums import fetch_radioeins_albums
@@ -60,7 +61,7 @@ def load_or_fetch_books():
                 "author": t["author"],
                 "type": "Buch",
                 "description": t["description"],
-                "source": t.get("source", "New York Times Kanon 21. Jahrhundert")
+                "source": t.get("source", SOURCE_NYT_CANON)
             })
 
         # Ratgeber hinzufügen
@@ -235,6 +236,31 @@ def get_n_suggestions(category, n=4):
     return suggestions if suggestions else []
 
 
+def remove_emoji(text):
+    """
+    Entfernt Emojis am Anfang eines Strings.
+
+    Args:
+        text (str): String möglicherweise mit Emoji
+
+    Returns:
+        str: String ohne Emoji
+    """
+    # Regex für Emojis (vereinfacht)
+    emoji_pattern = re.compile(
+        "["
+        "\U0001F300-\U0001F9FF"  # Symbole & Piktogramme
+        "\U0001F600-\U0001F64F"  # Emoticons
+        "\U0001F680-\U0001F6FF"  # Transport & Karten
+        "\U0001F1E0-\U0001F1FF"  # Flaggen
+        "\U00002702-\U000027B0"  # Dingbats
+        "\U000024C2-\U0001F251"
+        "]+",
+        flags=re.UNICODE
+    )
+    return emoji_pattern.sub('', text).strip()
+
+
 def on_selection_change(selected_items, category):
     """Wird aufgerufen, wenn Items in der Liste ausgewählt werden"""
     if not selected_items:
@@ -247,12 +273,17 @@ def on_selection_change(selected_items, category):
     suggestions = current_suggestions.get(category, [])
 
     for selected_item in selected_items:
+        # NEU: Entferne Emojis für Vergleich
+        selected_item_clean = remove_emoji(selected_item)
+
         for s in suggestions:
             display_text = f"{s['title']}"
             if s.get('author'):
                 display_text += f" - {s['author']}"
 
-            if display_text == selected_item:
+            if display_text == selected_item_clean:
+                print("**", s, "**")
+
                 detail_text += f"• {s['title']}"
                 if s.get('author'):
                     detail_text += f"\n  Autor/Künstler: {s['author']}"
@@ -322,12 +353,15 @@ def reject_selected(selected_items, category):
 
     # Identifiziere alle zu entfernenden Items
     for selected_item in selected_items:
+        # NEU: Entferne Emojis für Vergleich
+        selected_item_clean = remove_emoji(selected_item)
+
         for i, s in enumerate(suggestions):
             display_text = f"{s['title']}"
             if s.get('author'):
                 display_text += f" - {s['author']}"
 
-            if display_text == selected_item:
+            if display_text == selected_item_clean:
                 rejected_titles.append(s['title'])
                 indices_to_remove.append(i)
                 # Lehne das Item ab
@@ -352,6 +386,11 @@ def reject_selected(selected_items, category):
         display_text = f"{s['title']}"
         if s.get('author'):
             display_text += f" - {s['author']}"
+        # Emoji hinzufügen
+        if s.get('source'):
+            emoji = get_source_emoji(s['source'])
+            if emoji:
+                display_text = f"{emoji} {display_text}"
         choices.append(display_text)
 
     rejected_text = "', '".join(rejected_titles)
@@ -441,14 +480,17 @@ def get_initial_choices(suggestions):
 
     choices = []
     for s in suggestions:
+        print("***", s, "***")
         display_text = f"{s['title']}"
         if s.get('author'):
             display_text += f" - {s['author']}"
         # Emoji am Anfang
         if s.get('source'):
             emoji = get_source_emoji(s['source'])
+            print("<<<", emoji, ">>>")
             if emoji:
                 display_text = f"{emoji} {display_text}"
+        print("<<<", display_text, ">>>")
         choices.append(display_text)
     return choices
 

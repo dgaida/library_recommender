@@ -73,9 +73,14 @@ class Recommender:
                 # alle Verfügbarkeits-Infos zusammenfassen
                 infos = [h["zentralbibliothek_info"] for h in hits if "zentralbibliothek_info" in h]
 
-                item['bib_number'] = f"{', '.join(infos)}"
-                # als String speichern
-                results.append(item)
+                # WICHTIG: Kopiere das Item und füge bib_number hinzu
+                result_item = item.copy()  # NEU: .copy() um Original nicht zu ändern
+                result_item['bib_number'] = f"{', '.join(infos)}"
+
+                # NEU: Behalte source-Eigenschaft bei (falls vorhanden)
+                # (wird automatisch durch .copy() übernommen)
+
+                results.append(result_item)
 
                 self.state.mark_suggested(category, item)
 
