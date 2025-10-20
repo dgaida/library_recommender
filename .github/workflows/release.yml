@@ -1,0 +1,100 @@
+name: Create Release
+
+on:
+  push:
+    tags:
+      - 'v*'  # Triggert bei Tags wie v1.0.0, v2.0.0, etc.
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-release:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.10'
+    
+    - name: Get version from tag
+      id: get_version
+      run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+    
+    - name: Create Release Archive
+      run: |
+        # Erstelle Release-Verzeichnis
+        mkdir -p release/library-recommender-${{ steps.get_version.outputs.VERSION }}
+        
+        # Kopiere alle notwendigen Dateien
+        cp -r data_sources gui library preprocessing recommender utils release/library-recommender-${{ steps.get_version.outputs.VERSION }}/
+        cp main.py requirements.txt environment.yaml README.md LICENSE .gitignore release/library-recommender-${{ steps.get_version.outputs.VERSION }}/
+        
+        # Erstelle data-Verzeichnis (leer, wird von App erstellt)
+        mkdir -p release/library-recommender-${{ steps.get_version.outputs.VERSION }}/data
+        echo "Dieses Verzeichnis wird automatisch von der App gefüllt." > release/library-recommender-${{ steps.get_version.outputs.VERSION }}/data/README.txt
+        
+        # Erstelle secrets.env Template
+        echo "# Groq API Key für Google-Suche (optional)" > release/library-recommender-${{ steps.get_version.outputs.VERSION }}/secrets.env.template
+        echo "# Erstellen Sie einen kostenlosen Account auf https://groq.com" >> release/library-recommender-${{ steps.get_version.outputs.VERSION }}/secrets.env.template
+        echo "GROQ_API_KEY=gsk_your_api_key_here" >> release/library-recommender-${{ steps.get_version.outputs.VERSION }}/secrets.env.template
+        
+        # Erstelle ZIP-Archive
+        cd release
+        zip -r library-recommender-${{ steps.get_version.outputs.VERSION }}.zip library-recommender-${{ steps.get_version.outputs.VERSION }}
+        tar -czf library-recommender-${{ steps.get_version.outputs.VERSION }}.tar.gz library-recommender-${{ steps.get_version.outputs.VERSION }}
+    
+    - name: Extract Changelog
+      id: changelog
+      run: |
+        # Extrahiere Release Notes aus README
+        VERSION=${{ steps.get_version.outputs.VERSION }}
+        echo "Extracting changelog for version $VERSION"
+        
+        # Erstelle Changelog-Datei
+        cat > RELEASE_NOTES.md << 'EOF'
+        ## 🎬📀📚 Bibliothek-Empfehlungs-App v${{ steps.get_version.outputs.VERSION }}
+        
+        Eine intelligente Empfehlungs-App für die Stadtbibliothek Köln.
+        
+        ### ✨ Highlights dieser Version
+        
+        - 🎵 **Personalisierte Musikempfehlungen** basierend auf deinem MP3-Archiv
+        - 🏆 **Oscar-Filmmusik** Integration
+        - 📚 **Ratgeber-Kategorie** mit den besten Sachbüchern
+        - ⚫ **Intelligente Blacklist** für Performance-Optimierung
+        - 🏷️ **Quellen-Tracking** mit Emoji-Kennzeichnung
+        - 🔍 **KI-Powered Google-Suche** mit automatischer Zusammenfassung
+        
+        ### 📦 Installation
+        
+        1. Archiv herunterladen und entpacken
+        2. `pip install -r requirements.txt`
+        3. Optional: `secrets.env` aus Template erstellen und Groq API Key eintragen
+        4. `python main.py`
+        
+        ### 📖 Dokumentation
+        
+        Vollständige Dokumentation in der [README.md](https://github.com/${{ github.repository }}/blob/main/README.md)
+        
+        ### 🐛 Bekannte Probleme
+        
+        Keine kritischen Probleme bekannt. Bei Fragen Issues auf GitHub erstellen.
+        EOF
+    
+    - name: Create GitHub Release
+      uses: softprops/action-gh-release@v1
+      with:
+        name: Release v${{ steps.get_version.outputs.VERSION }}
+        body_path: RELEASE_NOTES.md
+        files: |
+          release/library-recommender-${{ steps.get_version.outputs.VERSION }}.zip
+          release/library-recommender-${{ steps.get_version.outputs.VERSION }}.tar.gz
+        draft: false
+        prerelease: false
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
