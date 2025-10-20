@@ -4,7 +4,7 @@ channels:
   - defaults
 dependencies:
   # Python Version
-  - python=3.9
+  - python=3.10
   
   # Web Scraping und HTTP Requests
   - requests=2.31.*
@@ -20,16 +20,8 @@ dependencies:
   - selenium=4.15.*  # Falls JavaScript-Heavy Seiten
   - fake-useragent=1.4.*  # Für realistische User-Agents
   
-  # Data Handling (falls erweiterte Funktionen gewünscht)
-  # - pandas=2.1.*
-  # - numpy=1.24.*
-  
   # Logging und Debugging
   - colorama=0.4.*  # Für farbige Konsolenausgaben
-  
-  # Optional: Jupyter für interaktive Entwicklung
-  # - jupyter=1.0.*
-  # - ipykernel=6.25.*
   
   # Weitere hilfreiche Tools
   - tqdm=4.66.*  # Progress bars
@@ -39,10 +31,3 @@ dependencies:
   - pip
   - pip:
     - requests-html  # Alternative für JavaScript-Heavy Sites
-    # - playwright  # Modern web automation (optional)
-
-# Entwicklungsumgebung (optional - kann auskommentiert werden)
-# - pytest=7.4.*
-# - pytest-cov=4.1.*
-# - black=23.9.*
-# - flake8=6.1.*
