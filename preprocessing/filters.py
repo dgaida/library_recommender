@@ -10,16 +10,16 @@ from library.parsers import fuzzy_match, create_search_variants
 
 def filter_existing_albums(albums, base_path="H:\\MP3 Archiv", verbose=False):
     """
-    Filtert bereits existierende Alben aus einer Liste von (Band, Album) Tupeln.
+    Filtert bereits existierende Alben aus einer Liste von dict-Objekten.
     Verwendet erweiterte Normalisierung um Füllwörter wie "the" zu ignorieren.
 
     Args:
-        albums (list): Liste von Tupeln in der Form (band, album)
+        albums (list): Liste von Dicts in der Form [{'author': ..., 'title': ..., 'source': ...}]
         base_path (str): Basispfad zum MP3-Archiv
-        verbose (bool):
+        verbose (bool): Debug-Ausgaben
 
     Returns:
-        list: Gefilterte Liste ohne bereits vorhandene Alben
+        list: Gefilterte Liste ohne bereits vorhandene Alben (mit allen Properties)
     """
 
     if not albums:
@@ -58,7 +58,7 @@ def filter_existing_albums(albums, base_path="H:\\MP3 Archiv", verbose=False):
         # Verschiedene Suchvarianten erstellen
         search_variants = create_search_variants(band, album)
         if verbose:
-            print(f"  Suchvarianten: {search_variants[:3]}...")  # Zeige nur erste 3
+            print(f"  Suchvarianten: {search_variants[:3]}...")
 
         found = False
         matched_folder = None
@@ -85,7 +85,8 @@ def filter_existing_albums(albums, base_path="H:\\MP3 Archiv", verbose=False):
                     break
 
         if not found:
-            filtered_albums.append({"author": band, "title": album})
+            # WICHTIG: Original-Element mit ALLEN Eigenschaften übernehmen
+            filtered_albums.append(el)  # NEU: el statt neues Dict
             if verbose:
                 print(f"  ✗ NICHT GEFUNDEN")
 

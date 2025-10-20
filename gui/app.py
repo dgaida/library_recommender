@@ -282,7 +282,7 @@ def on_selection_change(selected_items, category):
                 display_text += f" - {s['author']}"
 
             if display_text == selected_item_clean:
-                print("**", s, "**")
+                # print("**", s, "**")
 
                 detail_text += f"• {s['title']}"
                 if s.get('author'):
@@ -480,17 +480,17 @@ def get_initial_choices(suggestions):
 
     choices = []
     for s in suggestions:
-        print("***", s, "***")
+        # print("***", s, "***")
         display_text = f"{s['title']}"
         if s.get('author'):
             display_text += f" - {s['author']}"
         # Emoji am Anfang
         if s.get('source'):
             emoji = get_source_emoji(s['source'])
-            print("<<<", emoji, ">>>")
+            # print("<<<", emoji, ">>>")
             if emoji:
                 display_text = f"{emoji} {display_text}"
-        print("<<<", display_text, ">>>")
+        # print("<<<", display_text, ">>>")
         choices.append(display_text)
     return choices
 
