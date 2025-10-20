@@ -1,0 +1,20 @@
+include README.md
+include LICENSE
+include CHANGELOG.md
+include requirements.txt
+include environment.yaml
+include secrets.env.template
+include version.py
+recursive-include data_sources *.py
+recursive-include gui *.py
+recursive-include library *.py
+recursive-include preprocessing *.py
+recursive-include recommender *.py
+recursive-include utils *.py
+global-exclude __pycache__
+global-exclude *.py[co]
+global-exclude .DS_Store
+global-exclude *.so
+global-exclude .git*
+prune tests
+prune .github

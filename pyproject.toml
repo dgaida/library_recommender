@@ -1,0 +1,62 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "library-recommender"
+version = "2.0.0"
+description = "Intelligente Empfehlungs-App für die Stadtbibliothek Köln"
+readme = "README.md"
+requires-python = ">=3.8"
+license = {text = "MIT"}
+keywords = ["bibliothek", "library", "empfehlungen", "recommendations", "köln"]
+authors = [
+    {name = "dgaida", email = "daniel.gaida@th-koeln.de"}
+]
+maintainers = [
+    {name = "dgaida", email = "daniel.gaida@th-koeln.de"}
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: End Users/Desktop",
+    "Topic :: Utilities",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Operating System :: OS Independent",
+    "Natural Language :: German",
+]
+
+dependencies = [
+    "gradio>=4.0.0",
+    "requests>=2.31.0",
+    "beautifulsoup4>=4.12.0",
+    "ddgs>=9.0.0",
+    "groq>=0.4.0",
+    "python-dotenv>=1.0.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0.0",
+    "pytest-cov>=4.0.0",
+    "black>=23.0.0",
+    "flake8>=6.0.0",
+    "mypy>=1.0.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/dgaida/library-recommender"
+Documentation = "https://github.com/dgaida/library-recommender#readme"
+Repository = "https://github.com/dgaida/library-recommender"
+"Bug Tracker" = "https://github.com/dgaida/library-recommender/issues"
+Changelog = "https://github.com/dgaida/library-recommender/blob/main/CHANGELOG.md"
+
+[project.scripts]
+library-recommender = "main:main"
+
+[tool.setuptools]
+packages = ["data_sources", "gui", "library", "preprocessing", "recommender", "utils"]
