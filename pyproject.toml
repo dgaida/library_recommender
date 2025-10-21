@@ -60,3 +60,26 @@ library-recommender = "main:main"
 
 [tool.setuptools]
 packages = ["data_sources", "gui", "library", "preprocessing", "recommender", "utils"]
+
+[tool.black]
+line-length = 127
+target-version = ['py38', 'py39', 'py310', 'py311']
+include = '\.pyi?$'
+exclude = '''
+/(
+    \.git
+  | \.mypy_cache
+  | \.pytest_cache
+  | \.venv
+  | venv
+  | build
+  | dist
+)/
+'''
+
+[tool.mypy]
+python_version = "3.8"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = false
+ignore_missing_imports = true

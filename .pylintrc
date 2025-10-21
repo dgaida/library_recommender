@@ -1,0 +1,16 @@
+# ============================================================================
+# .pylintrc (auszugsweise wichtige Einstellungen)
+# ============================================================================
+[MASTER]
+ignore=tests,venv,.venv
+jobs=4
+
+[MESSAGES CONTROL]
+disable=
+    C0111,  # missing-docstring
+    C0103,  # invalid-name
+    R0913,  # too-many-arguments
+    R0914,  # too-many-locals
+
+[FORMAT]
+max-line-length=127
