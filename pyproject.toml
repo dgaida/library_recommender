@@ -7,7 +7,7 @@ name = "library-recommender"
 version = "2.0.0"
 description = "Intelligente Empfehlungs-App für die Stadtbibliothek Köln"
 readme = "README.md"
-requires-python = ">=3.8"
+requires-python = ">=3.9"
 license = {text = "MIT"}
 keywords = ["bibliothek", "library", "empfehlungen", "recommendations", "köln"]
 authors = [
@@ -22,7 +22,6 @@ classifiers = [
     "Topic :: Utilities",
     "License :: OSI Approved :: MIT License",
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.8",
     "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",

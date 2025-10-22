@@ -2,7 +2,7 @@
 
 Eine intelligente Empfehlungs-App für die **Stadtbibliothek Köln**, die verfügbare Filme, Alben und Bücher basierend auf kuratierten Listen hochwertiger Medien vorschlägt.
 
-![Python](https://img.shields.io/badge/python-3.8+-blue.svg)
+![Python](https://img.shields.io/badge/python-3.9+-blue.svg)
 ![Gradio](https://img.shields.io/badge/gradio-4.0+-green.svg)
 ![License](https://img.shields.io/badge/license-MIT-blue.svg)
 
@@ -67,7 +67,7 @@ Hochwertige Literatur aus:
 ## 🚀 Installation
 
 ### Voraussetzungen
-- Python 3.8 oder höher
+- Python 3.9 oder höher
 - Internetverbindung für Bibliothekskatalog und Google-Suche
 
 ### 1. Repository klonen
