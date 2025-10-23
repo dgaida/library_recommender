@@ -175,7 +175,7 @@ Danke an alle, die Issues gemeldet und Feature-Requests eingereicht haben!
 
 ## Links
 
-- [GitHub Repository](https://github.com/dgaida/library-recommender)
-- [Issue Tracker](https://github.com/dgaida/library-recommender/issues)
-- [Releases](https://github.com/dgaida/library-recommender/releases)
+- [GitHub Repository](https://github.com/dgaida/library_recommender)
+- [Issue Tracker](https://github.com/dgaida/library_recommender/issues)
+- [Releases](https://github.com/dgaida/library_recommender/releases)
 - [Stadtbibliothek Köln](https://www.stbib-koeln.de/)

@@ -75,8 +75,8 @@ Hochwertige Literatur aus:
 
 ### 1. Repository klonen
 ```bash
-git clone https://github.com/dgaida/library-recommender.git
-cd library-recommender
+git clone https://github.com/dgaida/library_recommender.git
+cd library_recommender
 ```
 
 ### 2. Abhängigkeiten installieren
@@ -149,7 +149,7 @@ Die App öffnet sich automatisch im Browser unter `http://localhost:7860`
 ## 📁 Projektstruktur
 
 ```
-library-recommender/
+library_recommender/
 ├── main.py                        # Hauptanwendung (Gradio UI)
 ├── requirements.txt               # Python-Abhängigkeiten
 ├── environment.yaml               # Anaconda Umgebung
