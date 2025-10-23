@@ -49,10 +49,6 @@ def fetch_books_from_site():
             if para:
                 description = para.get_text(" ", strip=True)
 
-        books.append({
-            "title": title,
-            "author": author,
-            "description": description
-        })
+        books.append({"title": title, "author": author, "description": description})
 
     return books

@@ -25,8 +25,8 @@ def fetch_wikipedia_titles():
 
     headers = {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
-                      "AppleWebKit/537.36 (KHTML, like Gecko) "
-                      "Chrome/122.0.0.0 Safari/537.36"
+        "AppleWebKit/537.36 (KHTML, like Gecko) "
+        "Chrome/122.0.0.0 Safari/537.36"
     }
     response = requests.get(url, headers=headers, timeout=15)
     response.raise_for_status()
@@ -73,11 +73,7 @@ def fetch_wikipedia_titles():
             german_title = cells[idx_deutscher_titel - 1].get_text(strip=True)
             regisseur = cells[idx_deutscher_titel].get_text(strip=True)
             if german_title:
-                titles.append({
-                    "title": german_title,
-                    "regie": regisseur,
-                    "source": SOURCE_BBC_100_FILMS
-                })
+                titles.append({"title": german_title, "regie": regisseur, "source": SOURCE_BBC_100_FILMS})
 
     print(f"DEBUG: Insgesamt {len(titles)} deutsche Titel extrahiert.")
     return titles
@@ -99,9 +95,9 @@ def search_wikipedia_titles_in_library():
         # if i > 5:  # aktuell auf 5 Titel begrenzt
         #     break
         print(f"\n### Suche {i}/{len(titles)}: {title} ###")
-        results = search_engine.advanced_search(title['title'], author=title['regie'])
+        results = search_engine.advanced_search(title["title"], author=title["regie"])
         search_engine.display_results(results)
-        all_results[title['title']] = results
+        all_results[title["title"]] = results
         print("Warte 5 Sekunden, um Server nicht zu überlasten...")
         time.sleep(5)  # Pause, um den Server nicht zu überlasten
 

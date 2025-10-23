@@ -100,7 +100,7 @@ def fetch_fbw_films(max_pages=5, delay=1.0):
                 "description": description,
                 "url": link,
                 "type": "DVD",
-                "source": SOURCE_FBW_EXCEPTIONAL
+                "source": SOURCE_FBW_EXCEPTIONAL,
             }
             all_films.append(film_info)
 
@@ -135,9 +135,7 @@ def fetch_oscar_best_picture_winners(url="https://de.wikipedia.org/wiki/Oscar/Be
     """
     headers = {
         "User-Agent": (
-            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
-            "AppleWebKit/537.36 (KHTML, like Gecko) "
-            "Chrome/130.0 Safari/537.36"
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) " "AppleWebKit/537.36 (KHTML, like Gecko) " "Chrome/130.0 Safari/537.36"
         )
     }
 
@@ -177,14 +175,16 @@ def fetch_oscar_best_picture_winners(url="https://de.wikipedia.org/wiki/Oscar/Be
             href = film_link.get("href")
             film_url = base_url + href if href else None
 
-            results.append({
-                "year": year,
-                "producer": producer,
-                "title": title,
-                "url": film_url,
-                "type": "DVD",
-                "source": SOURCE_OSCAR_BEST_PICTURE
-            })
+            results.append(
+                {
+                    "year": year,
+                    "producer": producer,
+                    "title": title,
+                    "url": film_url,
+                    "type": "DVD",
+                    "source": SOURCE_OSCAR_BEST_PICTURE,
+                }
+            )
 
     print(f"DEBUG: {len(results)} Oscar-Gewinnerfilme gefunden.")
     return results

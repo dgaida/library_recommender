@@ -25,7 +25,7 @@ def main():
         try:
             search_term = input("\nGeben Sie einen Suchbegriff ein (oder 'quit' zum Beenden): ").strip()
 
-            if search_term.lower() in ['quit', 'exit', 'q']:
+            if search_term.lower() in ["quit", "exit", "q"]:
                 print("Auf Wiedersehen!")
                 break
 
@@ -42,15 +42,9 @@ def main():
 
             choice = input("Ihre Wahl (1-4, Enter für Standard): ").strip()
 
-            search_types = {
-                '1': 'all',
-                '2': 'title',
-                '3': 'author',
-                '4': 'subject',
-                '': 'all'
-            }
+            search_types = {"1": "all", "2": "title", "3": "author", "4": "subject", "": "all"}
 
-            search_type = search_types.get(choice, 'all')
+            search_type = search_types.get(choice, "all")
 
             # Suche durchführen
             results = search_engine.search(search_term, search_type)

@@ -51,7 +51,7 @@ def filter_existing_albums(albums, base_path="H:\\MP3 Archiv", verbose=False):
 
     # Jedes Album in der Liste prüfen
     for el in albums:
-        band, album = el['author'], el['title']
+        band, album = el["author"], el["title"]
         if verbose:
             print(f"\nSuche nach: '{band} - {album}'")
 
@@ -107,7 +107,7 @@ def filter_existing_albums(albums, base_path="H:\\MP3 Archiv", verbose=False):
     if filtered_albums and verbose:
         print(f"\nFEHLENDE ALBEN:")
         for el in filtered_albums:
-            band, album = el['author'], el['title']
+            band, album = el["author"], el["title"]
             print(f"  ✗ {band} - {album}")
 
     return filtered_albums
@@ -131,9 +131,9 @@ def get_album_statistics(albums, base_path="H:\\MP3 Archiv"):
     found_count = original_count - filtered_count
 
     return {
-        'original_count': original_count,
-        'found_count': found_count,
-        'missing_count': filtered_count,
-        'found_percentage': (found_count / original_count * 100) if original_count > 0 else 0,
-        'missing_albums': filtered_albums
+        "original_count": original_count,
+        "found_count": found_count,
+        "missing_count": filtered_count,
+        "found_percentage": (found_count / original_count * 100) if original_count > 0 else 0,
+        "missing_albums": filtered_albums,
     }

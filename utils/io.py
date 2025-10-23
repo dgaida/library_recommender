@@ -70,7 +70,7 @@ def save_recommendations_to_markdown(recommendations, filename="recommended.md")
         categories = {
             "films": ("🎬 Filme", "Film", "Regie"),
             "albums": ("🎵 Musik/Alben", "Album", "Künstler"),
-            "books": ("📚 Bücher", "Buch", "Autor")
+            "books": ("📚 Bücher", "Buch", "Autor"),
         }
 
         total_items = sum(len(items) for items in recommendations.values())
@@ -100,17 +100,17 @@ def save_recommendations_to_markdown(recommendations, filename="recommended.md")
             for i, item in enumerate(items, 1):
                 f.write(f"### {i}. {item['title']}\n")
 
-                if item.get('author'):
+                if item.get("author"):
                     f.write(f"- **{author_label}:** {item['author']}\n")
 
-                if item.get('bib_number'):
+                if item.get("bib_number"):
                     f.write(f"- **Verfügbarkeit:** {item['bib_number']}\n")
 
                 # Zusätzliche Informationen falls vorhanden
-                if item.get('year'):
+                if item.get("year"):
                     f.write(f"- **Jahr:** {item['year']}\n")
 
-                if item.get('genre'):
+                if item.get("genre"):
                     f.write(f"- **Genre:** {item['genre']}\n")
 
                 f.write("\n")
@@ -120,7 +120,8 @@ def save_recommendations_to_markdown(recommendations, filename="recommended.md")
         # Fußzeile
         f.write("## ℹ️ Hinweise\n\n")
         f.write(
-            "- Die Verfügbarkeit kann sich schnell ändern. Bitte prüfen Sie die aktuelle Verfügbarkeit direkt im Katalog.\n")
+            "- Die Verfügbarkeit kann sich schnell ändern. Bitte prüfen Sie die aktuelle Verfügbarkeit direkt im Katalog.\n"
+        )
         f.write("- Diese Empfehlungen basieren auf kuratierten Listen hochwertiger Medien.\n")
         f.write("- Weitere Informationen finden Sie auf der Website der Stadtbibliothek Köln.\n\n")
         f.write("**🌐 Katalog:** https://katalog.stbib-koeln.de\n\n")

@@ -18,9 +18,11 @@ class KoelnLibrarySearch:
         self.search_url = f"{self.base_url}/alswww2.dll/APS_ZONES"
         self.session = requests.Session()
         # User-Agent setzen, um wie ein normaler Browser zu erscheinen
-        self.session.headers.update({
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
-        })
+        self.session.headers.update(
+            {
+                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
+            }
+        )
 
     def advanced_search(self, title=None, author=None, subject=None, year=None, page_size=20):
         """
@@ -105,6 +107,7 @@ class KoelnLibrarySearch:
         except Exception as e:
             print(f"FEHLER in advanced_search: {e}")
             import traceback
+
             traceback.print_exc()
             return []
 
@@ -161,16 +164,16 @@ class KoelnLibrarySearch:
         # Korrigierte Parameter basierend auf der ursprünglichen HTML-Form.
         # Die Original-Form verwendet einen anderen Objektnamen
         params = {
-            'Style': 'Portal3',
-            'SubStyle': '',
-            'Lang': 'GER',
-            'ResponseEncoding': 'utf-8',
-            'Method': 'QueryWithLimits',
-            'SearchType': 'QuickSearch',
-            'DB': 'SearchServer',
-            'SubDB': '',
-            'q.Query': search_term,
-            'q.PageSize': '20'
+            "Style": "Portal3",
+            "SubStyle": "",
+            "Lang": "GER",
+            "ResponseEncoding": "utf-8",
+            "Method": "QueryWithLimits",
+            "SearchType": "QuickSearch",
+            "DB": "SearchServer",
+            "SubDB": "",
+            "q.Query": search_term,
+            "q.PageSize": "20",
         }
 
         try:
@@ -184,11 +187,7 @@ class KoelnLibrarySearch:
                 print(f"DEBUG: Vollständige URL: {full_url}")
 
             # Suche durchführen
-            search_response = self.session.get(
-                search_url,
-                params=params,
-                timeout=15
-            )
+            search_response = self.session.get(search_url, params=params, timeout=15)
             search_response.raise_for_status()
 
             if verbose:
@@ -209,11 +208,7 @@ class KoelnLibrarySearch:
                     print("DEBUG: Anscheinend wieder auf Startseite gelandet - versuche POST-Request")
 
                     # Versuche POST statt GET
-                    search_response = self.session.post(
-                        search_url,
-                        data=params,
-                        timeout=15
-                    )
+                    search_response = self.session.post(search_url, data=params, timeout=15)
                     search_response.raise_for_status()
                     print(f"DEBUG: POST Status Code: {search_response.status_code}")
 
@@ -247,6 +242,7 @@ class KoelnLibrarySearch:
         except Exception as e:
             print(f"UNERWARTETER FEHLER: {e}")
             import traceback
+
             traceback.print_exc()
             return []
 
@@ -264,18 +260,17 @@ class KoelnLibrarySearch:
         if verbose:
             print(f"DEBUG: Rufe zuerst die Hauptseite auf für fn={fn}...")
         main_response = self.safe_get(
-            f"{self.search_url}?fn={fn}&Style=Portal3&SubStyle=&Lang=GER&ResponseEncoding=utf-8",
-            timeout=15
+            f"{self.search_url}?fn={fn}&Style=Portal3&SubStyle=&Lang=GER&ResponseEncoding=utf-8", timeout=15
         )
         main_response.raise_for_status()
         if verbose:
             print(f"DEBUG: Hauptseite Status: {main_response.status_code}")
 
         # Suche nach dem Objektnamen in der HTML-Datei
-        soup = BeautifulSoup(main_response.text, 'html.parser')
-        form = soup.find('form', {'name': 'ExpertSearch'})
+        soup = BeautifulSoup(main_response.text, "html.parser")
+        form = soup.find("form", {"name": "ExpertSearch"})
         if form:
-            action = form.get('action')
+            action = form.get("action")
             if action:
                 if verbose:
                     print(f"DEBUG: Form Action gefunden: {action}")
@@ -303,41 +298,41 @@ class KoelnLibrarySearch:
         Returns:
             list: Liste der extrahierten Ergebnisse
         """
-        soup = BeautifulSoup(html_content, 'html.parser')
+        soup = BeautifulSoup(html_content, "html.parser")
         results = []
 
         print("DEBUG: Starte Parsing der Suchergebnisse...")
 
         # Basierend auf der HTML-Struktur der Stadtbibliothek Köln
         # Suche nach Tabellenzellen mit Suchergebnissen
-        result_items = soup.find_all('td', class_=['SummaryDataCell', 'SummaryDataCellStripe'])
+        result_items = soup.find_all("td", class_=["SummaryDataCell", "SummaryDataCellStripe"])
 
         if verbose:
             print(f"DEBUG: Gefunden {len(result_items)} Elemente mit SummaryDataCell Klassen")
 
         if not result_items:
             # Fallback: Suche nach anderen möglichen Strukturen
-            result_items = soup.find_all('tr', class_=lambda x: x and ('summary' in x.lower() or 'result' in x.lower()))
+            result_items = soup.find_all("tr", class_=lambda x: x and ("summary" in x.lower() or "result" in x.lower()))
             print(f"DEBUG: Fallback 1: Gefunden {len(result_items)} TR-Elemente mit summary/result Klassen")
 
         # Wenn keine spezifischen Klassen gefunden werden, suche nach Tabellen mit Links
         if not result_items:
-            tables = soup.find_all('table')
+            tables = soup.find_all("table")
             if verbose:
                 print(f"DEBUG: Gefunden {len(tables)} Tabellen")
             for i, table in enumerate(tables):
-                rows = table.find_all('tr')
+                rows = table.find_all("tr")
                 if verbose:
                     print(f"DEBUG: Tabelle {i + 1} hat {len(rows)} Zeilen")
                 for j, row in enumerate(rows):
-                    links = row.find_all('a', class_='SummaryFieldLink')
+                    links = row.find_all("a", class_="SummaryFieldLink")
                     if links:
                         if verbose:
                             print(f"DEBUG: Zeile {j + 1} in Tabelle {i + 1} hat {len(links)} SummaryFieldLink-Links")
                         result_items.append(row)
                     else:
                         # Suche nach beliebigen Links
-                        any_links = row.find_all('a', href=True)
+                        any_links = row.find_all("a", href=True)
                         if any_links:
                             print(f"DEBUG: Zeile {j + 1} in Tabelle {i + 1} hat {len(any_links)} beliebige Links")
                             # Prüfe, ob es wie ein Suchergebnis aussieht
@@ -390,11 +385,11 @@ class KoelnLibrarySearch:
 
             detail_response.raise_for_status()
 
-            soup = BeautifulSoup(detail_response.text, 'html.parser')
+            soup = BeautifulSoup(detail_response.text, "html.parser")
             availability_info = {}
 
             # Methode 1: Suche nach div-Elementen mit "stock_header_" ID
-            stock_headers = soup.find_all('div', id=lambda x: x and 'stock_header' in x)
+            stock_headers = soup.find_all("div", id=lambda x: x and "stock_header" in x)
 
             if verbose:
                 print(f"DEBUG: Gefunden {len(stock_headers)} stock_header divs")
@@ -405,27 +400,37 @@ class KoelnLibrarySearch:
                 if verbose:
                     print(f"DEBUG: Stock Header: {location_text}")
 
-                if any(loc in location_text.lower() for loc in
-                       ['zentralbibliothek', 'ehrenfeld', 'kalk', 'nippes', 'rodenkirchen', 'chorweiler', 'mülheim',
-                        'porz']):
+                if any(
+                    loc in location_text.lower()
+                    for loc in [
+                        "zentralbibliothek",
+                        "ehrenfeld",
+                        "kalk",
+                        "nippes",
+                        "rodenkirchen",
+                        "chorweiler",
+                        "mülheim",
+                        "porz",
+                    ]
+                ):
                     # Suche nach dem nachfolgenden Inhalt
                     next_siblings = []
                     current = header_div.next_sibling
 
                     # Sammle alle nachfolgenden Geschwisterelemente bis zum nächsten Header
                     while current:
-                        if hasattr(current, 'get_text'):
+                        if hasattr(current, "get_text"):
                             text = current.get_text(strip=True)
                             if text and not (
-                                    hasattr(current, 'get') and current.get('id') and 'stock_header' in current.get(
-                                    'id')):
+                                hasattr(current, "get") and current.get("id") and "stock_header" in current.get("id")
+                            ):
                                 # Filter: ignoriere JavaScript-Aufrufe
                                 if "documentManager" in text or "StockUpdateRequest" in text:
                                     if verbose:
                                         print("DEBUG: Ignoriere Script-Text:", text)
                                 else:
                                     next_siblings.append(text)
-                            elif hasattr(current, 'get') and current.get('id') and 'stock_header' in current.get('id'):
+                            elif hasattr(current, "get") and current.get("id") and "stock_header" in current.get("id"):
                                 break  # Nächster Header gefunden, stoppe
                         elif isinstance(current, str) and current.strip():
                             next_siblings.append(current.strip())
@@ -438,19 +443,18 @@ class KoelnLibrarySearch:
             # Methode 2: Falls Methode 1 nicht funktioniert, suche nach Tabellen
             if not availability_info:
                 print("DEBUG: Fallback - suche nach Tabellen mit Bestandsinfo")
-                tables = soup.find_all('table')
+                tables = soup.find_all("table")
                 for table in tables:
-                    rows = table.find_all('tr')
+                    rows = table.find_all("tr")
                     current_location = None
 
                     for row in rows:
-                        cells = row.find_all(['td', 'th'])
+                        cells = row.find_all(["td", "th"])
                         for cell in cells:
                             cell_text = cell.get_text(strip=True)
 
                             # Prüfe, ob es ein Standort-Header ist
-                            if any(loc in cell_text.lower() for loc in
-                                   ['zentralbibliothek', 'ehrenfeld', 'kalk', 'nippes']):
+                            if any(loc in cell_text.lower() for loc in ["zentralbibliothek", "ehrenfeld", "kalk", "nippes"]):
                                 current_location = cell_text
                                 availability_info[current_location] = []
                                 print(f"DEBUG: Tabellen-Standort gefunden: {current_location}")
@@ -463,14 +467,13 @@ class KoelnLibrarySearch:
             # Methode 3: Suche nach allem was nach "Bestand" Header kommt
             if not availability_info:
                 print("DEBUG: Fallback - suche nach Bestand-Text")
-                bestand_headers = soup.find_all(string=lambda text: text and 'bestand' in text.lower())
+                bestand_headers = soup.find_all(string=lambda text: text and "bestand" in text.lower())
 
                 for header in bestand_headers:
                     parent = header.parent
                     if parent:
                         # Finde alle nachfolgenden Elemente
-                        next_elements = parent.find_all_next(['div', 'td', 'p', 'span'])[
-                                        :20]  # Limitiere auf 20 Elemente
+                        next_elements = parent.find_all_next(["div", "td", "p", "span"])[:20]  # Limitiere auf 20 Elemente
 
                         current_location = None
                         for elem in next_elements:
@@ -478,13 +481,13 @@ class KoelnLibrarySearch:
 
                             # print("Methode 3: elem_text", elem_text)
 
-                            if any(loc in elem_text.lower() for loc in ['zentralbibliothek', 'ehrenfeld']):
+                            if any(loc in elem_text.lower() for loc in ["zentralbibliothek", "ehrenfeld"]):
                                 current_location = elem_text
                                 availability_info[current_location] = []
                                 print(f"DEBUG: Bestand-Standort gefunden: {current_location}")
                             elif current_location and elem_text and len(elem_text) > 5:
                                 # Stoppe bei nächstem Standort
-                                if not any(loc in elem_text.lower() for loc in ['zentralbibliothek', 'ehrenfeld']):
+                                if not any(loc in elem_text.lower() for loc in ["zentralbibliothek", "ehrenfeld"]):
                                     availability_info[current_location].append(elem_text)
                                     print(f"DEBUG: Bestand-Info für {current_location}: {elem_text[:50]}...")
 
@@ -495,6 +498,7 @@ class KoelnLibrarySearch:
         except Exception as e:
             print(f"DEBUG: Fehler beim Abrufen der Detailseite: {e}")
             import traceback
+
             traceback.print_exc()
             return {}
 
@@ -512,9 +516,9 @@ class KoelnLibrarySearch:
 
         # Suche nach Zentralbibliothek (verschiedene Schreibweisen)
         for location, info in availability.items():
-            if 'zentralbibliothek' in location.lower():
+            if "zentralbibliothek" in location.lower():
                 if isinstance(info, list):
-                    return ' '.join(info)
+                    return " ".join(info)
                 else:
                     return str(info)
 
@@ -534,15 +538,15 @@ class KoelnLibrarySearch:
         # Basierend auf der CSS-Klassen-Struktur der Stadtbibliothek Köln
 
         # Titel suchen - meist in Links mit der Klasse 'SummaryFieldLink'
-        title_elem = item.find('a', class_='SummaryFieldLink')
+        title_elem = item.find("a", class_="SummaryFieldLink")
         if not title_elem:
             # Fallback: Suche nach anderen Link-Elementen
-            title_elem = item.find('a', href=True)
+            title_elem = item.find("a", href=True)
 
         title = title_elem.get_text(strip=True) if title_elem else ""
         link = ""
-        if title_elem and title_elem.get('href'):
-            href = title_elem['href']
+        if title_elem and title_elem.get("href"):
+            href = title_elem["href"]
 
             # JavaScript-Links überspringen
             if href.strip().lower().startswith("javascript:"):
@@ -553,10 +557,10 @@ class KoelnLibrarySearch:
                 if "APS_PRESENT_BIB" in href and "alswww2.dll" not in href:
                     href = "/alswww2.dll/" + href.lstrip("/")
 
-                if href.startswith('/'):
+                if href.startswith("/"):
                     link = self.base_url + href
-                elif not href.startswith('http'):
-                    link = self.base_url + '/' + href
+                elif not href.startswith("http"):
+                    link = self.base_url + "/" + href
                 else:
                     link = href
                 if verbose:
@@ -569,29 +573,29 @@ class KoelnLibrarySearch:
         availability = "Unbekannt"
 
         # Suche nach Tabellenzellen mit Felddaten
-        field_cells = item.find_all('td', class_='SummaryFieldData')
+        field_cells = item.find_all("td", class_="SummaryFieldData")
         for cell in field_cells:
             text = cell.get_text(strip=True)
             if text:
                 # Heuristik zur Erkennung von Autoren (meist am Anfang, enthält Namen)
-                if ',' in text and len(text.split()) <= 4:
+                if "," in text and len(text.split()) <= 4:
                     if not author:
                         author = text
                 # Jahr erkennen (4 Ziffern)
-                year_match = re.search(r'\b(19|20)\d{2}\b', text)
+                year_match = re.search(r"\b(19|20)\d{2}\b", text)
                 if year_match and not year:
                     year = year_match.group()
 
         # Medientyp aus spezieller Zelle
-        material_elem = item.find('td', class_='SummaryMaterialTypeField')
+        material_elem = item.find("td", class_="SummaryMaterialTypeField")
         if material_elem:
             material_type = material_elem.get_text(strip=True)
 
         # Verfügbarkeit - oft in Action-Boxen oder speziellen Zellen
-        avail_elem = item.find('div', class_=['SummaryActionBox', 'SummaryActionLink'])
+        avail_elem = item.find("div", class_=["SummaryActionBox", "SummaryActionLink"])
         if avail_elem:
             avail_text = avail_elem.get_text(strip=True)
-            if any(word in avail_text.lower() for word in ['verfügbar', 'ausleihbar', 'vorbestellung']):
+            if any(word in avail_text.lower() for word in ["verfügbar", "ausleihbar", "vorbestellung"]):
                 availability = avail_text
 
         if title:
@@ -599,13 +603,13 @@ class KoelnLibrarySearch:
             # print("MY LOVE: " + zentralbibliothek_info)
 
             return {
-                'title': title,
-                'author': author,
-                'year': year,
-                'material_type': material_type,
-                'link': link,
-                'availability': availability,
-                'zentralbibliothek_info': zentralbibliothek_info
+                "title": title,
+                "author": author,
+                "year": year,
+                "material_type": material_type,
+                "link": link,
+                "availability": availability,
+                "zentralbibliothek_info": zentralbibliothek_info,
             }
 
         return None
@@ -627,16 +631,16 @@ class KoelnLibrarySearch:
 
         for i, result in enumerate(results, 1):
             print(f"{i}. {result['title']}")
-            if result['author']:
+            if result["author"]:
                 print(f"   Autor: {result['author']}")
-            if result['year']:
+            if result["year"]:
                 print(f"   Jahr: {result['year']}")
-            if result['material_type']:
+            if result["material_type"]:
                 print(f"   Medientyp: {result['material_type']}")
-            if result['availability'] != "Unbekannt":
+            if result["availability"] != "Unbekannt":
                 print(f"   Status: {result['availability']}")
-            if result.get('zentralbibliothek_info'):
+            if result.get("zentralbibliothek_info"):
                 print(f"   Zentralbibliothek: {result['zentralbibliothek_info']}")
-            if result['link']:
+            if result["link"]:
                 print(f"   Link: {result['link']}")
             print("-" * 100)

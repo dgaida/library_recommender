@@ -25,6 +25,7 @@ FEATURES = {
     "source_tracking": True,
 }
 
+
 def get_version_info():
     """Gibt vollständige Versionsinformationen zurück"""
     return {
@@ -34,8 +35,9 @@ def get_version_info():
         "author": __author__,
         "license": __license__,
         "description": __description__,
-        "features": FEATURES
+        "features": FEATURES,
     }
+
 
 def print_version_info():
     """Druckt Versionsinformationen auf der Konsole"""
@@ -48,6 +50,7 @@ def print_version_info():
     print(f"  Autor:        {__author__}")
     print(f"  Lizenz:       {__license__}")
     print(f"{'='*60}\n")
+
 
 if __name__ == "__main__":
     print_version_info()

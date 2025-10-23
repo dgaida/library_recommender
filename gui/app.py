@@ -56,23 +56,27 @@ def load_or_fetch_books():
 
         # Normale Bücher
         for t in books_data:
-            books.append({
-                "title": t["title"],
-                "author": t["author"],
-                "type": "Buch",
-                "description": t["description"],
-                "source": t.get("source", SOURCE_NYT_CANON)
-            })
+            books.append(
+                {
+                    "title": t["title"],
+                    "author": t["author"],
+                    "type": "Buch",
+                    "description": t["description"],
+                    "source": t.get("source", SOURCE_NYT_CANON),
+                }
+            )
 
         # Ratgeber hinzufügen
         for g in guides_data:
-            books.append({
-                "title": g["title"],
-                "author": g["author"],
-                "type": "Buch",
-                "description": g["description"],
-                "source": "Die besten Ratgeber des 21. Jahrhunderts"
-            })
+            books.append(
+                {
+                    "title": g["title"],
+                    "author": g["author"],
+                    "type": "Buch",
+                    "description": g["description"],
+                    "source": "Die besten Ratgeber des 21. Jahrhunderts",
+                }
+            )
 
         with open(BOOKS_FILE, "w", encoding="utf-8") as f:
             json.dump(books, f, ensure_ascii=False, indent=2)
@@ -107,12 +111,7 @@ def load_or_fetch_films():
     else:
         # Wikipedia-Filme laden
         wiki_films = [
-            {
-                "title": t["title"],
-                "author": t.get("regie", ""),
-                "type": "DVD",
-                "source": t.get("source", "")
-            }
+            {"title": t["title"], "author": t.get("regie", ""), "type": "DVD", "source": t.get("source", "")}
             for t in fetch_wikipedia_titles()
         ]
         print(f"DEBUG: {len(wiki_films)} Filme von Wikipedia geladen.")
@@ -169,12 +168,7 @@ def load_or_fetch_albums():
     else:
         # Radio Eins Alben laden
         albums = [
-            {
-                "title": a[1],
-                "author": a[0],
-                "type": "CD",
-                "source": SOURCE_RADIO_EINS_TOP_100
-            }
+            {"title": a[1], "author": a[0], "type": "CD", "source": SOURCE_RADIO_EINS_TOP_100}
             for a in fetch_radioeins_albums()
         ]
         with open(ALBUMS_FILE, "w", encoding="utf-8") as f:
@@ -213,7 +207,7 @@ def suggest(category):
     choices = []
     for i, s in enumerate(suggestions):
         display_text = f"{s['title']}"
-        if s.get('author'):
+        if s.get("author"):
             display_text += f" - {s['author']}"
         choices.append(display_text)
 
@@ -249,16 +243,16 @@ def remove_emoji(text):
     # Regex für Emojis (vereinfacht)
     emoji_pattern = re.compile(
         "["
-        "\U0001F300-\U0001F9FF"  # Symbole & Piktogramme
-        "\U0001F600-\U0001F64F"  # Emoticons
-        "\U0001F680-\U0001F6FF"  # Transport & Karten
-        "\U0001F1E0-\U0001F1FF"  # Flaggen
-        "\U00002702-\U000027B0"  # Dingbats
-        "\U000024C2-\U0001F251"
+        "\U0001f300-\U0001f9ff"  # Symbole & Piktogramme
+        "\U0001f600-\U0001f64f"  # Emoticons
+        "\U0001f680-\U0001f6ff"  # Transport & Karten
+        "\U0001f1e0-\U0001f1ff"  # Flaggen
+        "\U00002702-\U000027b0"  # Dingbats
+        "\U000024c2-\U0001f251"
         "]+",
-        flags=re.UNICODE
+        flags=re.UNICODE,
     )
-    return emoji_pattern.sub('', text).strip()
+    return emoji_pattern.sub("", text).strip()
 
 
 def on_selection_change(selected_items, category):
@@ -278,20 +272,20 @@ def on_selection_change(selected_items, category):
 
         for s in suggestions:
             display_text = f"{s['title']}"
-            if s.get('author'):
+            if s.get("author"):
                 display_text += f" - {s['author']}"
 
             if display_text == selected_item_clean:
                 # print("**", s, "**")
 
                 detail_text += f"• {s['title']}"
-                if s.get('author'):
+                if s.get("author"):
                     detail_text += f"\n  Autor/Künstler: {s['author']}"
-                if s.get('bib_number'):
+                if s.get("bib_number"):
                     detail_text += f"\n  Verfügbarkeit: {s['bib_number']}"
                 # Quelle anzeigen
-                if s.get('source'):
-                    source_formatted = format_source_for_display(s['source'])
+                if s.get("source"):
+                    source_formatted = format_source_for_display(s["source"])
                     detail_text += f"\n  Quelle: {source_formatted}"
                 detail_text += "\n\n"
                 break
@@ -343,8 +337,7 @@ def google_search_selected(selected_items, category):
 def reject_selected(selected_items, category):
     """Entfernt die ausgewählten Items und ersetzt sie durch neue"""
     if not selected_items:
-        return gr.update(), "Keine Items ausgewählt.", gr.update(interactive=False), "", "", gr.update(
-            interactive=False)
+        return gr.update(), "Keine Items ausgewählt.", gr.update(interactive=False), "", "", gr.update(interactive=False)
 
     # Finde die entsprechenden Vorschläge
     suggestions = current_suggestions.get(category, [])
@@ -358,14 +351,14 @@ def reject_selected(selected_items, category):
 
         for i, s in enumerate(suggestions):
             display_text = f"{s['title']}"
-            if s.get('author'):
+            if s.get("author"):
                 display_text += f" - {s['author']}"
 
             if display_text == selected_item_clean:
-                rejected_titles.append(s['title'])
+                rejected_titles.append(s["title"])
                 indices_to_remove.append(i)
                 # Lehne das Item ab
-                rejected_item = {"title": s['title']}
+                rejected_item = {"title": s["title"]}
                 state.reject(category, rejected_item)
                 break
 
@@ -384,11 +377,11 @@ def reject_selected(selected_items, category):
     choices = []
     for s in current_suggestions[category]:
         display_text = f"{s['title']}"
-        if s.get('author'):
+        if s.get("author"):
             display_text += f" - {s['author']}"
         # Emoji hinzufügen
-        if s.get('source'):
-            emoji = get_source_emoji(s['source'])
+        if s.get("source"):
+            emoji = get_source_emoji(s["source"])
             if emoji:
                 display_text = f"{emoji} {display_text}"
         choices.append(display_text)
@@ -404,12 +397,14 @@ def reject_selected(selected_items, category):
         info_text = f"{len(rejected_titles)} Titel wurden abgelehnt. Keine weiteren Vorschläge verfügbar."
         success_msg = f"✅ '{rejected_text}' wurde(n) abgelehnt (keine Ersetzungen verfügbar)"
 
-    return (gr.update(choices=choices, value=[]),
-            info_text,
-            gr.update(interactive=False),
-            "",
-            success_msg,
-            gr.update(interactive=False))
+    return (
+        gr.update(choices=choices, value=[]),
+        info_text,
+        gr.update(interactive=False),
+        "",
+        success_msg,
+        gr.update(interactive=False),
+    )
 
 
 def save_current_recommendations():
@@ -461,11 +456,7 @@ def initialize_recommendations():
             "books": book_suggestions,
         }
         filename = save_recommendations_to_markdown(recommendations)
-        total_count = (
-            len(film_suggestions)
-            + len(album_suggestions)
-            + len(book_suggestions)
-        )
+        total_count = len(film_suggestions) + len(album_suggestions) + len(book_suggestions)
         print(f"DEBUG: {total_count} initiale Empfehlungen in '{filename}' gespeichert")
     except Exception as e:
         print(f"DEBUG: Fehler beim Speichern der initialen Empfehlungen: {e}")
@@ -482,11 +473,11 @@ def get_initial_choices(suggestions):
     for s in suggestions:
         # print("***", s, "***")
         display_text = f"{s['title']}"
-        if s.get('author'):
+        if s.get("author"):
             display_text += f" - {s['author']}"
         # Emoji am Anfang
-        if s.get('source'):
-            emoji = get_source_emoji(s['source'])
+        if s.get("source"):
+            emoji = get_source_emoji(s["source"])
             # print("<<<", emoji, ">>>")
             if emoji:
                 display_text = f"{emoji} {display_text}"
@@ -613,18 +604,9 @@ with gr.Blocks(css=css, title="Bibliothek-Empfehlungen") as demo:
 
     # Globaler Speichern-Button oben
     with gr.Row():
-        save_btn = gr.Button(
-            "💾 Alle Empfehlungen speichern",
-            variant="primary",
-            elem_classes=["save-button"],
-            size="lg"
-        )
+        save_btn = gr.Button("💾 Alle Empfehlungen speichern", variant="primary", elem_classes=["save-button"], size="lg")
 
-    save_message = gr.HTML(
-        value="",
-        visible=False,
-        elem_classes=["success-message"]
-    )
+    save_message = gr.HTML(value="", visible=False, elem_classes=["success-message"])
 
     with gr.Tab("🎬 Filme"):
         with gr.Column(elem_classes=["suggestion-container"]):
@@ -633,43 +615,32 @@ with gr.Blocks(css=css, title="Bibliothek-Empfehlungen") as demo:
                 choices=initial_film_choices,
                 value=[],
                 interactive=True,
-                info="Wählen Sie Filme aus der Liste aus, um sie zu entfernen"
+                info="Wählen Sie Filme aus der Liste aus, um sie zu entfernen",
             )
 
             with gr.Row():
                 film_suggest_btn = gr.Button("Neue Filme vorschlagen", variant="primary")
                 film_reject_btn = gr.Button(
-                    "Ausgewählte Filme entfernen",
-                    variant="secondary",
-                    interactive=False,
-                    elem_classes=["reject-button"]
+                    "Ausgewählte Filme entfernen", variant="secondary", interactive=False, elem_classes=["reject-button"]
                 )
                 film_google_btn = gr.Button(
-                    "🔍 Google-Suche",
-                    variant="secondary",
-                    interactive=False,
-                    elem_classes=["google-button"]
+                    "🔍 Google-Suche", variant="secondary", interactive=False, elem_classes=["google-button"]
                 )
 
             film_info = gr.Textbox(
                 label="Information",
-                value=f"{len(initial_films)} Filme beim Start geladen. Wählen Sie Titel aus, um sie zu entfernen." if initial_films else "Keine Filme verfügbar.",
+                value=(
+                    f"{len(initial_films)} Filme beim Start geladen. Wählen Sie Titel aus, um sie zu entfernen."
+                    if initial_films
+                    else "Keine Filme verfügbar."
+                ),
                 interactive=False,
-                elem_classes=["suggestion-info"]
+                elem_classes=["suggestion-info"],
             )
 
-            film_detail = gr.Textbox(
-                label="Details zu den ausgewählten Filmen",
-                value="",
-                interactive=False,
-                lines=6
-            )
+            film_detail = gr.Textbox(label="Details zu den ausgewählten Filmen", value="", interactive=False, lines=6)
 
-            film_message = gr.HTML(
-                value="",
-                visible=False,
-                elem_classes=["success-message"]
-            )
+            film_message = gr.HTML(value="", visible=False, elem_classes=["success-message"])
 
     with gr.Tab("🎵 Musik"):
         with gr.Column(elem_classes=["suggestion-container"]):
@@ -678,43 +649,32 @@ with gr.Blocks(css=css, title="Bibliothek-Empfehlungen") as demo:
                 choices=initial_album_choices,
                 value=[],
                 interactive=True,
-                info="Wählen Sie Alben aus der Liste aus, um sie zu entfernen"
+                info="Wählen Sie Alben aus der Liste aus, um sie zu entfernen",
             )
 
             with gr.Row():
                 album_suggest_btn = gr.Button("Neue Alben vorschlagen", variant="primary")
                 album_reject_btn = gr.Button(
-                    "Ausgewählte Alben entfernen",
-                    variant="secondary",
-                    interactive=False,
-                    elem_classes=["reject-button"]
+                    "Ausgewählte Alben entfernen", variant="secondary", interactive=False, elem_classes=["reject-button"]
                 )
                 album_google_btn = gr.Button(
-                    "🔍 Google-Suche",
-                    variant="secondary",
-                    interactive=False,
-                    elem_classes=["google-button"]
+                    "🔍 Google-Suche", variant="secondary", interactive=False, elem_classes=["google-button"]
                 )
 
             album_info = gr.Textbox(
                 label="Information",
-                value=f"{len(initial_albums)} Alben beim Start geladen. Wählen Sie Titel aus, um sie zu entfernen." if initial_albums else "Keine Alben verfügbar.",
+                value=(
+                    f"{len(initial_albums)} Alben beim Start geladen. Wählen Sie Titel aus, um sie zu entfernen."
+                    if initial_albums
+                    else "Keine Alben verfügbar."
+                ),
                 interactive=False,
-                elem_classes=["suggestion-info"]
+                elem_classes=["suggestion-info"],
             )
 
-            album_detail = gr.Textbox(
-                label="Details zu den ausgewählten Alben",
-                value="",
-                interactive=False,
-                lines=6
-            )
+            album_detail = gr.Textbox(label="Details zu den ausgewählten Alben", value="", interactive=False, lines=6)
 
-            album_message = gr.HTML(
-                value="",
-                visible=False,
-                elem_classes=["success-message"]
-            )
+            album_message = gr.HTML(value="", visible=False, elem_classes=["success-message"])
 
     with gr.Tab("📚 Bücher"):
         with gr.Column(elem_classes=["suggestion-container"]):
@@ -723,138 +683,102 @@ with gr.Blocks(css=css, title="Bibliothek-Empfehlungen") as demo:
                 choices=initial_book_choices,
                 value=[],
                 interactive=True,
-                info="Wählen Sie Bücher aus der Liste aus, um sie zu entfernen"
+                info="Wählen Sie Bücher aus der Liste aus, um sie zu entfernen",
             )
 
             with gr.Row():
                 book_suggest_btn = gr.Button("Neue Bücher vorschlagen", variant="primary")
                 book_reject_btn = gr.Button(
-                    "Ausgewählte Bücher entfernen",
-                    variant="secondary",
-                    interactive=False,
-                    elem_classes=["reject-button"]
+                    "Ausgewählte Bücher entfernen", variant="secondary", interactive=False, elem_classes=["reject-button"]
                 )
                 book_google_btn = gr.Button(
-                    "🔍 Google-Suche",
-                    variant="secondary",
-                    interactive=False,
-                    elem_classes=["google-button"]
+                    "🔍 Google-Suche", variant="secondary", interactive=False, elem_classes=["google-button"]
                 )
 
             book_info = gr.Textbox(
                 label="Information",
-                value=f"{len(initial_books)} Bücher beim Start geladen. Wählen Sie Titel aus, um sie zu entfernen."
-                if initial_books else "Keine Bücher verfügbar.",
+                value=(
+                    f"{len(initial_books)} Bücher beim Start geladen. Wählen Sie Titel aus, um sie zu entfernen."
+                    if initial_books
+                    else "Keine Bücher verfügbar."
+                ),
                 interactive=False,
-                elem_classes=["suggestion-info"]
+                elem_classes=["suggestion-info"],
             )
 
-            book_detail = gr.Textbox(
-                label="Details zu den ausgewählten Büchern",
-                value="",
-                interactive=False,
-                lines=6
-            )
+            book_detail = gr.Textbox(label="Details zu den ausgewählten Büchern", value="", interactive=False, lines=6)
 
-            book_message = gr.HTML(
-                value="",
-                visible=False,
-                elem_classes=["success-message"]
-            )
+            book_message = gr.HTML(value="", visible=False, elem_classes=["success-message"])
 
     # Event Handler für globalen Speichern-Button
-    save_btn.click(
-        fn=save_current_recommendations,
-        outputs=[save_message]
-    ).then(
+    save_btn.click(fn=save_current_recommendations, outputs=[save_message]).then(
         fn=lambda x: gr.update(visible=bool(x), value=x) if x else gr.update(visible=False),
         inputs=[save_message],
-        outputs=[save_message]
+        outputs=[save_message],
     )
 
     # Event Handler für Filme
-    film_suggest_btn.click(
-        fn=lambda: suggest("films"),
-        outputs=[film_checkbox, film_info, film_reject_btn, film_detail]
-    )
+    film_suggest_btn.click(fn=lambda: suggest("films"), outputs=[film_checkbox, film_info, film_reject_btn, film_detail])
 
     film_checkbox.change(
         fn=lambda x: on_selection_change(x, "films"),
         inputs=[film_checkbox],
-        outputs=[film_reject_btn, film_detail, film_google_btn]
+        outputs=[film_reject_btn, film_detail, film_google_btn],
     )
 
     film_reject_btn.click(
         fn=lambda x: reject_selected(x, "films"),
         inputs=[film_checkbox],
-        outputs=[film_checkbox, film_info, film_reject_btn, film_detail, film_message, film_google_btn]
+        outputs=[film_checkbox, film_info, film_reject_btn, film_detail, film_message, film_google_btn],
     ).then(
         fn=lambda x: gr.update(visible=bool(x), value=x) if x else gr.update(visible=False),
         inputs=[film_message],
-        outputs=[film_message]
+        outputs=[film_message],
     )
 
-    film_google_btn.click(
-        fn=lambda x: google_search_selected(x, "films"),
-        inputs=[film_checkbox],
-        outputs=[film_detail]
-    )
+    film_google_btn.click(fn=lambda x: google_search_selected(x, "films"), inputs=[film_checkbox], outputs=[film_detail])
 
     # Event Handler für Alben
-    album_suggest_btn.click(
-        fn=lambda: suggest("albums"),
-        outputs=[album_checkbox, album_info, album_reject_btn, album_detail]
-    )
+    album_suggest_btn.click(fn=lambda: suggest("albums"), outputs=[album_checkbox, album_info, album_reject_btn, album_detail])
 
     album_checkbox.change(
         fn=lambda x: on_selection_change(x, "albums"),
         inputs=[album_checkbox],
-        outputs=[album_reject_btn, album_detail, album_google_btn]
+        outputs=[album_reject_btn, album_detail, album_google_btn],
     )
 
     album_reject_btn.click(
         fn=lambda x: reject_selected(x, "albums"),
         inputs=[album_checkbox],
-        outputs=[album_checkbox, album_info, album_reject_btn, album_detail, album_message, album_google_btn]
+        outputs=[album_checkbox, album_info, album_reject_btn, album_detail, album_message, album_google_btn],
     ).then(
         fn=lambda x: gr.update(visible=bool(x), value=x) if x else gr.update(visible=False),
         inputs=[album_message],
-        outputs=[album_message]
+        outputs=[album_message],
     )
 
-    album_google_btn.click(
-        fn=lambda x: google_search_selected(x, "albums"),
-        inputs=[album_checkbox],
-        outputs=[album_detail]
-    )
+    album_google_btn.click(fn=lambda x: google_search_selected(x, "albums"), inputs=[album_checkbox], outputs=[album_detail])
 
     # Event Handler für Bücher
-    book_suggest_btn.click(
-        fn=lambda: suggest("books"),
-        outputs=[book_checkbox, book_info, book_reject_btn, book_detail]
-    )
+    book_suggest_btn.click(fn=lambda: suggest("books"), outputs=[book_checkbox, book_info, book_reject_btn, book_detail])
 
     book_checkbox.change(
         fn=lambda x: on_selection_change(x, "books"),
         inputs=[book_checkbox],
-        outputs=[book_reject_btn, book_detail, book_google_btn]
+        outputs=[book_reject_btn, book_detail, book_google_btn],
     )
 
     book_reject_btn.click(
         fn=lambda x: reject_selected(x, "books"),
         inputs=[book_checkbox],
-        outputs=[book_checkbox, book_info, book_reject_btn, book_detail, book_message, book_google_btn]
+        outputs=[book_checkbox, book_info, book_reject_btn, book_detail, book_message, book_google_btn],
     ).then(
         fn=lambda x: gr.update(visible=bool(x), value=x) if x else gr.update(visible=False),
         inputs=[book_message],
-        outputs=[book_message]
+        outputs=[book_message],
     )
 
-    book_google_btn.click(
-        fn=lambda x: google_search_selected(x, "books"),
-        inputs=[book_checkbox],
-        outputs=[book_detail]
-    )
+    book_google_btn.click(fn=lambda x: google_search_selected(x, "books"), inputs=[book_checkbox], outputs=[book_detail])
 
 
 if __name__ == "__main__":

@@ -44,9 +44,7 @@ def fetch_oscar_music_winners():
     """
     headers = {
         "User-Agent": (
-            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
-            "AppleWebKit/537.36 (KHTML, like Gecko) "
-            "Chrome/130.0 Safari/537.36"
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) " "AppleWebKit/537.36 (KHTML, like Gecko) " "Chrome/130.0 Safari/537.36"
         )
     }
 
@@ -136,7 +134,7 @@ def fetch_oscar_music_winners():
                 "author": composers,
                 "type": "CD",
                 "year": year_value,
-                "source": SOURCE_OSCAR_BEST_SCORE
+                "source": SOURCE_OSCAR_BEST_SCORE,
             }
 
             results.append(entry)

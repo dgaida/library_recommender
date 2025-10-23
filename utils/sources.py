@@ -38,31 +38,31 @@ SOURCE_EMOJIS = {
 def get_source_emoji(source):
     """
     Gibt das passende Emoji für eine Quelle zurück.
-    
+
     Args:
         source (str): Quellen-String
-    
+
     Returns:
         str: Emoji oder leerer String
     """
     # Exakte Übereinstimmung
     if source in SOURCE_EMOJIS:
         return SOURCE_EMOJIS[source]
-    
+
     # Prüfe auf "Interessant für dich"
     if source and "Interessant für dich" in source:
         return "💎"
-    
+
     return ""
 
 
 def format_source_for_display(source):
     """
     Formatiert eine Quelle für die Anzeige mit Emoji.
-    
+
     Args:
         source (str): Quellen-String
-    
+
     Returns:
         str: Formatierter String mit Emoji
     """

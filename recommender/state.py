@@ -37,8 +37,7 @@ class AppState:
             try:
                 with open(STATE_FILE, "r", encoding="utf-8") as f:
                     rejected = json.load(f)
-                print(
-                    f"DEBUG: {sum(len(items) for items in rejected.values())} abgelehnte Medien aus state.json geladen.")
+                print(f"DEBUG: {sum(len(items) for items in rejected.values())} abgelehnte Medien aus state.json geladen.")
                 return rejected
             except (json.JSONDecodeError, KeyError) as e:
                 print(f"DEBUG: Fehler beim Laden der state.json: {e}")
@@ -56,8 +55,7 @@ class AppState:
         try:
             with open(STATE_FILE, "w", encoding="utf-8") as f:
                 json.dump(rejected, f, ensure_ascii=False, indent=2)
-            print(
-                f"DEBUG: {sum(len(items) for items in rejected.values())} abgelehnte Medien in state.json gespeichert.")
+            print(f"DEBUG: {sum(len(items) for items in rejected.values())} abgelehnte Medien in state.json gespeichert.")
         except Exception as e:
             print(f"DEBUG: Fehler beim Speichern der state.json: {e}")
 
@@ -69,16 +67,10 @@ class AppState:
         title_lower = item["title"].lower()
 
         # Prüfe ob schon in diesem Lauf vorgeschlagen
-        already_suggested_this_run = any(
-            x["title"].lower() == title_lower
-            for x in self.suggested.get(category, [])
-        )
+        already_suggested_this_run = any(x["title"].lower() == title_lower for x in self.suggested.get(category, []))
 
         # Prüfe ob explizit abgelehnt (persistent)
-        already_rejected = any(
-            x["title"].lower() == title_lower
-            for x in self.rejected.get(category, [])
-        )
+        already_rejected = any(x["title"].lower() == title_lower for x in self.rejected.get(category, []))
 
         if already_suggested_this_run:
             print(f"DEBUG: '{item['title']}' bereits in diesem Lauf vorgeschlagen")
@@ -133,12 +125,8 @@ class AppState:
         stats = {
             "rejected_total": sum(len(items) for items in self.rejected.values()),
             "suggested_total": sum(len(items) for items in self.suggested.values()),
-            "rejected_by_category": {
-                category: len(items) for category, items in self.rejected.items()
-            },
-            "suggested_by_category": {
-                category: len(items) for category, items in self.suggested.items()
-            }
+            "rejected_by_category": {category: len(items) for category, items in self.rejected.items()},
+            "suggested_by_category": {category: len(items) for category, items in self.suggested.items()},
         }
         return stats
 
@@ -149,12 +137,12 @@ class AppState:
         print("MEDIEN-ZUSTAND STATISTIKEN")
         print("=" * 50)
         print(f"Abgelehnte Medien (persistent): {stats['rejected_total']}")
-        for category, count in stats['rejected_by_category'].items():
+        for category, count in stats["rejected_by_category"].items():
             if count > 0:
                 print(f"  - {category.capitalize()}: {count}")
 
         print(f"Vorgeschlagene Medien (aktueller Lauf): {stats['suggested_total']}")
-        for category, count in stats['suggested_by_category'].items():
+        for category, count in stats["suggested_by_category"].items():
             if count > 0:
                 print(f"  - {category.capitalize()}: {count}")
         print("=" * 50 + "\n")

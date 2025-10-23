@@ -7,7 +7,9 @@ DATA_DIR = os.path.join(os.path.dirname(__file__), "..", "data")
 os.makedirs(DATA_DIR, exist_ok=True)
 GUIDES_FILE = os.path.join(DATA_DIR, "guides.json")
 
-URL = "https://www.die-besten-aller-zeiten.de/buecher/kanon/buecher-des-21-jahrhunderts.html#ngaw7e610e112e3a6b42a06438725348403"
+URL = (
+    "https://www.die-besten-aller-zeiten.de/buecher/kanon/buecher-des-21-jahrhunderts.html#ngaw7e610e112e3a6b42a06438725348403"
+)
 
 
 def fetch_guides_from_site():
@@ -63,11 +65,7 @@ def fetch_guides_from_site():
             paragraphs = accordion_div.find_all("p")
             description = " ".join(p.get_text(strip=True) for p in paragraphs)
 
-        guides.append({
-            "title": title,
-            "author": author,
-            "description": description
-        })
+        guides.append({"title": title, "author": author, "description": description})
 
     print(f"DEBUG: Extrahiert {len(guides)} Ratgeber-Einträge.")
     return guides

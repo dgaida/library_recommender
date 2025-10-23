@@ -43,7 +43,7 @@ class Recommender:
                     print(f"DEBUG: ignore {item} because it was already suggested")
                 continue
 
-            media_type = item.get('type', '')
+            media_type = item.get("type", "")
 
             if media_type == "Buch":
                 query = f"{item.get('author', '')} {item.get('title')} {media_type}".strip()
@@ -56,17 +56,12 @@ class Recommender:
             # NEU: KEINE TREFFER → Blacklist
             if not hits or len(hits) == 0:
                 print(f"⚫ Keine Treffer für '{item['title']}' - wird geblacklistet")
-                self.blacklist.add_to_blacklist(
-                    category,
-                    item,
-                    reason="Keine Treffer in Bibliothekskatalog"
-                )
+                self.blacklist.add_to_blacklist(category, item, reason="Keine Treffer in Bibliothekskatalog")
                 continue
 
             # Prüfen, ob verfügbar (nur auf zentralbibliothek_info)
             available = [
-                h for h in hits
-                if "zentralbibliothek_info" in h and "verfügbar" in h["zentralbibliothek_info"].lower()
+                h for h in hits if "zentralbibliothek_info" in h and "verfügbar" in h["zentralbibliothek_info"].lower()
             ]
 
             if available:
@@ -75,7 +70,7 @@ class Recommender:
 
                 # WICHTIG: Kopiere das Item und füge bib_number hinzu
                 result_item = item.copy()  # NEU: .copy() um Original nicht zu ändern
-                result_item['bib_number'] = f"{', '.join(infos)}"
+                result_item["bib_number"] = f"{', '.join(infos)}"
 
                 # NEU: Behalte source-Eigenschaft bei (falls vorhanden)
                 # (wird automatisch durch .copy() übernommen)
