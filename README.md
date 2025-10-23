@@ -5,9 +5,9 @@ Eine intelligente Empfehlungs-App für die **Stadtbibliothek Köln**, die verfü
 ![Python](https://img.shields.io/badge/python-3.9+-blue.svg)
 ![Gradio](https://img.shields.io/badge/gradio-4.0+-green.svg)
 ![License](https://img.shields.io/badge/license-MIT-blue.svg)
-![Tests](https://github.com/dgaida/library-recommender/workflows/Tests/badge.svg)
-![Code Quality](https://github.com/dgaida/library-recommender/workflows/Code%20Quality/badge.svg)
-![Coverage](https://img.shields.io/codecov/c/github/dgaida/library-recommender/main.svg)
+![Tests](https://github.com/dgaida/library-recommender/actions/workflows/tests.yml/badge.svg)
+![Code Quality](https://github.com/dgaida/library-recommender/actions/workflows/lint.yml/badge.svg)
+![CodeQL](https://github.com/dgaida/library-recommender/actions/workflows/codeql.yml/badge.svg)
 
 ## ✨ Features
 
