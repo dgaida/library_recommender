@@ -61,7 +61,7 @@ class TestBlacklist:
         
         with patch('utils.blacklist.DATA_DIR', temp_blacklist_dir):
             blacklist = Blacklist()
-            item = {'title': 'Test Film', 'author': 'Test Director', 'type': 'DVD'}
+            item = {'title': 'Unique Test Film 12345', 'author': 'Test Director', 'type': 'DVD'}
             
             # Initial nicht geblacklistet
             assert not blacklist.is_blacklisted('films', item)

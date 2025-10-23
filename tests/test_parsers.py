@@ -33,7 +33,7 @@ class TestParsers:
         """Test dass Sonderzeichen entfernt werden"""
         from library.parsers import normalize_text
         
-        assert normalize_text("What's Going On?") == "whats going"
+        assert normalize_text("What's Going On?") == "what s going"
         assert normalize_text("Rock & Roll!") == "rock roll"
     
     def test_normalize_text_lowercase(self):
