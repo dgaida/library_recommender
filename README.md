@@ -5,9 +5,9 @@ Eine intelligente Empfehlungs-App für die **Stadtbibliothek Köln**, die verfü
 ![Python](https://img.shields.io/badge/python-3.9+-blue.svg)
 ![Gradio](https://img.shields.io/badge/gradio-4.0+-green.svg)
 ![License](https://img.shields.io/badge/license-MIT-blue.svg)
-![Tests](https://github.com/dgaida/library-recommender/actions/workflows/tests.yml/badge.svg)
-![Code Quality](https://github.com/dgaida/library-recommender/actions/workflows/lint.yml/badge.svg)
-![CodeQL](https://github.com/dgaida/library-recommender/actions/workflows/codeql.yml/badge.svg)
+[![Tests](https://github.com/dgaida/library_recommender/actions/workflows/tests.yml/badge.svg)](https://github.com/dgaida/library_recommender/actions/workflows/tests.yml)
+[![Code Quality](https://github.com/dgaida/library_recommender/actions/workflows/lint.yml/badge.svg)](https://github.com/dgaida/library_recommender/actions/workflows/lint.yml)
+[![CodeQL](https://github.com/dgaida/library_recommender/actions/workflows/codeql.yml/badge.svg)](https://github.com/dgaida/library_recommender/actions/workflows/codeql.yml)
 
 ## ✨ Features
 
@@ -371,9 +371,9 @@ Alle Tests laufen automatisch bei:
 - ✅ Python 3.9, 3.10, 3.11
 
 **Aktuelle Workflows:**
-- [Tests Workflow](https://github.com/dgaida/library-recommender/actions/workflows/tests.yml) - Unit Tests mit Coverage
-- [Linting Workflow](https://github.com/dgaida/library-recommender/actions/workflows/lint.yml) - Code Quality Checks
-- [Security Workflow](https://github.com/dgaida/library-recommender/actions/workflows/codeql.yml) - CodeQL Security Scanning
+- [Tests Workflow](https://github.com/dgaida/library_recommender/actions/workflows/tests.yml) - Unit Tests mit Coverage
+- [Linting Workflow](https://github.com/dgaida/library_recommender/actions/workflows/lint.yml) - Code Quality Checks
+- [Security Workflow](https://github.com/dgaida/library_recommender/actions/workflows/codeql.yml) - CodeQL Security Scanning
 
 ### Bekannte Einschränkungen
 

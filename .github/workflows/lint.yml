@@ -6,8 +6,19 @@ name: Code Quality
 on:
   push:
     branches: [ main, develop ]
+    paths:
+      - '**.py'
+      - '.flake8'
+      - '.pylintrc'
+      - 'pyproject.toml'
+      - '.github/workflows/lint.yml'
   pull_request:
     branches: [ main, develop ]
+    paths:
+      - '**.py'
+      - '.flake8'
+      - '.pylintrc'
+      - 'pyproject.toml'
 
 jobs:
   lint:
@@ -29,9 +40,7 @@ jobs:
       
       - name: Lint with flake8
         run: |
-          # Stop on syntax errors or undefined names
           flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
-          # Treat all other errors as warnings
           flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
       
       - name: Check formatting with Black
