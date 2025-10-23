@@ -59,10 +59,24 @@ def fetch_radioeins_albums():
 def search_radioeins_albums_in_library(limit=10):
     """
     Holt alle Radioeins-Alben und sucht sie im Bibliothekskatalog.
-    Ergebnisse werden zusätzlich in einer Markdown-Datei gespeichert.
+
+    Lädt die Top-100-Alben von Radio Eins, filtert bereits vorhandene Alben
+    aus dem lokalen MP3-Archiv heraus und durchsucht die Stadtbibliothek Köln
+    nach den verbleibenden Titeln.
 
     Args:
-        limit (int): maximale Anzahl Alben, die durchsucht werden sollen
+        limit (int): Maximale Anzahl Alben, die durchsucht werden sollen.
+            Standard: 10
+
+    Returns:
+        None: Ergebnisse werden in Markdown-Datei gespeichert
+
+    Raises:
+        requests.RequestException: Bei Netzwerkproblemen
+
+    Example:
+        >>> search_radioeins_albums_in_library(limit=5)
+        # Sucht die ersten 5 gefilterten Alben
     """
     search_engine = KoelnLibrarySearch()
     albums = fetch_radioeins_albums()

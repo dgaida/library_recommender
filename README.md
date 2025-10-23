@@ -5,6 +5,9 @@ Eine intelligente Empfehlungs-App für die **Stadtbibliothek Köln**, die verfü
 ![Python](https://img.shields.io/badge/python-3.9+-blue.svg)
 ![Gradio](https://img.shields.io/badge/gradio-4.0+-green.svg)
 ![License](https://img.shields.io/badge/license-MIT-blue.svg)
+![Tests](https://github.com/dgaida/library-recommender/workflows/Tests/badge.svg)
+![Code Quality](https://github.com/dgaida/library-recommender/workflows/Code%20Quality/badge.svg)
+![Coverage](https://img.shields.io/codecov/c/github/dgaida/library-recommender/main.svg)
 
 ## ✨ Features
 
@@ -346,6 +349,37 @@ DEBUG: Google-Suche für film: 'Mulholland Drive' von 'David Lynch'
 - Blacklist-System sollte automatisch greifen
 - Prüfen: `ls -la data/blacklist_*.json`
 - Falls nötig manuell zurücksetzen
+
+## 🧪 Unit Tests
+
+Das Projekt enthält umfangreiche Unit Tests für alle wichtigen Komponenten. Der Test-Status wird automatisch durch GitHub Actions aktualisiert.
+
+### Tests ausführen
+```bash
+# Alle Tests
+pytest tests/ -v
+
+# Einzelne Test-Datei
+pytest tests/test_filters.py -v
+```
+
+### Continuous Integration
+
+Alle Tests laufen automatisch bei:
+- ✅ Push auf `main` oder `develop` Branch
+- ✅ Pull Requests
+- ✅ Python 3.9, 3.10, 3.11
+
+**Aktuelle Workflows:**
+- [Tests Workflow](https://github.com/dgaida/library-recommender/actions/workflows/tests.yml) - Unit Tests mit Coverage
+- [Linting Workflow](https://github.com/dgaida/library-recommender/actions/workflows/lint.yml) - Code Quality Checks
+- [Security Workflow](https://github.com/dgaida/library-recommender/actions/workflows/codeql.yml) - CodeQL Security Scanning
+
+### Bekannte Einschränkungen
+
+- **Netzwerk-Tests**: Tests für `library/search.py` verwenden Mocks, da Live-Tests vom Bibliothekssystem abhängen
+- **API-Tests**: Google-Suche und Groq API werden gemockt, um keine echten API-Calls zu machen
+- **Dateisystem-Tests**: Nutzen `tempfile` für isolierte Tests ohne Seiteneffekte
 
 ## 📄 Lizenz
 

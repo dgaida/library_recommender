@@ -82,7 +82,25 @@ def fetch_wikipedia_titles():
 def search_wikipedia_titles_in_library():
     """
     Holt alle Wikipedia-Titel und sucht sie im Bibliothekskatalog.
-    Ergebnisse werden zusätzlich in einer Markdown-Datei gespeichert.
+
+    Lädt die BBC Culture Liste der 100 besten Filme des 21. Jahrhunderts
+    von Wikipedia und durchsucht die Stadtbibliothek Köln nach jedem Titel.
+    Ergebnisse werden in einer Markdown-Datei gespeichert.
+
+    Returns:
+        None: Ergebnisse werden in 'results.md' gespeichert
+
+    Raises:
+        requests.RequestException: Bei Netzwerkproblemen
+
+    Note:
+        Zwischen Anfragen wird eine 5-Sekunden-Pause eingelegt, um den
+        Server nicht zu überlasten.
+
+    Example:
+        >>> search_wikipedia_titles_in_library()
+        ### Suche 1/100: Mulholland Drive ###
+        [Ergebnisse werden angezeigt]
     """
     search_engine = KoelnLibrarySearch()
     titles = fetch_wikipedia_titles()

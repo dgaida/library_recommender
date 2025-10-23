@@ -234,11 +234,20 @@ def remove_emoji(text):
     """
     Entfernt Emojis am Anfang eines Strings.
 
+    Verwendet einen Unicode-Regex-Pattern, um gängige Emoji-Bereiche
+    zu identifizieren und zu entfernen.
+
     Args:
         text (str): String möglicherweise mit Emoji
 
     Returns:
         str: String ohne Emoji
+
+    Example:
+        >>> remove_emoji("🎬 Der Pate")
+        'Der Pate'
+        >>> remove_emoji("Normaler Text")
+        'Normaler Text'
     """
     # Regex für Emojis (vereinfacht)
     emoji_pattern = re.compile(
@@ -256,7 +265,26 @@ def remove_emoji(text):
 
 
 def on_selection_change(selected_items, category):
-    """Wird aufgerufen, wenn Items in der Liste ausgewählt werden"""
+    """
+    Wird aufgerufen, wenn Items in der Liste ausgewählt werden.
+
+    Aktualisiert die Detailansicht und aktiviert/deaktiviert Buttons
+    basierend auf der Auswahl.
+
+    Args:
+        selected_items (list[str]): Liste ausgewählter Display-Strings
+        category (str): Kategorie ('films', 'albums', 'books')
+
+    Returns:
+        tuple: (remove_button_state, detail_text, google_button_state)
+            - remove_button_state: gr.update() für Entfernen-Button
+            - detail_text (str): Formatierter Text mit Details
+            - google_button_state: gr.update() für Google-Button
+
+    Example:
+        >>> on_selection_change(["Der Pate - Francis Ford Coppola"], "films")
+        (gr.update(interactive=True), "1 Element(e) ausgewählt...", gr.update(interactive=True))
+    """
     if not selected_items:
         return gr.update(interactive=False), "", gr.update(interactive=False)
 
@@ -297,7 +325,23 @@ def on_selection_change(selected_items, category):
 
 
 def google_search_selected(selected_items, category):
-    """Googelt das ausgewählte Medium und gibt eine Zusammenfassung zurück"""
+    """
+    Googelt das ausgewählte Medium und gibt eine Zusammenfassung zurück.
+
+    Verwendet DuckDuckGo Search und Groq AI, um eine 1-2 Sätze
+    Zusammenfassung des ausgewählten Mediums zu erstellen.
+
+    Args:
+        selected_items (list[str]): Liste mit genau einem ausgewählten Item
+        category (str): Kategorie des Mediums
+
+    Returns:
+        str: Formatierte Zusammenfassung oder Fehlermeldung
+
+    Example:
+        >>> google_search_selected(["Mulholland Drive - David Lynch"], "films")
+        '🔍 Informationen zu: Mulholland Drive - David Lynch\n\n[Zusammenfassung]'
+    """
     if not selected_items or len(selected_items) != 1:
         return "Bitte wählen Sie genau ein Medium aus."
 
@@ -335,7 +379,25 @@ def google_search_selected(selected_items, category):
 
 
 def reject_selected(selected_items, category):
-    """Entfernt die ausgewählten Items und ersetzt sie durch neue"""
+    """
+    Entfernt die ausgewählten Items und ersetzt sie durch neue.
+
+    Markiert ausgewählte Items als abgelehnt im AppState und versucht,
+    sie durch neue Empfehlungen zu ersetzen.
+
+    Args:
+        selected_items (list[str]): Liste ausgewählter Display-Strings
+        category (str): Kategorie ('films', 'albums', 'books')
+
+    Returns:
+        tuple: (checkbox_update, info_text, button_state, detail_text,
+                success_msg, google_button_state)
+            Alle Updates für die GUI-Komponenten
+
+    Example:
+        >>> reject_selected(["Film A", "Film B"], "films")
+        # Entfernt beide Filme und fügt 2 neue hinzu
+    """
     if not selected_items:
         return gr.update(), "Keine Items ausgewählt.", gr.update(interactive=False), "", "", gr.update(interactive=False)
 
@@ -408,7 +470,19 @@ def reject_selected(selected_items, category):
 
 
 def save_current_recommendations():
-    """Speichert die aktuell angezeigten Empfehlungen in eine Markdown-Datei"""
+    """
+    Speichert die aktuell angezeigten Empfehlungen in eine Markdown-Datei.
+
+    Sammelt alle aktuellen Vorschläge aus den drei Kategorien und
+    schreibt sie formatiert in 'recommended.md'.
+
+    Returns:
+        str: Erfolgsmeldung oder Fehlermeldung
+
+    Example:
+        >>> save_current_recommendations()
+        '✅ 18 Empfehlungen erfolgreich in 'recommended.md' gespeichert!'
+    """
     try:
         # Bereite die Daten vor
         recommendations = {}
@@ -433,7 +507,24 @@ def save_current_recommendations():
 
 
 def initialize_recommendations():
-    """Lädt initiale Vorschläge für Filme, Alben und Bücher beim Start der App"""
+    """
+    Lädt initiale Vorschläge für Filme, Alben und Bücher beim Start der App.
+
+    Ruft für jede Kategorie Empfehlungen ab und speichert sie automatisch
+    in einer Markdown-Datei.
+
+    Returns:
+        tuple: (film_suggestions, album_suggestions, book_suggestions)
+            Listen mit initialen Empfehlungen für jede Kategorie
+
+    Side Effects:
+        - Füllt `current_suggestions` Dictionary
+        - Erstellt 'recommended.md' Datei
+
+    Example:
+        >>> films, albums, books = initialize_recommendations()
+        DEBUG: 6 initiale Empfehlungen in 'recommended.md' gespeichert
+    """
     print("DEBUG: Lade initiale Vorschläge...")
 
     # Filme laden
@@ -465,7 +556,23 @@ def initialize_recommendations():
 
 
 def get_initial_choices(suggestions):
-    """Erstellt die Auswahloptionen für die initiale Anzeige"""
+    """
+    Erstellt die Auswahloptionen für die initiale Anzeige.
+
+    Formatiert Empfehlungen mit Titel, Autor und Quellen-Emoji für
+    die CheckboxGroup-Komponente.
+
+    Args:
+        suggestions (list[dict]): Liste von Empfehlungen
+
+    Returns:
+        list[str]: Liste formatierter Display-Strings mit Emojis
+
+    Example:
+        >>> suggestions = [{"title": "Der Pate", "author": "Coppola", "source": "Oscar"}]
+        >>> get_initial_choices(suggestions)
+        ['🏆 Der Pate - Coppola']
+    """
     if not suggestions:
         return []
 

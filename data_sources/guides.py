@@ -15,7 +15,23 @@ URL = (
 def fetch_guides_from_site():
     """
     Holt die Liste der 'besten Ratgeber des 21. Jahrhunderts' von der Webseite.
-    Gibt eine Liste von Dicts mit title, author und description zurück.
+
+    Parst die HTML-Seite und extrahiert Ratgeber-Titel, Autoren und
+    Beschreibungen aus dem Abschnitt "Die besten Ratgeber des 21. Jahrhunderts".
+
+    Returns:
+        list[dict]: Liste von Ratgebern mit Schlüsseln:
+            - "title" (str): Titel des Ratgebers
+            - "author" (str): Autor/in
+            - "description" (str): Beschreibungstext
+
+    Raises:
+        requests.RequestException: Bei Netzwerkproblemen
+
+    Example:
+        >>> guides = fetch_guides_from_site()
+        >>> print(guides[0]['title'])
+        'Schnelles Denken, langsames Denken'
     """
     print(f"DEBUG: Lade Webseite {URL}...")
     response = requests.get(URL, headers={"User-Agent": "Mozilla/5.0"})
@@ -72,7 +88,22 @@ def fetch_guides_from_site():
 
 
 def save_guides_to_json():
-    """Speichert die Ratgeber-Liste in guides.json."""
+    """
+    Speichert die Ratgeber-Liste in guides.json.
+
+    Ruft `fetch_guides_from_site()` auf und schreibt die Ergebnisse
+    in eine JSON-Datei im DATA_DIR.
+
+    Returns:
+        None: Datei wird direkt geschrieben
+
+    Raises:
+        IOError: Bei Schreibproblemen
+
+    Example:
+        >>> save_guides_to_json()
+        ✅ 25 Ratgeber in data/guides.json gespeichert.
+    """
     guides = fetch_guides_from_site()
     if not guides:
         print("WARNUNG: Keine Ratgeber gefunden – nichts gespeichert.")

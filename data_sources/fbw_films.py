@@ -194,8 +194,21 @@ def save_fbw_films_to_json(filename="films.json"):
     """
     Lädt Filme von FBW und speichert sie als JSON-Datei im data-Verzeichnis.
 
+    Ruft `fetch_fbw_films()` auf und schreibt die Ergebnisse in eine JSON-Datei
+    im konfigurierten DATA_DIR.
+
     Args:
-        filename (str): Name der Ausgabedatei.
+        filename (str): Name der Ausgabedatei. Standard: "films.json"
+
+    Returns:
+        None: Datei wird direkt geschrieben
+
+    Raises:
+        IOError: Bei Schreibproblemen
+
+    Example:
+        >>> save_fbw_films_to_json("meine_filme.json")
+        ✅ 150 Filme in 'data/meine_filme.json' gespeichert.
     """
     films = fetch_fbw_films(max_pages=10)
     output_path = os.path.join(DATA_DIR, filename)

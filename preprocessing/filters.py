@@ -115,14 +115,27 @@ def filter_existing_albums(albums, base_path="H:\\MP3 Archiv", verbose=False):
 
 def get_album_statistics(albums, base_path="H:\\MP3 Archiv"):
     """
-    Erstellt Statistiken über vorhandene vs. fehlende Alben
+    Erstellt Statistiken über vorhandene vs. fehlende Alben.
+
+    Analysiert eine Album-Liste und vergleicht sie mit dem lokalen
+    MP3-Archiv, um Statistiken zu generieren.
 
     Args:
         albums (list): Liste von Tupeln in der Form (band, album)
         base_path (str): Basispfad zum MP3-Archiv
 
     Returns:
-        dict: Statistiken über die Alben
+        dict: Statistiken mit folgenden Schlüsseln:
+            - "original_count" (int): Anzahl ursprünglicher Alben
+            - "found_count" (int): Anzahl vorhandener Alben
+            - "missing_count" (int): Anzahl fehlender Alben
+            - "found_percentage" (float): Prozentsatz vorhandener Alben
+            - "missing_albums" (list): Liste der fehlenden Alben
+
+    Example:
+        >>> stats = get_album_statistics(albums, "H:\\MP3 Archiv")
+        >>> print(f"Vorhanden: {stats['found_percentage']:.1f}%")
+        Vorhanden: 42.5%
     """
 
     original_count = len(albums)

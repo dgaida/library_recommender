@@ -12,15 +12,29 @@ from groq import Groq
 
 def search_media_info(title, author=None, media_type="film"):
     """
-    Sucht Informationen über ein Medium mit DuckDuckGo
+    Sucht Informationen über ein Medium mit DuckDuckGo.
+
+    Erstellt einen optimierten Suchbegriff basierend auf Medientyp
+    und führt eine DuckDuckGo-Suche durch.
 
     Args:
         title (str): Titel des Mediums
-        author (str): Autor/Regisseur/Künstler
+        author (str, optional): Autor/Regisseur/Künstler
         media_type (str): Art des Mediums ('film', 'album', 'book')
 
     Returns:
-        list: Liste von Suchergebnissen
+        list[dict]: Liste von Suchergebnissen mit Schlüsseln:
+            - "title" (str): Titel des Suchergebnisses
+            - "body" (str): Beschreibungstext
+            - "href" (str): URL des Ergebnisses
+
+    Raises:
+        Exception: Bei Suchproblemen (wird gefangen und gibt [] zurück)
+
+    Example:
+        >>> results = search_media_info("Der Pate", "Francis Ford Coppola", "film")
+        >>> print(results[0]['title'])
+        'Der Pate – Wikipedia'
     """
     try:
         # Suchbegriff erstellen
@@ -60,16 +74,30 @@ def search_media_info(title, author=None, media_type="film"):
 
 def summarize_with_groq(search_results, title, author=None, media_type="film"):
     """
-    Erstellt eine kurze Zusammenfassung mit der Groq API
+    Erstellt eine kurze Zusammenfassung mit der Groq API.
+
+    Nutzt ein Llama-Guard-Modell über die Groq API, um aus
+    Suchergebnissen eine prägnante 1-2 Sätze Zusammenfassung zu erstellen.
 
     Args:
-        search_results (list): Suchergebnisse von DuckDuckGo
+        search_results (list[dict]): Suchergebnisse von DuckDuckGo
         title (str): Titel des Mediums
-        author (str): Autor/Regisseur/Künstler
-        media_type (str): Art des Mediums
+        author (str, optional): Autor/Regisseur/Künstler
+        media_type (str): Art des Mediums ('film', 'album', 'book')
 
     Returns:
-        str: 1-2 Sätze Zusammenfassung
+        str: 1-2 Sätze Zusammenfassung auf Deutsch
+
+    Raises:
+        Exception: Bei API-Problemen (wird gefangen, Fehlermeldung zurückgegeben)
+
+    Note:
+        Benötigt GROQ_API_KEY Umgebungsvariable
+
+    Example:
+        >>> summary = summarize_with_groq(results, "Der Pate", "Coppola", "film")
+        >>> print(summary)
+        'Der Pate ist ein Mafia-Drama von 1972...'
     """
     try:
         # Groq API Key aus Umgebungsvariable
@@ -109,7 +137,7 @@ Antwort (maximal 2 Sätze auf Deutsch):"""
 
         response = client.chat.completions.create(
             messages=[{"role": "user", "content": prompt}],
-            model="meta-llama/llama-guard-4-12b",  # Schnelles Modell
+            model="moonshotai/kimi-k2-instruct-0905",  # Schnelles Modell
             temperature=0.3,
             max_tokens=150,
         )
@@ -124,15 +152,23 @@ Antwort (maximal 2 Sätze auf Deutsch):"""
 
 def get_media_summary(title, author=None, media_type="film"):
     """
-    Kombiniert Suche und Zusammenfassung für ein Medium
+    Kombiniert Suche und Zusammenfassung für ein Medium.
+
+    High-Level-Funktion, die `search_media_info()` und
+    `summarize_with_groq()` kombiniert.
 
     Args:
         title (str): Titel des Mediums
-        author (str): Autor/Regisseur/Künstler
-        media_type (str): Art des Mediums
+        author (str, optional): Autor/Regisseur/Künstler
+        media_type (str): Art des Mediums ('film', 'album', 'book')
 
     Returns:
-        str: Zusammenfassung des Mediums
+        str: Zusammenfassung oder Fehlermeldung
+
+    Example:
+        >>> summary = get_media_summary("Mulholland Drive", "David Lynch", "film")
+        >>> print(summary)
+        'Mulholland Drive ist ein Neo-Noir-Film von 2001...'
     """
     # Erst suchen
     search_results = search_media_info(title, author, media_type)
@@ -148,13 +184,24 @@ def get_media_summary(title, author=None, media_type="film"):
 
 def extract_title_and_author(display_text):
     """
-    Extrahiert Titel und Autor aus dem Anzeige-Text
+    Extrahiert Titel und Autor aus dem Anzeige-Text.
+
+    Parst formatierte Display-Strings aus der GUI und trennt
+    Titel und Autor.
 
     Args:
         display_text (str): Text im Format "Titel - Autor" oder nur "Titel"
 
     Returns:
         tuple: (title, author)
+            - title (str): Extrahierter Titel
+            - author (str | None): Extrahierter Autor oder None
+
+    Example:
+        >>> extract_title_and_author("Der Pate - Francis Ford Coppola")
+        ('Der Pate', 'Francis Ford Coppola')
+        >>> extract_title_and_author("Standalone Film")
+        ('Standalone Film', None)
     """
     if " - " in display_text:
         parts = display_text.split(" - ", 1)

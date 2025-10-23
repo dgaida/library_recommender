@@ -133,6 +133,9 @@ class KoelnLibrarySearch:
                 HTTP-Fehler auftritt, der nicht abgefangen werden konnte.
             Exception: Wenn nach drei Versuchen kein erfolgreicher Request
                 durchgeführt werden konnte.
+
+        Example:
+            >>> response = search_engine.safe_get("https://example.com", timeout=10)
         """
         for attempt in range(3):
             try:

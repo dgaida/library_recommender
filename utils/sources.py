@@ -19,8 +19,23 @@ SOURCE_NYT_CANON = "New York Times Kanon des 21. Jahrhunderts"
 
 
 # Personalisierte Empfehlungen
-def SOURCE_TOP_ARTIST(artist_name):
-    """Generiert Quellen-String für Top-Interpreten"""
+def SOURCE_TOP_ARTIST(artist_name: str):
+    """
+    Generiert Quellen-String für Top-Interpreten.
+
+    Erstellt einen standardisierten Quellen-String für personalisierte
+    Musikempfehlungen basierend auf MP3-Archiv-Analyse.
+
+    Args:
+        artist_name (str): Name des Interpreten
+
+    Returns:
+        str: Formatierter Quellen-String
+
+    Example:
+        >>> SOURCE_TOP_ARTIST("Radiohead")
+        'Interessant für dich (Top-Interpret: Radiohead)'
+    """
     return f"Interessant für dich (Top-Interpret: {artist_name})"
 
 
