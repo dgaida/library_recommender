@@ -324,31 +324,107 @@ def on_selection_change(selected_items, category):
     return gr.update(interactive=True), detail_text.strip(), gr.update(interactive=google_btn_interactive)
 
 
+def create_media_html(youtube_id, cover_url, media_type, title):
+    """
+    Erstellt HTML für die visuelle Darstellung von Medien.
+
+    Args:
+        youtube_id: YouTube Video-ID (für Filme)
+        cover_url: URL des Cover-Images
+        media_type: Art des Mediums ('film', 'album', 'book')
+        title: Titel für Alt-Text
+
+    Returns:
+        HTML-String mit eingebettetem Video und/oder Cover-Image
+    """
+    if not youtube_id and not cover_url:
+        return ""
+
+    html_parts = [
+        '<div style="margin-top: 20px; text-align: center; background: #f9f9f9; padding: 20px; border-radius: 10px;">'
+    ]
+
+    # YouTube-Video einbetten (nur für Filme)
+    if youtube_id and media_type == "film":
+        html_parts.append(
+            f"""
+            <div style="margin-bottom: 20px;">
+                <h4 style="margin-bottom: 10px; color: #333;">🎬 Trailer</h4>
+                <iframe
+                    width="800"
+                    height="420"
+                    src="https://www.youtube.com/embed/{youtube_id}"
+                    title="YouTube video player"
+                    frameborder="0"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                    allowfullscreen
+                    style="max-width: 100%; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+                </iframe>
+            </div>
+        """
+        )
+
+    # Cover-Image anzeigen
+    if cover_url:
+        if media_type == "film":
+            label = "📀 DVD-Cover"
+        elif media_type == "album":
+            label = "🎵 Album-Cover"
+        elif media_type == "book":
+            label = "📚 Buch-Cover"
+        else:
+            label = "🖼️ Cover"
+
+        html_parts.append(
+            f"""
+            <div style="margin-bottom: 20px;">
+                <h4 style="margin-bottom: 10px; color: #333;">{label}</h4>
+                <img
+                    src="{cover_url}"
+                    alt="{title} Cover"
+                    style="max-width: 300px; max-height: 450px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);"
+                    onerror="this.style.display='none'; this.nextElementSibling.style.display='block';"
+                />
+                <p style="display: none; color: #666; font-style: italic; margin-top: 10px;">
+                    Cover konnte nicht geladen werden
+                </p>
+            </div>
+        """
+        )
+
+    html_parts.append("</div>")
+
+    return "".join(html_parts)
+
+
 def google_search_selected(selected_items, category):
     """
-    Googelt das ausgewählte Medium und gibt eine Zusammenfassung zurück.
+    Googelt das ausgewählte Medium und gibt Zusammenfassung mit visuellen Medien zurück.
 
     Verwendet DuckDuckGo Search und Groq AI, um eine 1-2 Sätze
     Zusammenfassung des ausgewählten Mediums zu erstellen.
 
     Args:
-        selected_items (list[str]): Liste mit genau einem ausgewählten Item
-        category (str): Kategorie des Mediums
+        selected_items: Liste mit genau einem ausgewählten Item
+        category: Kategorie des Mediums ('films', 'albums', 'books')
 
     Returns:
-        str: Formatierte Zusammenfassung oder Fehlermeldung
+        tuple: (text_output, html_output) für Textbox und HTML-Komponente
 
     Example:
         >>> google_search_selected(["Mulholland Drive - David Lynch"], "films")
         '🔍 Informationen zu: Mulholland Drive - David Lynch\n\n[Zusammenfassung]'
     """
     if not selected_items or len(selected_items) != 1:
-        return "Bitte wählen Sie genau ein Medium aus."
+        return "Bitte wählen Sie genau ein Medium aus.", ""
 
     selected_item = selected_items[0]
 
+    # Entferne Emojis für Vergleich
+    selected_item_clean = remove_emoji(selected_item)
+
     # Extrahiere Titel und Autor
-    title, author = extract_title_and_author(selected_item)
+    title, author = extract_title_and_author(selected_item_clean)
 
     # Bestimme Medientyp
     if category == "films":
@@ -363,19 +439,22 @@ def google_search_selected(selected_items, category):
     print(f"DEBUG: Google-Suche für {media_type}: '{title}' von '{author}'")
 
     try:
-        # Hole Zusammenfassung
-        summary = get_media_summary(title, author, media_type)
+        # Hole Zusammenfassung und visuelle Medien
+        media_data = get_media_summary(title, author, media_type)
 
-        # Formatiere die Ausgabe
-        result = f"🔍 Informationen zu: {title}"
+        # Formatiere Text-Ausgabe
+        text_result = f"🔍 Informationen zu: {title}"
         if author:
-            result += f" - {author}"
-        result += f"\n\n{summary}"
+            text_result += f" - {author}"
+        text_result += f"\n\n{media_data['summary']}"
 
-        return result
+        # Erstelle HTML für visuelle Medien
+        html_result = create_media_html(media_data.get("youtube_id"), media_data.get("cover_url"), media_type, title)
+
+        return text_result, html_result
 
     except Exception as e:
-        return f"❌ Fehler bei der Suche: {str(e)}"
+        return f"❌ Fehler bei der Suche: {str(e)}", ""
 
 
 def reject_selected(selected_items, category):
@@ -399,16 +478,24 @@ def reject_selected(selected_items, category):
         # Entfernt beide Filme und fügt 2 neue hinzu
     """
     if not selected_items:
-        return gr.update(), "Keine Items ausgewählt.", gr.update(interactive=False), "", "", gr.update(interactive=False)
+        return (
+            gr.update(),
+            "Keine Items ausgewählt.",
+            gr.update(interactive=False),
+            "",
+            "",
+            gr.update(interactive=False),
+            "",  # <-- HTML-Reset
+        )
 
-    # Finde die entsprechenden Vorschläge
+        # Finde die entsprechenden Vorschläge
     suggestions = current_suggestions.get(category, [])
     rejected_titles = []
     indices_to_remove = []
 
     # Identifiziere alle zu entfernenden Items
     for selected_item in selected_items:
-        # NEU: Entferne Emojis für Vergleich
+        # Entferne Emojis für Vergleich
         selected_item_clean = remove_emoji(selected_item)
 
         for i, s in enumerate(suggestions):
@@ -424,7 +511,7 @@ def reject_selected(selected_items, category):
                 state.reject(category, rejected_item)
                 break
 
-    # Entferne Items (von hinten nach vorne, um Indices nicht zu verschieben)
+    # Entferne Items (von hinten nach vorne)
     for i in sorted(indices_to_remove, reverse=True):
         current_suggestions[category].pop(i)
 
@@ -466,6 +553,7 @@ def reject_selected(selected_items, category):
         "",
         success_msg,
         gr.update(interactive=False),
+        "",  # <-- Leere HTML-Komponente
     )
 
 
@@ -747,6 +835,8 @@ with gr.Blocks(css=css, title="Bibliothek-Empfehlungen") as demo:
 
             film_detail = gr.Textbox(label="Details zu den ausgewählten Filmen", value="", interactive=False, lines=6)
 
+            film_media = gr.HTML(value="", label="Visuelle Medien")
+
             film_message = gr.HTML(value="", visible=False, elem_classes=["success-message"])
 
     with gr.Tab("🎵 Musik"):
@@ -780,6 +870,8 @@ with gr.Blocks(css=css, title="Bibliothek-Empfehlungen") as demo:
             )
 
             album_detail = gr.Textbox(label="Details zu den ausgewählten Alben", value="", interactive=False, lines=6)
+
+            album_media = gr.HTML(value="", label="Visuelle Medien")
 
             album_message = gr.HTML(value="", visible=False, elem_classes=["success-message"])
 
@@ -815,6 +907,8 @@ with gr.Blocks(css=css, title="Bibliothek-Empfehlungen") as demo:
 
             book_detail = gr.Textbox(label="Details zu den ausgewählten Büchern", value="", interactive=False, lines=6)
 
+            book_media = gr.HTML(value="", label="Visuelle Medien")
+
             book_message = gr.HTML(value="", visible=False, elem_classes=["success-message"])
 
     # Event Handler für globalen Speichern-Button
@@ -836,14 +930,16 @@ with gr.Blocks(css=css, title="Bibliothek-Empfehlungen") as demo:
     film_reject_btn.click(
         fn=lambda x: reject_selected(x, "films"),
         inputs=[film_checkbox],
-        outputs=[film_checkbox, film_info, film_reject_btn, film_detail, film_message, film_google_btn],
+        outputs=[film_checkbox, film_info, film_reject_btn, film_detail, film_message, film_google_btn, film_media],
     ).then(
         fn=lambda x: gr.update(visible=bool(x), value=x) if x else gr.update(visible=False),
         inputs=[film_message],
         outputs=[film_message],
     )
 
-    film_google_btn.click(fn=lambda x: google_search_selected(x, "films"), inputs=[film_checkbox], outputs=[film_detail])
+    film_google_btn.click(
+        fn=lambda x: google_search_selected(x, "films"), inputs=[film_checkbox], outputs=[film_detail, film_media]
+    )
 
     # Event Handler für Alben
     album_suggest_btn.click(fn=lambda: suggest("albums"), outputs=[album_checkbox, album_info, album_reject_btn, album_detail])
@@ -857,14 +953,16 @@ with gr.Blocks(css=css, title="Bibliothek-Empfehlungen") as demo:
     album_reject_btn.click(
         fn=lambda x: reject_selected(x, "albums"),
         inputs=[album_checkbox],
-        outputs=[album_checkbox, album_info, album_reject_btn, album_detail, album_message, album_google_btn],
+        outputs=[album_checkbox, album_info, album_reject_btn, album_detail, album_message, album_google_btn, album_media],
     ).then(
         fn=lambda x: gr.update(visible=bool(x), value=x) if x else gr.update(visible=False),
         inputs=[album_message],
         outputs=[album_message],
     )
 
-    album_google_btn.click(fn=lambda x: google_search_selected(x, "albums"), inputs=[album_checkbox], outputs=[album_detail])
+    album_google_btn.click(
+        fn=lambda x: google_search_selected(x, "albums"), inputs=[album_checkbox], outputs=[album_detail, album_media]
+    )
 
     # Event Handler für Bücher
     book_suggest_btn.click(fn=lambda: suggest("books"), outputs=[book_checkbox, book_info, book_reject_btn, book_detail])
@@ -878,14 +976,16 @@ with gr.Blocks(css=css, title="Bibliothek-Empfehlungen") as demo:
     book_reject_btn.click(
         fn=lambda x: reject_selected(x, "books"),
         inputs=[book_checkbox],
-        outputs=[book_checkbox, book_info, book_reject_btn, book_detail, book_message, book_google_btn],
+        outputs=[book_checkbox, book_info, book_reject_btn, book_detail, book_message, book_google_btn, book_media],
     ).then(
         fn=lambda x: gr.update(visible=bool(x), value=x) if x else gr.update(visible=False),
         inputs=[book_message],
         outputs=[book_message],
     )
 
-    book_google_btn.click(fn=lambda x: google_search_selected(x, "books"), inputs=[book_checkbox], outputs=[book_detail])
+    book_google_btn.click(
+        fn=lambda x: google_search_selected(x, "books"), inputs=[book_checkbox], outputs=[book_detail, book_media]
+    )
 
 
 if __name__ == "__main__":
