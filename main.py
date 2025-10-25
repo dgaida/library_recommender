@@ -1,76 +1,71 @@
 #!/usr/bin/env python3
 """
-Stadtbibliothek Köln Katalog Suche
-Programm zur Suche im Online-Katalog der Stadtbibliothek Köln
+Haupteinstiegspunkt für die Bibliothek-Empfehlungs-App
 """
 
-from dotenv import load_dotenv
-import time
 import sys
-from library.search import KoelnLibrarySearch
+from typing import NoReturn
+from dotenv import load_dotenv
+from utils.logging_config import setup_logging, get_logger
 from gui import launch_app
 
+# Lade Umgebungsvariablen
 load_dotenv(dotenv_path="secrets.env")
 
-
-# wird nicht mehr genutzt
-def main():
-    """Hauptfunktion für die interaktive Nutzung"""
-    search_engine = KoelnLibrarySearch()
-
-    print("Stadtbibliothek Köln - Katalogsuche")
-    print("=" * 40)
-
-    while True:
-        try:
-            search_term = input("\nGeben Sie einen Suchbegriff ein (oder 'quit' zum Beenden): ").strip()
-
-            if search_term.lower() in ["quit", "exit", "q"]:
-                print("Auf Wiedersehen!")
-                break
-
-            if not search_term:
-                print("Bitte geben Sie einen Suchbegriff ein.")
-                continue
-
-            # Suchtyp auswählen
-            print("\nSuchtyp auswählen:")
-            print("1. Alle Felder (Standard)")
-            print("2. Titel")
-            print("3. Autor")
-            print("4. Schlagwort")
-
-            choice = input("Ihre Wahl (1-4, Enter für Standard): ").strip()
-
-            search_types = {"1": "all", "2": "title", "3": "author", "4": "subject", "": "all"}
-
-            search_type = search_types.get(choice, "all")
-
-            # Suche durchführen
-            results = search_engine.search(search_term, search_type)
-
-            # Ergebnisse anzeigen
-            search_engine.display_results(results)
-
-            # Kurze Pause um Server nicht zu überlasten
-            time.sleep(1)
-
-        except KeyboardInterrupt:
-            print("\n\nProgramm beendet.")
-            break
-        except Exception as e:
-            print(f"Ein Fehler ist aufgetreten: {e}")
+# Initialisiere Logging
+setup_logging()
+logger = get_logger(__name__)
 
 
-if __name__ == "__main__":
-    # Abhängigkeiten prüfen
+def check_dependencies() -> None:
+    """
+    Prüft ob alle erforderlichen Abhängigkeiten installiert sind.
+
+    Raises:
+        SystemExit: Wenn wichtige Abhängigkeiten fehlen
+    """
+    logger.info("Prüfe Abhängigkeiten...")
+
     try:
         import requests
         import bs4
+        import gradio
+        logger.info("✅ Alle Basis-Abhängigkeiten verfügbar")
     except ImportError as e:
-        print("Fehlende Abhängigkeiten. Bitte installieren Sie diese mit:")
-        print("pip install requests beautifulsoup4")
+        logger.error(f"❌ Fehlende Abhängigkeit: {e}")
+        print("\nFehlende Abhängigkeiten. Bitte installieren Sie diese mit:")
+        print("pip install -r requirements.txt")
         sys.exit(1)
 
-    # Gradio-App starten
-    launch_app(share=False, inbrowser=True)
+
+def main() -> NoReturn:
+    """
+    Hauptfunktion - Startet die Gradio-App.
+
+    Diese Funktion wird beim direkten Ausführen der Datei aufgerufen.
+    """
+    logger.info("=" * 60)
+    logger.info("🎬📀📚 Bibliothek-Empfehlungs-App startet...")
+    logger.info("=" * 60)
+
+    # Abhängigkeiten prüfen
+    check_dependencies()
+
+    try:
+        # Gradio-App starten
+        logger.info("Starte Gradio-Webinterface...")
+        launch_app(share=False, inbrowser=True)
+
+    except KeyboardInterrupt:
+        logger.info("\n\n⚠️  App durch Benutzer beendet (Ctrl+C)")
+        sys.exit(0)
+
+    except Exception as e:
+        logger.error(f"❌ Kritischer Fehler beim Start der App: {e}", exc_info=True)
+        print(f"\n❌ Fehler: {e}")
+        print("\nBitte prüfen Sie die Log-Datei für Details.")
+        sys.exit(1)
+
+
+if __name__ == "__main__":
+    main()

@@ -1,128 +1,192 @@
-import random
+#!/usr/bin/env python3
+"""
+Recommender-System für Bibliotheksmedien mit Type Hints und Logging
+"""
+
+from typing import List, Dict, Any
 from .state import AppState
-from utils.blacklist import get_blacklist
+from utils.blacklist import get_blacklist, Blacklist
+from utils.logging_config import get_logger
+
+logger = get_logger(__name__)
 
 
 class Recommender:
     """
     Stellt Empfehlungslogik für Filme, Musik und Bücher bereit.
 
-    Diese Klasse nutzt `KoelnLibrarySearch`, um Titel in der Stadtbibliothek Köln
+    Diese Klasse nutzt KoelnLibrarySearch, um Titel in der Stadtbibliothek Köln
     zu suchen und prüft deren aktuelle Verfügbarkeit. Bereits vorgeschlagene
-    Items werden in `AppState` gespeichert, um Mehrfachvorschläge zu verhindern.
+    Items werden in AppState gespeichert, um Mehrfachvorschläge zu verhindern.
     """
 
-    def __init__(self, library_search, state: AppState):
-        self.library_search = library_search
-        self.state = state
-        self.blacklist = get_blacklist()
+    def __init__(self, library_search: Any, state: AppState) -> None:
+        """
+        Initialisiert den Recommender.
 
-    def _pick_available_items(self, items, category, n=4, verbose=False):
+        Args:
+            library_search: KoelnLibrarySearch-Instanz
+            state: AppState für Zustandsverwaltung
+        """
+        self.library_search = library_search
+        self.state: AppState = state
+        self.blacklist: Blacklist = get_blacklist()
+        logger.info("Recommender initialisiert")
+
+    def _pick_available_items(
+            self,
+            items: List[Dict[str, Any]],
+            category: str,
+            n: int = 4,
+            verbose: bool = False
+    ) -> List[Dict[str, Any]]:
         """
         Wählt n zufällige, heute verfügbare Items aus einer Liste.
 
         Args:
-            items (list[dict]): Liste von Werken, z.B. [{'title': ..., 'author': ...}]
-            category (str): Kategorie, z.B. 'films', 'albums'
-            n (int): Anzahl gewünschter Vorschläge
+            items: Liste von Werken mit 'title', 'author', etc.
+            category: Kategorie ('films', 'albums', 'books')
+            n: Anzahl gewünschter Vorschläge
+            verbose: Ausführliches Logging
 
         Returns:
-            list[dict]: Liste der ausgewählten Werke
+            Liste der ausgewählten Werke
         """
-        results = []
+        results: List[Dict[str, Any]] = []
+
+        logger.info(f"Suche {n} verfügbare Items in Kategorie '{category}'")
+
         for item in items:
-            # NEU: Überspringe, wenn geblacklistet
+            # Überspringe geblacklistete Items
             if self.blacklist.is_blacklisted(category, item):
                 if verbose:
-                    print(f"DEBUG: ignore {item['title']} because it's blacklisted")
+                    logger.debug(
+                        f"Überspringe '{item['title']}' (geblacklistet)"
+                    )
                 continue
 
-            # Überspringe, wenn schon vorgeschlagen
+            # Überspringe bereits vorgeschlagene Items
             if self.state.is_already_suggested(category, item):
                 if verbose:
-                    print(f"DEBUG: ignore {item} because it was already suggested")
+                    logger.debug(
+                        f"Überspringe '{item['title']}' (bereits vorgeschlagen)"
+                    )
                 continue
 
-            media_type = item.get("type", "")
+            media_type: str = item.get("type", "")
 
             if media_type == "Buch":
-                query = f"{item.get('author', '')} {item.get('title')} {media_type}".strip()
+                query = (
+                    f"{item.get('author', '')} {item.get('title')} "
+                    f"{media_type}".strip()
+                )
             else:
-                query = f"{item.get('title')} {item.get('author', '')} {media_type}".strip()
+                query = (
+                    f"{item.get('title')} {item.get('author', '')} "
+                    f"{media_type}".strip()
+                )
 
             # Suche in Bibliothek
-            hits = self.library_search.search(query)
+            logger.debug(f"Suche nach: '{query}'")
+            hits: List[Dict[str, Any]] = self.library_search.search(query)
 
-            # NEU: KEINE TREFFER → Blacklist
+            # Keine Treffer → Blacklist
             if not hits or len(hits) == 0:
-                print(f"⚫ Keine Treffer für '{item['title']}' - wird geblacklistet")
-                self.blacklist.add_to_blacklist(category, item, reason="Keine Treffer in Bibliothekskatalog")
+                logger.info(
+                    f"⚫ Keine Treffer für '{item['title']}' - wird geblacklistet"
+                )
+                self.blacklist.add_to_blacklist(
+                    category,
+                    item,
+                    reason="Keine Treffer in Bibliothekskatalog"
+                )
                 continue
 
             # Prüfen, ob verfügbar (nur auf zentralbibliothek_info)
-            available = [
-                h for h in hits if "zentralbibliothek_info" in h and "verfügbar" in h["zentralbibliothek_info"].lower()
+            available: List[Dict[str, Any]] = [
+                h for h in hits
+                if "zentralbibliothek_info" in h and
+                   "verfügbar" in h["zentralbibliothek_info"].lower()
             ]
 
             if available:
-                # alle Verfügbarkeits-Infos zusammenfassen
-                infos = [h["zentralbibliothek_info"] for h in hits if "zentralbibliothek_info" in h]
+                # Alle Verfügbarkeits-Infos zusammenfassen
+                infos: List[str] = [
+                    h["zentralbibliothek_info"]
+                    for h in hits
+                    if "zentralbibliothek_info" in h
+                ]
 
-                # WICHTIG: Kopiere das Item und füge bib_number hinzu
-                result_item = item.copy()  # NEU: .copy() um Original nicht zu ändern
+                # Kopiere das Item und füge bib_number hinzu
+                result_item: Dict[str, Any] = item.copy()
                 result_item["bib_number"] = f"{', '.join(infos)}"
 
-                # NEU: Behalte source-Eigenschaft bei (falls vorhanden)
-                # (wird automatisch durch .copy() übernommen)
-
                 results.append(result_item)
-
                 self.state.mark_suggested(category, item)
+
+                logger.info(f"✅ '{item['title']}' verfügbar und vorgeschlagen")
 
             if len(results) >= n:
                 break
 
+        logger.info(
+            f"Gefunden: {len(results)}/{n} verfügbare Items in '{category}'"
+        )
         return results
 
-    def suggest_films(self, films, n=4):
+    def suggest_films(
+            self,
+            films: List[Dict[str, Any]],
+            n: int = 4
+    ) -> List[Dict[str, Any]]:
         """
         Wählt verfügbare Filme aus der bereitgestellten Liste.
 
         Args:
-            films (list[dict]): Liste von Filmen mit Titeln, Autoren und Typ.
-            n (int, optional): Anzahl gewünschter Vorschläge. Standard: 4.
+            films: Liste von Filmen mit Titeln, Autoren und Typ
+            n: Anzahl gewünschter Vorschläge
 
         Returns:
-            list[dict]: Liste der vorgeschlagenen Filme, die aktuell in der
-            Zentralbibliothek verfügbar sind.
+            Liste der vorgeschlagenen Filme, die aktuell in der
+            Zentralbibliothek verfügbar sind
         """
+        logger.info(f"Erstelle {n} Filmvorschläge")
         return self._pick_available_items(films, "films", n)
 
-    def suggest_albums(self, albums, n=4):
+    def suggest_albums(
+            self,
+            albums: List[Dict[str, Any]],
+            n: int = 4
+    ) -> List[Dict[str, Any]]:
         """
         Wählt verfügbare Musikalben aus der bereitgestellten Liste.
 
         Args:
-            albums (list[dict]): Liste von Alben mit Titel, Künstler und Typ.
-            n (int, optional): Anzahl gewünschter Vorschläge. Standard: 4.
+            albums: Liste von Alben mit Titel, Künstler und Typ
+            n: Anzahl gewünschter Vorschläge
 
         Returns:
-            list[dict]: Liste der vorgeschlagenen Alben, die aktuell in der
-            Zentralbibliothek verfügbar sind.
+            Liste der vorgeschlagenen Alben, die aktuell in der
+            Zentralbibliothek verfügbar sind
         """
+        logger.info(f"Erstelle {n} Albumvorschläge")
         return self._pick_available_items(albums, "albums", n)
 
-    def suggest_books(self, books, n=4):
+    def suggest_books(
+            self,
+            books: List[Dict[str, Any]],
+            n: int = 4
+    ) -> List[Dict[str, Any]]:
         """
         Wählt verfügbare Bücher aus der bereitgestellten Liste.
 
         Args:
-            books (list[dict]): Liste von Büchern mit Titel, Autor und Typ.
-            n (int, optional): Anzahl gewünschter Vorschläge. Standard: 4.
+            books: Liste von Büchern mit Titel, Autor und Typ
+            n: Anzahl gewünschter Vorschläge
 
         Returns:
-            list[dict]: Liste der vorgeschlagenen Bücher, die aktuell in der
-            Zentralbibliothek verfügbar sind.
+            Liste der vorgeschlagenen Bücher, die aktuell in der
+            Zentralbibliothek verfügbar sind
         """
-        # Platzhalter – analog zu Filmen/Alben
+        logger.info(f"Erstelle {n} Buchvorschläge")
         return self._pick_available_items(books, "books", n)

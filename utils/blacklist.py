@@ -10,10 +10,13 @@ auf die Blacklist gesetzt.
 import os
 import json
 from datetime import datetime
-
+from typing import Dict, List, Any, Optional
 from utils.io import DATA_DIR
+from utils.logging_config import get_logger
 
-BLACKLIST_FILES = {
+logger = get_logger(__name__)
+
+BLACKLIST_FILES: Dict[str, str] = {
     "films": os.path.join(DATA_DIR, "blacklist_films.json"),
     "albums": os.path.join(DATA_DIR, "blacklist_albums.json"),
     "books": os.path.join(DATA_DIR, "blacklist_books.json"),
@@ -31,78 +34,96 @@ class Blacklist:
     - Treffer gefunden wurden, aber alle ausgeliehen sind
     """
 
-    def __init__(self):
-        self.blacklists = {
+    def __init__(self) -> None:
+        """Initialisiert Blacklist und lädt existierende Listen."""
+        self.blacklists: Dict[str, List[Dict[str, Any]]] = {
             "films": self._load_blacklist("films"),
             "albums": self._load_blacklist("albums"),
             "books": self._load_blacklist("books"),
         }
+        logger.info("Blacklist-System initialisiert")
 
-    def _load_blacklist(self, category):
+    def _load_blacklist(self, category: str) -> List[Dict[str, Any]]:
         """
         Lädt die Blacklist für eine Kategorie aus der JSON-Datei.
 
         Args:
-            category (str): Kategorie ('films', 'albums', 'books')
+            category: Kategorie ('films', 'albums', 'books')
 
         Returns:
-            list[dict]: Liste der geblacklisteten Medien
+            Liste der geblacklisteten Medien
         """
-        filepath = BLACKLIST_FILES.get(category)
+        filepath: Optional[str] = BLACKLIST_FILES.get(category)
         if not filepath:
+            logger.warning(f"Keine Blacklist-Datei für Kategorie '{category}'")
             return []
 
         if os.path.exists(filepath):
             try:
                 with open(filepath, "r", encoding="utf-8") as f:
-                    data = json.load(f)
-                print(f"DEBUG: {len(data)} geblacklistete {category} geladen")
+                    data: List[Dict[str, Any]] = json.load(f)
+                logger.info(f"{len(data)} geblacklistete {category} geladen")
                 return data
             except (json.JSONDecodeError, IOError) as e:
-                print(f"WARNUNG: Fehler beim Laden von {filepath}: {e}")
+                logger.error(f"Fehler beim Laden von {filepath}: {e}")
                 return []
         else:
+            logger.info(f"Keine existierende Blacklist für {category}")
             return []
 
-    def _save_blacklist(self, category):
+    def _save_blacklist(self, category: str) -> None:
         """
         Speichert die Blacklist für eine Kategorie in die JSON-Datei.
 
         Args:
-            category (str): Kategorie ('films', 'albums', 'books')
+            category: Kategorie ('films', 'albums', 'books')
         """
-        filepath = BLACKLIST_FILES.get(category)
+        filepath: Optional[str] = BLACKLIST_FILES.get(category)
         if not filepath:
+            logger.warning(f"Keine Blacklist-Datei für Kategorie '{category}'")
             return
 
         try:
             os.makedirs(DATA_DIR, exist_ok=True)
             with open(filepath, "w", encoding="utf-8") as f:
-                json.dump(self.blacklists[category], f, ensure_ascii=False, indent=2)
-            print(f"DEBUG: {len(self.blacklists[category])} {category} in Blacklist gespeichert")
+                json.dump(
+                    self.blacklists[category],
+                    f,
+                    ensure_ascii=False,
+                    indent=2
+                )
+            logger.info(
+                f"{len(self.blacklists[category])} {category} "
+                f"in Blacklist gespeichert"
+            )
         except IOError as e:
-            print(f"FEHLER beim Speichern von {filepath}: {e}")
+            logger.error(f"Fehler beim Speichern von {filepath}: {e}")
 
-    def is_blacklisted(self, category, item):
+    def is_blacklisted(
+        self,
+        category: str,
+        item: Dict[str, Any]
+    ) -> bool:
         """
         Prüft, ob ein Medium auf der Blacklist steht.
 
         Args:
-            category (str): Kategorie ('films', 'albums', 'books')
-            item (dict): Medium mit 'title' und optional 'author'
+            category: Kategorie ('films', 'albums', 'books')
+            item: Medium mit 'title' und optional 'author'
 
         Returns:
-            bool: True wenn geblacklistet, sonst False
+            True wenn geblacklistet, sonst False
         """
         if category not in self.blacklists:
+            logger.warning(f"Unbekannte Kategorie '{category}'")
             return False
 
-        title_lower = item["title"].lower().strip()
-        author_lower = item.get("author", "").lower().strip()
+        title_lower: str = item["title"].lower().strip()
+        author_lower: str = item.get("author", "").lower().strip()
 
         for blacklisted in self.blacklists[category]:
-            bl_title = blacklisted["title"].lower().strip()
-            bl_author = blacklisted.get("author", "").lower().strip()
+            bl_title: str = blacklisted["title"].lower().strip()
+            bl_author: str = blacklisted.get("author", "").lower().strip()
 
             # Vergleiche Titel und Autor
             if bl_title == title_lower:
@@ -115,26 +136,31 @@ class Blacklist:
 
         return False
 
-    def add_to_blacklist(self, category, item, reason="Nicht in Bibliothek gefunden"):
+    def add_to_blacklist(
+        self,
+        category: str,
+        item: Dict[str, Any],
+        reason: str = "Nicht in Bibliothek gefunden"
+    ) -> None:
         """
         Fügt ein Medium zur Blacklist hinzu.
 
         Args:
-            category (str): Kategorie ('films', 'albums', 'books')
-            item (dict): Medium mit 'title' und optional 'author'
-            reason (str): Grund für die Blacklistung
+            category: Kategorie ('films', 'albums', 'books')
+            item: Medium mit 'title' und optional 'author'
+            reason: Grund für die Blacklistung
         """
         if category not in self.blacklists:
-            print(f"WARNUNG: Unbekannte Kategorie '{category}'")
+            logger.warning(f"Unbekannte Kategorie '{category}'")
             return
 
         # Prüfe ob schon geblacklistet
         if self.is_blacklisted(category, item):
-            print(f"DEBUG: '{item['title']}' ist bereits geblacklistet")
+            logger.debug(f"'{item['title']}' ist bereits geblacklistet")
             return
 
         # Erstelle Blacklist-Eintrag
-        blacklist_entry = {
+        blacklist_entry: Dict[str, Any] = {
             "title": item["title"],
             "author": item.get("author", ""),
             "type": item.get("type", ""),
@@ -145,26 +171,33 @@ class Blacklist:
         self.blacklists[category].append(blacklist_entry)
         self._save_blacklist(category)
 
-        print(f"✅ '{item['title']}' zur {category}-Blacklist hinzugefügt: {reason}")
+        logger.info(
+            f"✅ '{item['title']}' zur {category}-Blacklist hinzugefügt: {reason}"
+        )
 
-    def remove_from_blacklist(self, category, item):
+    def remove_from_blacklist(
+        self,
+        category: str,
+        item: Dict[str, Any]
+    ) -> bool:
         """
         Entfernt ein Medium von der Blacklist.
 
         Args:
-            category (str): Kategorie ('films', 'albums', 'books')
-            item (dict): Medium mit 'title' und optional 'author'
+            category: Kategorie ('films', 'albums', 'books')
+            item: Medium mit 'title' und optional 'author'
 
         Returns:
-            bool: True wenn entfernt, False wenn nicht gefunden
+            True wenn entfernt, False wenn nicht gefunden
         """
         if category not in self.blacklists:
+            logger.warning(f"Unbekannte Kategorie '{category}'")
             return False
 
-        title_lower = item["title"].lower().strip()
-        author_lower = item.get("author", "").lower().strip()
+        title_lower: str = item["title"].lower().strip()
+        author_lower: str = item.get("author", "").lower().strip()
 
-        original_length = len(self.blacklists[category])
+        original_length: int = len(self.blacklists[category])
 
         # Filtere Blacklist
         self.blacklists[category] = [
@@ -172,51 +205,62 @@ class Blacklist:
             for bl in self.blacklists[category]
             if not (
                 bl["title"].lower().strip() == title_lower
-                and (not author_lower or not bl.get("author") or bl.get("author", "").lower().strip() == author_lower)
+                and (
+                    not author_lower
+                    or not bl.get("author")
+                    or bl.get("author", "").lower().strip() == author_lower
+                )
             )
         ]
 
-        removed = original_length > len(self.blacklists[category])
+        removed: bool = original_length > len(self.blacklists[category])
 
         if removed:
             self._save_blacklist(category)
-            print(f"✅ '{item['title']}' von {category}-Blacklist entfernt")
+            logger.info(f"✅ '{item['title']}' von {category}-Blacklist entfernt")
 
         return removed
 
-    def clear_blacklist(self, category=None):
+    def clear_blacklist(self, category: Optional[str] = None) -> None:
         """
         Löscht die Blacklist für eine oder alle Kategorien.
 
         Args:
-            category (str, optional): Spezifische Kategorie oder None für alle
+            category: Spezifische Kategorie oder None für alle
         """
         if category:
             if category in self.blacklists:
                 self.blacklists[category] = []
                 self._save_blacklist(category)
-                print(f"✅ {category}-Blacklist gelöscht")
+                logger.info(f"✅ {category}-Blacklist gelöscht")
+            else:
+                logger.warning(f"Unbekannte Kategorie '{category}'")
         else:
             for cat in self.blacklists.keys():
                 self.blacklists[cat] = []
                 self._save_blacklist(cat)
-            print("✅ Alle Blacklists gelöscht")
+            logger.info("✅ Alle Blacklists gelöscht")
 
-    def get_blacklist_stats(self):
+    def get_blacklist_stats(self) -> Dict[str, Dict[str, Any]]:
         """
         Gibt Statistiken über die Blacklists zurück.
 
         Returns:
-            dict: Statistiken pro Kategorie
+            Dictionary mit Statistiken pro Kategorie
         """
-        return {category: {"count": len(items), "items": items} for category, items in self.blacklists.items()}
+        stats: Dict[str, Dict[str, Any]] = {
+            category: {
+                "count": len(items),
+                "items": items
+            }
+            for category, items in self.blacklists.items()
+        }
+        return stats
 
-    def print_stats(self):
-        """
-        Druckt Statistiken über die Blacklists.
-        """
-        stats = self.get_blacklist_stats()
-        total = sum(s["count"] for s in stats.values())
+    def print_stats(self) -> None:
+        """Druckt Statistiken über die Blacklists."""
+        stats: Dict[str, Dict[str, Any]] = self.get_blacklist_stats()
+        total: int = sum(s["count"] for s in stats.values())
 
         print("\n" + "=" * 50)
         print("BLACKLIST STATISTIKEN")
@@ -238,18 +282,19 @@ class Blacklist:
         print("=" * 50 + "\n")
 
 
-# Globale Blacklist-Instanz
-_blacklist_instance = None
+# Globale Blacklist-Instanz (Singleton)
+_blacklist_instance: Optional[Blacklist] = None
 
 
-def get_blacklist():
+def get_blacklist() -> Blacklist:
     """
     Gibt die globale Blacklist-Instanz zurück (Singleton-Pattern).
 
     Returns:
-        Blacklist: Die globale Blacklist-Instanz
+        Die globale Blacklist-Instanz
     """
     global _blacklist_instance
     if _blacklist_instance is None:
         _blacklist_instance = Blacklist()
+        logger.info("Neue Blacklist-Instanz erstellt")
     return _blacklist_instance
