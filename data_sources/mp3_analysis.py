@@ -10,7 +10,7 @@ import os
 import json
 import time
 from collections import Counter
-from typing import List, Dict, Any, Tuple, Set
+from typing import List, Dict, Any, Set
 from library.search import KoelnLibrarySearch
 from utils.io import DATA_DIR
 from utils.logging_config import get_logger
@@ -18,7 +18,7 @@ from utils.artist_blacklist import (
     ArtistBlacklist,
     get_artist_blacklist,
     get_filtered_top_artists,
-    update_artist_blacklist_from_search_results
+    update_artist_blacklist_from_search_results,
 )
 
 logger = get_logger(__name__)
@@ -57,16 +57,13 @@ def analyze_mp3_archive(archive_path: str) -> Counter:
                     continue
 
                 # Ignoriere systemische oder unklare Künstlernamen
-                if artist.startswith(".") or artist.lower() in [
-                    "various", "compilations", "soundtracks"
-                ]:
+                if artist.startswith(".") or artist.lower() in ["various", "compilations", "soundtracks"]:
                     continue
 
                 artist_counter[artist] += 1
 
         logger.info(
-            f"{len(artist_counter)} verschiedene Interpreten gefunden, "
-            f"{sum(artist_counter.values())} Songs gesamt"
+            f"{len(artist_counter)} verschiedene Interpreten gefunden, " f"{sum(artist_counter.values())} Songs gesamt"
         )
 
     except Exception as e:
@@ -75,10 +72,7 @@ def analyze_mp3_archive(archive_path: str) -> Counter:
     return artist_counter
 
 
-def search_artist_albums_in_library(
-        artist_name: str,
-        max_results: int = 15
-) -> List[Dict[str, Any]]:
+def search_artist_albums_in_library(artist_name: str, max_results: int = 15) -> List[Dict[str, Any]]:
     """
     Sucht alle Alben eines Interpreten in der Bibliothek.
 
@@ -105,10 +99,7 @@ def search_artist_albums_in_library(
                     "author": artist_name,
                     "type": "CD",
                     "source": f"Interessant für dich (Top-Interpret: {artist_name})",
-                    "bib_availability": result.get(
-                        "zentralbibliothek_info",
-                        "Unbekannt"
-                    ),
+                    "bib_availability": result.get("zentralbibliothek_info", "Unbekannt"),
                 }
                 albums.append(album)
 
@@ -116,18 +107,11 @@ def search_artist_albums_in_library(
         return albums
 
     except Exception as e:
-        logger.error(
-            f"Fehler bei der Suche nach '{artist_name}': {e}",
-            exc_info=True
-        )
+        logger.error(f"Fehler bei der Suche nach '{artist_name}': {e}", exc_info=True)
         return []
 
 
-def find_new_albums_for_top_artists(
-        archive_path: str,
-        top_n: int = 10,
-        use_blacklist: bool = True
-) -> List[Dict[str, Any]]:
+def find_new_albums_for_top_artists(archive_path: str, top_n: int = 10, use_blacklist: bool = True) -> List[Dict[str, Any]]:
     """
     Findet neue Alben für deine Top-Interpreten in der Bibliothek.
 
@@ -148,106 +132,95 @@ def find_new_albums_for_top_artists(
         logger.warning("Keine Interpreten im Archiv gefunden")
         return []
 
-    # Lade Artist-Blacklist
-    artist_blacklist: ArtistBlacklist = get_artist_blacklist()
+    top_artists = _get_filtered_artists(artist_counter, top_n, use_blacklist)
+    existing_albums = _get_existing_albums(archive_path)
 
-    # Hole gefilterte Top-Interpreten (ohne geblacklistete)
+    return _search_library_for_artists(top_artists, existing_albums, use_blacklist)
+
+
+def _get_filtered_artists(counter, top_n, use_blacklist):
+    """Holt gefilterte Top-Interpreten (ohne geblacklistete)."""
     if use_blacklist:
-        top_artists: List[Tuple[str, int]] = get_filtered_top_artists(
-            artist_counter,
-            artist_blacklist,
-            top_n=top_n,
-            max_total=top_n * 3  # Prüfe bis zu 3x so viele Kandidaten
-        )
-    else:
-        top_artists = artist_counter.most_common(top_n)
-        logger.info("Artist-Blacklist deaktiviert - prüfe alle Top-Künstler")
+        # Lade Artist-Blacklist
+        blacklist: ArtistBlacklist = get_artist_blacklist()
+        # Prüfe bis zu 3x so viele Kandidaten
+        top_artists = get_filtered_top_artists(counter, blacklist, top_n, max_total=top_n * 3)
 
-    logger.info("=" * 60)
-    logger.info("🎵 DEINE TOP-INTERPRETEN:")
-    logger.info("=" * 60)
-    for i, (artist, count) in enumerate(top_artists, 1):
-        blacklist_status: str = (
-            " [NEU-CHECK]"
-            if not artist_blacklist.is_blacklisted(artist)
-            else ""
-        )
-        logger.info(f"{i:2d}. {artist:40s} ({count:2d} Titel){blacklist_status}")
-    logger.info("=" * 60)
+        logger.info("=" * 60)
+        logger.info("🎵 DEINE TOP-INTERPRETEN:")
+        logger.info("=" * 60)
+        for i, (artist, count) in enumerate(top_artists, 1):
+            blacklist_status: str = " [NEU-CHECK]" if not blacklist.is_blacklisted(artist) else ""
+            logger.info(f"{i:2d}. {artist:40s} ({count:2d} Titel){blacklist_status}")
+        logger.info("=" * 60)
 
-    # Sammle alle vorhandenen Alben (für Duplikatsprüfung)
-    existing_albums: Set[str] = set()
-    for root, dirs, files in os.walk(archive_path):
+        return top_artists
+    logger.info("Artist-Blacklist deaktiviert - prüfe alle Top-Künstler")
+    return counter.most_common(top_n)
+
+
+def _get_existing_albums(archive_path):
+    """Sammelt vorhandene Album-Ordner (für Duplikatsprüfung)."""
+    existing: Set[str] = set()
+    for root, dirs, _ in os.walk(archive_path):
         for dir_name in dirs:
-            existing_albums.add(dir_name.lower().strip())
+            existing.add(dir_name.lower().strip())
+    return existing
 
-    # Suche neue Alben in Bibliothek
+
+def _search_library_for_artists(top_artists, existing_albums, use_blacklist):
+    """Sucht neue Alben in Bibliothek."""
     all_new_albums: List[Dict[str, Any]] = []
+    blacklist = get_artist_blacklist() if use_blacklist else None
 
     for artist, song_count in top_artists:
         logger.info(f"\n🔍 Suche neue Alben von '{artist}'...")
 
-        library_albums: List[Dict[str, Any]] = search_artist_albums_in_library(
-            artist,
-            max_results=15
-        )
+        new_albums = _search_artist(artist, existing_albums)
+        all_new_albums.extend(new_albums)
 
-        # Zähle gefundene neue Alben
-        new_albums_count: int = 0
-
-        # Filtere bereits vorhandene Alben
-        for album in library_albums:
-            album_title_lower: str = album["title"].lower().strip()
-
-            # Prüfe ob Album schon vorhanden
-            is_duplicate: bool = False
-            for existing in existing_albums:
-                if artist.lower() in existing and album_title_lower in existing:
-                    is_duplicate = True
-                    logger.debug(f"  Duplikat übersprungen: {album['title']}")
-                    break
-
-            if not is_duplicate:
-                all_new_albums.append(album)
-                new_albums_count += 1
-                logger.info(f"  ✅ Neu: {album['title']}")
-
-        # Aktualisiere Artist-Blacklist basierend auf Ergebnis
-        if use_blacklist:
-            found_new_albums: bool = new_albums_count > 0
-            update_artist_blacklist_from_search_results(
-                artist,
-                song_count,
-                found_new_albums,
-                artist_blacklist
-            )
-
+        if blacklist:
+            update_artist_blacklist_from_search_results(artist, song_count, len(new_albums) > 0, blacklist)
         # Pause zwischen Anfragen
         time.sleep(2)
 
-    logger.info(
-        f"\n✅ {len(all_new_albums)} neue Alben für deine "
-        f"Top-Interpreten gefunden!"
-    )
+    logger.info(f"\n✅ {len(all_new_albums)} neue Alben für deine " f"Top-Interpreten gefunden!")
 
     # Zeige Blacklist-Statistiken
     if use_blacklist:
         logger.info("\n📊 Artist-Blacklist Status:")
-        stats: Dict[str, Any] = artist_blacklist.get_stats()
-        logger.info(
-            f"  - Gesamt geblacklistet: {stats['total_artists']} Künstler"
-        )
-        logger.info(
-            f"  - Fällig für Re-Check: {stats['due_for_recheck']} Künstler"
-        )
+        stats: Dict[str, Any] = blacklist.get_stats()
+        logger.info(f"  - Gesamt geblacklistet: {stats['total_artists']} Künstler")
+        logger.info(f"  - Fällig für Re-Check: {stats['due_for_recheck']} Künstler")
 
     return all_new_albums
 
 
+def _search_artist(artist, existing_albums):
+    """Sucht Alben für einen Künstler."""
+    library_albums: List[Dict[str, Any]] = search_artist_albums_in_library(artist, 15)
+    new_albums = []
+
+    for album in library_albums:
+        if not _is_duplicate(album, artist, existing_albums):
+            new_albums.append(album)
+            logger.info(f"  ✅ Neu: {album['title']}")
+
+    return new_albums
+
+
+def _is_duplicate(album, artist, existing_albums):
+    """Prüft ob Album bereits vorhanden."""
+    album_title_lower: str = album["title"].lower().strip()
+    for existing in existing_albums:
+        if artist.lower() in existing and album_title_lower in existing:
+            logger.debug(f"  Duplikat übersprungen: {album['title']}")
+            return True
+    return False
+
+
 def add_top_artist_albums_to_collection(
-        archive_path: str = "H:\\MP3 Archiv",
-        top_n: int = 10,
-        use_blacklist: bool = True
+    archive_path: str = "H:\\MP3 Archiv", top_n: int = 10, use_blacklist: bool = True
 ) -> None:
     """
     Findet neue Alben für Top-Interpreten und fügt sie zu albums.json hinzu.
@@ -275,11 +248,7 @@ def add_top_artist_albums_to_collection(
             existing_albums = []
 
     # Finde neue Alben (mit Blacklist-Integration)
-    new_albums: List[Dict[str, Any]] = find_new_albums_for_top_artists(
-        archive_path,
-        top_n,
-        use_blacklist
-    )
+    new_albums: List[Dict[str, Any]] = find_new_albums_for_top_artists(archive_path, top_n, use_blacklist)
 
     if not new_albums:
         logger.info("ℹ️  Keine neuen Alben gefunden")
@@ -300,10 +269,7 @@ def add_top_artist_albums_to_collection(
                 unique_albums[title_key] = album
 
     # Sortiere alphabetisch nach Titel
-    sorted_albums: List[Dict[str, Any]] = sorted(
-        unique_albums.values(),
-        key=lambda x: x["title"].lower()
-    )
+    sorted_albums: List[Dict[str, Any]] = sorted(unique_albums.values(), key=lambda x: x["title"].lower())
 
     # Speichere in albums.json
     try:
@@ -317,10 +283,7 @@ def add_top_artist_albums_to_collection(
         logger.info(f"Datei: '{ALBUMS_FILE}'")
         logger.info(f"  - {len(existing_albums)} bestehende Alben")
         logger.info(f"  - {len(new_albums)} neue 'Interessant für dich' Empfehlungen")
-        logger.info(
-            f"  - {len(sorted_albums)} finale Alben "
-            f"(nach Bereinigung und Sortierung)"
-        )
+        logger.info(f"  - {len(sorted_albums)} finale Alben " f"(nach Bereinigung und Sortierung)")
 
     except IOError as e:
         logger.error(f"Fehler beim Speichern: {e}", exc_info=True)
@@ -353,10 +316,7 @@ def perform_artist_blacklist_maintenance() -> None:
     if due_artists:
         logger.info("\n📅 Künstler fällig für Re-Check:")
         for artist_info in due_artists:
-            logger.info(
-                f"  - {artist_info['artist_name']}: "
-                f"{artist_info['days_since_check']} Tage seit letztem Check"
-            )
+            logger.info(f"  - {artist_info['artist_name']}: " f"{artist_info['days_since_check']} Tage seit letztem Check")
     else:
         logger.info("ℹ️  Keine Künstler fällig für Re-Check")
 
@@ -366,9 +326,4 @@ if __name__ == "__main__":
     perform_artist_blacklist_maintenance()
 
     # Alben-Empfehlungen erstellen
-    add_top_artist_albums_to_collection(
-        archive_path="H:\\MP3 Archiv",
-        top_n=10,
-        use_blacklist=True
-    )
-    
+    add_top_artist_albums_to_collection(archive_path="H:\\MP3 Archiv", top_n=10, use_blacklist=True)

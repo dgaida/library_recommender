@@ -14,10 +14,7 @@ DATA_DIR: str = "data"
 os.makedirs(DATA_DIR, exist_ok=True)
 
 
-def save_results_to_markdown(
-        all_results: Dict[str, List[Dict[str, Any]]],
-        filename: str = "results.md"
-) -> None:
+def save_results_to_markdown(all_results: Dict[str, List[Dict[str, Any]]], filename: str = "results.md") -> None:
     """
     Speichert alle Suchergebnisse in einer Markdown-Datei.
 
@@ -60,8 +57,7 @@ def save_results_to_markdown(
 
 
 def save_recommendations_to_markdown(
-        recommendations: Dict[str, List[Dict[str, Any]]],
-        filename: str = "recommended.md"
+    recommendations: Dict[str, List[Dict[str, Any]]], filename: str = "recommended.md"
 ) -> str:
     """
     Speichert die aktuellen Empfehlungen aus der GUI in eine Markdown-Datei.
@@ -94,10 +90,7 @@ def save_recommendations_to_markdown(
 
             if total_items == 0:
                 f.write("_Keine Empfehlungen vorhanden._\n\n")
-                f.write(
-                    "Klicken Sie in der App auf die entsprechenden Buttons, "
-                    "um neue Empfehlungen zu erhalten.\n"
-                )
+                f.write("Klicken Sie in der App auf die entsprechenden Buttons, " "um neue Empfehlungen zu erhalten.\n")
                 logger.warning("Keine Empfehlungen zum Speichern vorhanden")
                 return filename
 
@@ -105,10 +98,7 @@ def save_recommendations_to_markdown(
             f.write("## 📊 Übersicht\n\n")
             for category, items in recommendations.items():
                 if items:
-                    category_name, _, _ = categories.get(
-                        category,
-                        (category.title(), "Item", "Autor")
-                    )
+                    category_name, _, _ = categories.get(category, (category.title(), "Item", "Autor"))
                     f.write(f"- **{category_name}:** {len(items)} Empfehlungen\n")
             f.write(f"\n**Gesamt:** {total_items} Empfehlungen\n\n")
             f.write("---\n\n")
@@ -118,10 +108,7 @@ def save_recommendations_to_markdown(
                 if not items:
                     continue
 
-                category_name, item_type, author_label = categories.get(
-                    category,
-                    (category.title(), "Item", "Autor")
-                )
+                category_name, item_type, author_label = categories.get(category, (category.title(), "Item", "Autor"))
                 f.write(f"## {category_name}\n\n")
 
                 for i, item in enumerate(items, 1):
@@ -150,21 +137,12 @@ def save_recommendations_to_markdown(
                 "- Die Verfügbarkeit kann sich schnell ändern. "
                 "Bitte prüfen Sie die aktuelle Verfügbarkeit direkt im Katalog.\n"
             )
-            f.write(
-                "- Diese Empfehlungen basieren auf kuratierten Listen "
-                "hochwertiger Medien.\n"
-            )
-            f.write(
-                "- Weitere Informationen finden Sie auf der Website der "
-                "Stadtbibliothek Köln.\n\n"
-            )
+            f.write("- Diese Empfehlungen basieren auf kuratierten Listen " "hochwertiger Medien.\n")
+            f.write("- Weitere Informationen finden Sie auf der Website der " "Stadtbibliothek Köln.\n\n")
             f.write("**🌐 Katalog:** https://katalog.stbib-koeln.de\n\n")
             f.write(f"_Generiert durch die Bibliothek-Empfehlungs-App am {timestamp}_\n")
 
-        logger.info(
-            f"Empfehlungen erfolgreich gespeichert: "
-            f"{total_items} Items in '{filename}'"
-        )
+        logger.info(f"Empfehlungen erfolgreich gespeichert: " f"{total_items} Items in '{filename}'")
     except IOError as e:
         logger.error(f"Fehler beim Speichern der Empfehlungen: {e}")
         raise

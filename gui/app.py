@@ -117,7 +117,7 @@ def load_or_fetch_films():
         print(f"DEBUG: {len(wiki_films)} Filme von Wikipedia geladen.")
 
         # FBW-Filme laden
-        fbw_films = fetch_fbw_films(max_pages=150)
+        fbw_films = fetch_fbw_films(max_pages=750)  # 150
         print(f"DEBUG: {len(fbw_films)} Filme von FBW geladen.")
 
         oscar_films = fetch_oscar_best_picture_winners()
@@ -528,15 +528,15 @@ def initialize_recommendations():
     print("DEBUG: Lade initiale Vorschläge...")
 
     # Filme laden
-    film_suggestions = get_n_suggestions("films", 6)
+    film_suggestions = get_n_suggestions("films", 8)
     current_suggestions["films"] = film_suggestions
 
     # Alben laden
-    album_suggestions = get_n_suggestions("albums", 6)
+    album_suggestions = get_n_suggestions("albums", 8)
     current_suggestions["albums"] = album_suggestions
 
     # Bücher laden
-    book_suggestions = get_n_suggestions("books", 6)
+    book_suggestions = get_n_suggestions("books", 8)
     current_suggestions["books"] = book_suggestions
 
     # Automatisch in Datei speichern

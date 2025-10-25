@@ -3,8 +3,8 @@
 Such- und Zusammenfassungs-Utilities für Medien-Empfehlungen
 """
 
-import requests
-import json
+# import requests
+# import json
 import os
 from ddgs import DDGS
 from groq import Groq
@@ -110,7 +110,7 @@ def summarize_with_groq(search_results, title, author=None, media_type="film"):
         # Suchergebnisse zu Text zusammenfassen
         search_text = ""
         for i, result in enumerate(search_results[:3]):  # Nur erste 3 Ergebnisse
-            search_text += f"Ergebnis {i+1}: {result.get('title', '')} - {result.get('body', '')}\n\n"
+            search_text += f"Ergebnis {i + 1}: {result.get('title', '')} - {result.get('body', '')}\n\n"
 
         # Medientyp-spezifischer Prompt
         if media_type == "film":
@@ -126,7 +126,7 @@ def summarize_with_groq(search_results, title, author=None, media_type="film"):
             media_german = "Medium"
             details = "wichtige Informationen"
 
-        prompt = f"""Basierend auf den folgenden Suchergebnissen, schreibe GENAU 1-2 kurze Sätze auf Deutsch über den {media_german} "{title}"{f' von {author}' if author else ''}. 
+        prompt = f"""Basierend auf den folgenden Suchergebnissen, schreibe GENAU 1-2 kurze Sätze auf Deutsch über den {media_german} "{title}"{f' von {author}' if author else ''}.
 
 Konzentriere dich auf: {details}. Sei präzise und informativ.
 

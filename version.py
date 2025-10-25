@@ -41,15 +41,15 @@ def get_version_info():
 
 def print_version_info():
     """Druckt Versionsinformationen auf der Konsole"""
-    print(f"\n{'='*60}")
-    print(f"  🎬📀📚 Bibliothek-Empfehlungs-App")
-    print(f"{'='*60}")
+    print(f"\n{'=' * 60}")
+    print("  🎬📀📚 Bibliothek-Empfehlungs-App")
+    print(f"{'=' * 60}")
     print(f"  Version:      {__version__}")
     print(f"  Release:      {RELEASE_NAME}")
     print(f"  Datum:        {RELEASE_DATE}")
     print(f"  Autor:        {__author__}")
     print(f"  Lizenz:       {__license__}")
-    print(f"{'='*60}\n")
+    print(f"{'=' * 60}\n")
 
 
 if __name__ == "__main__":

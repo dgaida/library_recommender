@@ -5,28 +5,28 @@ channels:
 dependencies:
   # Python Version
   - python=3.10
-  
+
   # Web Scraping und HTTP Requests
   - requests=2.31.*
   - beautifulsoup4=4.12.*
   - lxml=4.9.*
   - html5lib=1.1
-  
+
   # URL und Text Verarbeitung
   - urllib3=2.0.*
   - chardet=5.2.*
-  
+
   # Zusätzliche nützliche Packages für Web Scraping
   - selenium=4.15.*  # Falls JavaScript-Heavy Seiten
   - fake-useragent=1.4.*  # Für realistische User-Agents
-  
+
   # Logging und Debugging
   - colorama=0.4.*  # Für farbige Konsolenausgaben
-  
+
   # Weitere hilfreiche Tools
   - tqdm=4.66.*  # Progress bars
   - python-dateutil=2.8.*
-  
+
   # Pip packages (falls nicht über conda verfügbar)
   - pip
   - pip:

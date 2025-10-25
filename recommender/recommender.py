@@ -34,11 +34,7 @@ class Recommender:
         logger.info("Recommender initialisiert")
 
     def _pick_available_items(
-            self,
-            items: List[Dict[str, Any]],
-            category: str,
-            n: int = 4,
-            verbose: bool = False
+        self, items: List[Dict[str, Any]], category: str, n: int = 4, verbose: bool = False
     ) -> List[Dict[str, Any]]:
         """
         Wählt n zufällige, heute verfügbare Items aus einer Liste.
@@ -60,31 +56,21 @@ class Recommender:
             # Überspringe geblacklistete Items
             if self.blacklist.is_blacklisted(category, item):
                 if verbose:
-                    logger.debug(
-                        f"Überspringe '{item['title']}' (geblacklistet)"
-                    )
+                    logger.debug(f"Überspringe '{item['title']}' (geblacklistet)")
                 continue
 
             # Überspringe bereits vorgeschlagene Items
             if self.state.is_already_suggested(category, item):
                 if verbose:
-                    logger.debug(
-                        f"Überspringe '{item['title']}' (bereits vorgeschlagen)"
-                    )
+                    logger.debug(f"Überspringe '{item['title']}' (bereits vorgeschlagen)")
                 continue
 
             media_type: str = item.get("type", "")
 
             if media_type == "Buch":
-                query = (
-                    f"{item.get('author', '')} {item.get('title')} "
-                    f"{media_type}".strip()
-                )
+                query = f"{item.get('author', '')} {item.get('title')} " f"{media_type}".strip()
             else:
-                query = (
-                    f"{item.get('title')} {item.get('author', '')} "
-                    f"{media_type}".strip()
-                )
+                query = f"{item.get('title')} {item.get('author', '')} " f"{media_type}".strip()
 
             # Suche in Bibliothek
             logger.debug(f"Suche nach: '{query}'")
@@ -92,30 +78,18 @@ class Recommender:
 
             # Keine Treffer → Blacklist
             if not hits or len(hits) == 0:
-                logger.info(
-                    f"⚫ Keine Treffer für '{item['title']}' - wird geblacklistet"
-                )
-                self.blacklist.add_to_blacklist(
-                    category,
-                    item,
-                    reason="Keine Treffer in Bibliothekskatalog"
-                )
+                logger.info(f"⚫ Keine Treffer für '{item['title']}' - wird geblacklistet")
+                self.blacklist.add_to_blacklist(category, item, reason="Keine Treffer in Bibliothekskatalog")
                 continue
 
             # Prüfen, ob verfügbar (nur auf zentralbibliothek_info)
             available: List[Dict[str, Any]] = [
-                h for h in hits
-                if "zentralbibliothek_info" in h and
-                   "verfügbar" in h["zentralbibliothek_info"].lower()
+                h for h in hits if "zentralbibliothek_info" in h and "verfügbar" in h["zentralbibliothek_info"].lower()
             ]
 
             if available:
                 # Alle Verfügbarkeits-Infos zusammenfassen
-                infos: List[str] = [
-                    h["zentralbibliothek_info"]
-                    for h in hits
-                    if "zentralbibliothek_info" in h
-                ]
+                infos: List[str] = [h["zentralbibliothek_info"] for h in hits if "zentralbibliothek_info" in h]
 
                 # Kopiere das Item und füge bib_number hinzu
                 result_item: Dict[str, Any] = item.copy()
@@ -129,16 +103,10 @@ class Recommender:
             if len(results) >= n:
                 break
 
-        logger.info(
-            f"Gefunden: {len(results)}/{n} verfügbare Items in '{category}'"
-        )
+        logger.info(f"Gefunden: {len(results)}/{n} verfügbare Items in '{category}'")
         return results
 
-    def suggest_films(
-            self,
-            films: List[Dict[str, Any]],
-            n: int = 4
-    ) -> List[Dict[str, Any]]:
+    def suggest_films(self, films: List[Dict[str, Any]], n: int = 4) -> List[Dict[str, Any]]:
         """
         Wählt verfügbare Filme aus der bereitgestellten Liste.
 
@@ -153,11 +121,7 @@ class Recommender:
         logger.info(f"Erstelle {n} Filmvorschläge")
         return self._pick_available_items(films, "films", n)
 
-    def suggest_albums(
-            self,
-            albums: List[Dict[str, Any]],
-            n: int = 4
-    ) -> List[Dict[str, Any]]:
+    def suggest_albums(self, albums: List[Dict[str, Any]], n: int = 4) -> List[Dict[str, Any]]:
         """
         Wählt verfügbare Musikalben aus der bereitgestellten Liste.
 
@@ -172,11 +136,7 @@ class Recommender:
         logger.info(f"Erstelle {n} Albumvorschläge")
         return self._pick_available_items(albums, "albums", n)
 
-    def suggest_books(
-            self,
-            books: List[Dict[str, Any]],
-            n: int = 4
-    ) -> List[Dict[str, Any]]:
+    def suggest_books(self, books: List[Dict[str, Any]], n: int = 4) -> List[Dict[str, Any]]:
         """
         Wählt verfügbare Bücher aus der bereitgestellten Liste.
 

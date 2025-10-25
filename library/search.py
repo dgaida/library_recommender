@@ -24,19 +24,21 @@ class KoelnLibrarySearch:
         self.base_url: str = "https://katalog.stbib-koeln.de"
         self.search_url: str = f"{self.base_url}/alswww2.dll/APS_ZONES"
         self.session: requests.Session = requests.Session()
-        self.session.headers.update({
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
-                          "AppleWebKit/537.36 (KHTML, like Gecko) "
-                          "Chrome/91.0.4472.124 Safari/537.36"
-        })
+        self.session.headers.update(
+            {
+                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+                "AppleWebKit/537.36 (KHTML, like Gecko) "
+                "Chrome/91.0.4472.124 Safari/537.36"
+            }
+        )
 
     def advanced_search(
-            self,
-            title: Optional[str] = None,
-            author: Optional[str] = None,
-            subject: Optional[str] = None,
-            year: Optional[str] = None,
-            page_size: int = 20
+        self,
+        title: Optional[str] = None,
+        author: Optional[str] = None,
+        subject: Optional[str] = None,
+        year: Optional[str] = None,
+        page_size: int = 20,
     ) -> List[Dict[str, Any]]:
         """
         Führt eine erweiterte Suche im Bibliothekskatalog durch.
@@ -65,12 +67,7 @@ class KoelnLibrarySearch:
         query_string: str = " Und ".join(query_parts)
         return self._advanced_search(query_string, page_size)
 
-    def _advanced_search(
-            self,
-            query: str,
-            page_size: int = 20,
-            verbose: bool = False
-    ) -> List[Dict[str, Any]]:
+    def _advanced_search(self, query: str, page_size: int = 20, verbose: bool = False) -> List[Dict[str, Any]]:
         """
         Führt eine erweiterte Suche mit ExpertQuery durch.
 
@@ -155,13 +152,10 @@ class KoelnLibrarySearch:
                 response = self.session.get(url, **kwargs)
                 response.raise_for_status()
                 return response
-            except requests.exceptions.HTTPError as e:
+            except requests.exceptions.HTTPError:
                 if response.status_code in [429, 503]:
                     wait = (attempt + 1) * 5 + random.random() * 3
-                    logger.warning(
-                        f"Server-Fehler {response.status_code}, "
-                        f"warte {wait:.1f} Sekunden..."
-                    )
+                    logger.warning(f"Server-Fehler {response.status_code}, " f"warte {wait:.1f} Sekunden...")
                     time.sleep(wait)
                     continue
                 raise
@@ -170,12 +164,7 @@ class KoelnLibrarySearch:
         logger.error(error_msg)
         raise Exception(error_msg)
 
-    def search(
-            self,
-            search_term: str,
-            search_type: str = "all",
-            verbose: bool = False
-    ) -> List[Dict[str, Any]]:
+    def search(self, search_term: str, search_type: str = "all", verbose: bool = False) -> List[Dict[str, Any]]:
         """
         Führt eine Suche im Bibliothekskatalog durch.
 
@@ -220,19 +209,14 @@ class KoelnLibrarySearch:
             if "Ergebnisse" not in search_response.text:
                 soup = BeautifulSoup(search_response.text, "html.parser")
                 error_advice_table = soup.find("table", {"id": "ErrorAdvice"})
-                no_hits_text = (
-                        "Leider wurden keine Titel zu Ihrer Suchanfrage gefunden."
-                        in search_response.text
-                )
+                no_hits_text = "Leider wurden keine Titel zu Ihrer Suchanfrage gefunden." in search_response.text
 
                 if error_advice_table or no_hits_text:
                     logger.info("Keine Treffer laut Fehlermeldung gefunden")
                     return []
                 else:
                     logger.debug("Anscheinend auf Startseite - versuche POST-Request")
-                    search_response = self.session.post(
-                        search_url, data=params, timeout=15
-                    )
+                    search_response = self.session.post(search_url, data=params, timeout=15)
                     search_response.raise_for_status()
                     logger.debug(f"POST Status Code: {search_response.status_code}")
 
@@ -246,10 +230,7 @@ class KoelnLibrarySearch:
             return []
 
     def _prepare_search_request(
-            self,
-            params: Dict[str, str],
-            fn: str = "QuickSearch",
-            verbose: bool = False
+        self, params: Dict[str, str], fn: str = "QuickSearch", verbose: bool = False
     ) -> tuple[str, requests.Response]:
         """
         Hilfsfunktion zur Vorbereitung der Search-URL.
@@ -266,9 +247,7 @@ class KoelnLibrarySearch:
             logger.debug(f"Rufe Hauptseite auf für fn={fn}")
 
         main_response = self.safe_get(
-            f"{self.search_url}?fn={fn}&Style=Portal3&SubStyle=&Lang=GER"
-            f"&ResponseEncoding=utf-8",
-            timeout=15
+            f"{self.search_url}?fn={fn}&Style=Portal3&SubStyle=&Lang=GER" f"&ResponseEncoding=utf-8", timeout=15
         )
         main_response.raise_for_status()
 
@@ -296,11 +275,7 @@ class KoelnLibrarySearch:
 
         return search_url, main_response
 
-    def _parse_results(
-            self,
-            html_content: str,
-            verbose: bool = False
-    ) -> List[Dict[str, Any]]:
+    def _parse_results(self, html_content: str, verbose: bool = False) -> List[Dict[str, Any]]:
         """
         Parst die HTML-Ergebnisse und extrahiert die Informationen.
 
@@ -316,26 +291,14 @@ class KoelnLibrarySearch:
 
         logger.info("Starte Parsing der Suchergebnisse...")
 
-        result_items = soup.find_all(
-            "td", class_=["SummaryDataCell", "SummaryDataCellStripe"]
-        )
+        result_items = soup.find_all("td", class_=["SummaryDataCell", "SummaryDataCellStripe"])
 
         if verbose:
-            logger.debug(
-                f"Gefunden {len(result_items)} Elemente mit SummaryDataCell Klassen"
-            )
+            logger.debug(f"Gefunden {len(result_items)} Elemente mit SummaryDataCell Klassen")
 
         if not result_items:
-            result_items = soup.find_all(
-                "tr",
-                class_=lambda x: x and (
-                        "summary" in x.lower() or "result" in x.lower()
-                )
-            )
-            logger.debug(
-                f"Fallback 1: Gefunden {len(result_items)} TR-Elemente "
-                f"mit summary/result Klassen"
-            )
+            result_items = soup.find_all("tr", class_=lambda x: x and ("summary" in x.lower() or "result" in x.lower()))
+            logger.debug(f"Fallback 1: Gefunden {len(result_items)} TR-Elemente " f"mit summary/result Klassen")
 
         if not result_items:
             tables = soup.find_all("table")
@@ -351,20 +314,14 @@ class KoelnLibrarySearch:
                     links = row.find_all("a", class_="SummaryFieldLink")
                     if links:
                         if verbose:
-                            logger.debug(
-                                f"Zeile {j + 1} in Tabelle {i + 1} "
-                                f"hat {len(links)} SummaryFieldLink-Links"
-                            )
+                            logger.debug(f"Zeile {j + 1} in Tabelle {i + 1} " f"hat {len(links)} SummaryFieldLink-Links")
                         result_items.append(row)
                     else:
                         any_links = row.find_all("a", href=True)
-                        if (any_links and len(any_links) >= 1 and
-                                len(row.get_text(strip=True)) > 20):
+                        if any_links and len(any_links) >= 1 and len(row.get_text(strip=True)) > 20:
                             result_items.append(row)
 
-        logger.info(
-            f"Insgesamt {len(result_items)} potentielle Ergebnis-Elemente gefunden"
-        )
+        logger.info(f"Insgesamt {len(result_items)} potentielle Ergebnis-Elemente gefunden")
 
         for i, item in enumerate(result_items):
             try:
@@ -372,10 +329,7 @@ class KoelnLibrarySearch:
                 result_data = self._extract_item_data(item)
                 if result_data:
                     if verbose:
-                        logger.debug(
-                            f"Element {i + 1} erfolgreich extrahiert: "
-                            f"{result_data['title'][:50]}..."
-                        )
+                        logger.debug(f"Element {i + 1} erfolgreich extrahiert: " f"{result_data['title'][:50]}...")
                     results.append(result_data)
                 else:
                     logger.debug(f"Element {i + 1} lieferte keine Daten")
@@ -385,11 +339,7 @@ class KoelnLibrarySearch:
 
         return results
 
-    def get_availability_details(
-            self,
-            detail_url: str,
-            verbose: bool = False
-    ) -> Dict[str, Any]:
+    def get_availability_details(self, detail_url: str, verbose: bool = False) -> Dict[str, Any]:
         """
         Ruft die Detailseite auf und extrahiert Bestandsinformationen.
 
@@ -426,10 +376,7 @@ class KoelnLibrarySearch:
             if verbose:
                 logger.debug(f"Gefunden {len(stock_headers)} stock_header divs")
 
-            locations = [
-                "zentralbibliothek", "ehrenfeld", "kalk", "nippes",
-                "rodenkirchen", "chorweiler", "mülheim", "porz"
-            ]
+            locations = ["zentralbibliothek", "ehrenfeld", "kalk", "nippes", "rodenkirchen", "chorweiler", "mülheim", "porz"]
 
             for header_div in stock_headers:
                 location_text = header_div.get_text(strip=True)
@@ -445,23 +392,14 @@ class KoelnLibrarySearch:
                         if hasattr(current, "get_text"):
                             text = current.get_text(strip=True)
                             if text and not (
-                                    hasattr(current, "get") and
-                                    current.get("id") and
-                                    "stock_header" in current.get("id")
+                                hasattr(current, "get") and current.get("id") and "stock_header" in current.get("id")
                             ):
-                                if (
-                                        "documentManager" in text or
-                                        "StockUpdateRequest" in text
-                                ):
+                                if "documentManager" in text or "StockUpdateRequest" in text:
                                     if verbose:
                                         logger.debug(f"Ignoriere Script-Text: {text}")
                                 else:
                                     next_siblings.append(text)
-                            elif (
-                                    hasattr(current, "get") and
-                                    current.get("id") and
-                                    "stock_header" in current.get("id")
-                            ):
+                            elif hasattr(current, "get") and current.get("id") and "stock_header" in current.get("id"):
                                 break
                         elif isinstance(current, str) and current.strip():
                             next_siblings.append(current.strip())
@@ -469,9 +407,7 @@ class KoelnLibrarySearch:
 
                     if next_siblings:
                         availability_info[location_text] = next_siblings
-                        logger.debug(
-                            f"Für {location_text} gefunden: {next_siblings}"
-                        )
+                        logger.debug(f"Für {location_text} gefunden: {next_siblings}")
 
             # Methode 2: Falls Methode 1 nicht funktioniert, suche nach Tabellen
             if not availability_info:
@@ -554,11 +490,7 @@ class KoelnLibrarySearch:
 
         return ""
 
-    def _extract_item_data(
-            self,
-            item: Any,
-            verbose: bool = False
-    ) -> Optional[Dict[str, Any]]:
+    def _extract_item_data(self, item: Any, verbose: bool = False) -> Optional[Dict[str, Any]]:
         """
         Extrahiert Daten aus einem einzelnen Suchergebnis.
 
@@ -620,10 +552,7 @@ class KoelnLibrarySearch:
         avail_elem = item.find("div", class_=["SummaryActionBox", "SummaryActionLink"])
         if avail_elem:
             avail_text = avail_elem.get_text(strip=True)
-            if any(
-                    word in avail_text.lower()
-                    for word in ["verfügbar", "ausleihbar", "vorbestellung"]
-            ):
+            if any(word in avail_text.lower() for word in ["verfügbar", "ausleihbar", "vorbestellung"]):
                 availability = avail_text
 
         if title:
@@ -671,4 +600,3 @@ class KoelnLibrarySearch:
             if result["link"]:
                 print(f"   Link: {result['link']}")
             print("-" * 100)
-            

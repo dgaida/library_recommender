@@ -16,17 +16,17 @@ on:
 jobs:
   docs:
     runs-on: ubuntu-latest
-    
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-      
+
       - name: Check Markdown links
         uses: gaurav-nelson/github-action-markdown-link-check@v1
         with:
           use-quiet-mode: 'yes'
           config-file: '.github/markdown-link-check-config.json'
-      
+
       - name: Validate README
         run: |
           if [ -f README.md ]; then
@@ -39,4 +39,3 @@ jobs:
             echo "❌ README.md missing"
             exit 1
           fi
-          

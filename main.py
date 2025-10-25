@@ -27,9 +27,10 @@ def check_dependencies() -> None:
     logger.info("Prüfe Abhängigkeiten...")
 
     try:
-        import requests
-        import bs4
-        import gradio
+        import requests  # noqa: F401
+        import bs4  # noqa: F401
+        import gradio  # noqa: F401
+
         logger.info("✅ Alle Basis-Abhängigkeiten verfügbar")
     except ImportError as e:
         logger.error(f"❌ Fehlende Abhängigkeit: {e}")

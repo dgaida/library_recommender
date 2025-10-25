@@ -302,10 +302,10 @@ blacklist = get_artist_blacklist()
 for artist, song_count in top_artists:
     # Suche in Bibliothek
     found_albums = search_artist_albums_in_library(artist)
-    
+
     # Prüfe ob neue Alben (die nicht im MP3-Archiv sind)
     new_albums = filter_existing_albums(found_albums, mp3_archive_path)
-    
+
     # Aktualisiere Blacklist
     update_artist_blacklist_from_search_results(
         artist,
@@ -603,10 +603,10 @@ RECHECK_INTERVAL_DAYS = 730  # 2 Jahre
 # Automatische Bereinigung bei Wartung
 def perform_artist_blacklist_maintenance():
     blacklist = get_artist_blacklist()
-    
+
     # Entferne Einträge älter als 2 Jahre
     removed = blacklist.clear_old_entries(days=730)
-    
+
     # Oder 3 Jahre
     removed = blacklist.clear_old_entries(days=1095)
 ```
@@ -766,15 +766,15 @@ def test_full_workflow():
     # Setup
     blacklist = ArtistBlacklist()
     artist_counter = Counter({"Artist A": 100})
-    
+
     # Erste Suche - keine Alben
     top_artists = get_filtered_top_artists(artist_counter, blacklist, top_n=10)
     assert len(top_artists) == 1
-    
+
     update_artist_blacklist_from_search_results(
         "Artist A", 100, False, blacklist
     )
-    
+
     # Zweite Suche - sollte übersprungen werden
     top_artists = get_filtered_top_artists(artist_counter, blacklist, top_n=10)
     assert len(top_artists) == 0  # Artist A geblacklistet
@@ -797,5 +797,5 @@ def test_full_workflow():
 
 ---
 
-**Version:** 2.0.0  
+**Version:** 2.0.0
 **Zuletzt aktualisiert:** 2025-10-25

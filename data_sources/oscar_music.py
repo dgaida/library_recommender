@@ -21,7 +21,6 @@ import requests
 from bs4 import BeautifulSoup
 import json
 import os
-import time
 
 from utils.io import DATA_DIR
 from utils.sources import SOURCE_OSCAR_BEST_SCORE

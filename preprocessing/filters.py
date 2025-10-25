@@ -33,21 +33,10 @@ def filter_existing_albums(albums, base_path="H:\\MP3 Archiv", verbose=False):
     filtered_albums = []
     found_albums = []
 
-    print(f"Durchsuche {base_path} nach vorhandenen Alben...")
-    print("Normalisierung aktiv: Ignoriere Füllwörter wie 'the', 'a', 'of', etc.")
+    existing_folders = _get_existing_folders(base_path)
 
-    # Alle Ordner im Archiv sammeln (rekursiv)
-    existing_folders = set()
-    try:
-        for root, dirs, files in os.walk(base_path):
-            for dir_name in dirs:
-                # Ordnername in lowercase für besseren Vergleich
-                existing_folders.add(dir_name.lower())
-    except Exception as e:
-        print(f"FEHLER beim Durchsuchen des Archivs: {e}")
+    if existing_folders is None:
         return albums
-
-    print(f"Gefunden: {len(existing_folders)} Ordner im Archiv")
 
     # Jedes Album in der Liste prüfen
     for el in albums:
@@ -61,13 +50,13 @@ def filter_existing_albums(albums, base_path="H:\\MP3 Archiv", verbose=False):
             print(f"  Suchvarianten: {search_variants[:3]}...")
 
         found = False
-        matched_folder = None
+        # matched_folder = None
 
         # 1. Exakte Suche mit allen Varianten
         for variant in search_variants:
             if variant in existing_folders:
                 found = True
-                matched_folder = variant
+                # matched_folder = variant
                 found_albums.append((band, album, variant))
                 if verbose:
                     print(f"  ✓ EXAKT GEFUNDEN: '{variant}'")
@@ -78,7 +67,7 @@ def filter_existing_albums(albums, base_path="H:\\MP3 Archiv", verbose=False):
             for existing_folder in existing_folders:
                 if fuzzy_match(search_variants, existing_folder, band, album):
                     found = True
-                    matched_folder = existing_folder
+                    # matched_folder = existing_folder
                     found_albums.append((band, album, existing_folder))
                     if verbose:
                         print(f"  ✓ FUZZY GEFUNDEN: '{existing_folder}'")
@@ -88,29 +77,53 @@ def filter_existing_albums(albums, base_path="H:\\MP3 Archiv", verbose=False):
             # WICHTIG: Original-Element mit ALLEN Eigenschaften übernehmen
             filtered_albums.append(el)  # NEU: el statt neues Dict
             if verbose:
-                print(f"  ✗ NICHT GEFUNDEN")
+                print("  ✗ NICHT GEFUNDEN")
 
+    _logging_filter_existing_albums(albums, found_albums, filtered_albums, verbose)
+
+    return filtered_albums
+
+
+def _logging_filter_existing_albums(albums, found_albums, filtered_albums, verbose):
     # Zusammenfassung
     print(f"\n{'=' * 50}")
-    print(f"ZUSAMMENFASSUNG")
+    print("ZUSAMMENFASSUNG")
     print(f"{'=' * 50}")
     print(f"Ursprüngliche Liste: {len(albums)} Alben")
     print(f"Bereits vorhanden: {len(found_albums)} Alben")
     print(f"Noch zu besorgen: {len(filtered_albums)} Alben")
 
     if found_albums:
-        print(f"\nBEREITS VORHANDENE ALBEN:")
+        print("\nBEREITS VORHANDENE ALBEN:")
         for band, album, folder_name in found_albums:
             print(f"  ✓ {band} - {album}")
             print(f"    → Ordner: '{folder_name}'")
 
     if filtered_albums and verbose:
-        print(f"\nFEHLENDE ALBEN:")
+        print("\nFEHLENDE ALBEN:")
         for el in filtered_albums:
             band, album = el["author"], el["title"]
             print(f"  ✗ {band} - {album}")
 
-    return filtered_albums
+
+def _get_existing_folders(base_path: str):
+    print(f"Durchsuche {base_path} nach vorhandenen Alben...")
+    print("Normalisierung aktiv: Ignoriere Füllwörter wie 'the', 'a', 'of', etc.")
+
+    # Alle Ordner im Archiv sammeln (rekursiv)
+    existing_folders = set()
+    try:
+        for root, dirs, files in os.walk(base_path):
+            for dir_name in dirs:
+                # Ordnername in lowercase für besseren Vergleich
+                existing_folders.add(dir_name.lower())
+    except Exception as e:
+        print(f"FEHLER beim Durchsuchen des Archivs: {e}")
+        return None
+
+    print(f"Gefunden: {len(existing_folders)} Ordner im Archiv")
+
+    return existing_folders
 
 
 def get_album_statistics(albums, base_path="H:\\MP3 Archiv"):

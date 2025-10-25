@@ -24,9 +24,7 @@ class TestArtistBlacklist:
     @pytest.fixture
     def temp_blacklist_file(self):
         """Erstellt temporäre Blacklist-Datei für Tests."""
-        with tempfile.NamedTemporaryFile(
-            mode="w", suffix=".json", delete=False
-        ) as f:
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
             json.dump({}, f)
             temp_path = f.name
 
@@ -39,10 +37,7 @@ class TestArtistBlacklist:
     @pytest.fixture
     def artist_blacklist(self, temp_blacklist_file):
         """Erstellt ArtistBlacklist-Instanz mit temporärer Datei."""
-        with patch(
-            "utils.artist_blacklist.ARTIST_BLACKLIST_FILE",
-            temp_blacklist_file
-        ):
+        with patch("utils.artist_blacklist.ARTIST_BLACKLIST_FILE", temp_blacklist_file):
             return ArtistBlacklist()
 
     def test_init_empty_blacklist(self, artist_blacklist):
@@ -52,11 +47,7 @@ class TestArtistBlacklist:
 
     def test_add_to_blacklist(self, artist_blacklist):
         """Test: Künstler zur Blacklist hinzufügen."""
-        artist_blacklist.add_to_blacklist(
-            "Radiohead",
-            42,
-            "Keine neuen CDs gefunden"
-        )
+        artist_blacklist.add_to_blacklist("Radiohead", 42, "Keine neuen CDs gefunden")
 
         assert len(artist_blacklist.blacklist) == 1
         assert "radiohead" in artist_blacklist.blacklist
@@ -210,6 +201,7 @@ class TestArtistBlacklist:
 
         # Warte kurz
         import time
+
         time.sleep(0.1)
 
         # Füge erneut hinzu
@@ -228,64 +220,49 @@ class TestFilteredTopArtists:
     @pytest.fixture
     def sample_counter(self):
         """Erstellt Counter mit Sample-Daten."""
-        return Counter({
-            "Artist A": 100,
-            "Artist B": 90,
-            "Artist C": 80,
-            "Artist D": 70,
-            "Artist E": 60,
-            "Artist F": 50,
-        })
+        return Counter(
+            {
+                "Artist A": 100,
+                "Artist B": 90,
+                "Artist C": 80,
+                "Artist D": 70,
+                "Artist E": 60,
+                "Artist F": 50,
+            }
+        )
 
     @pytest.fixture
     def artist_blacklist(self, temp_blacklist_file):
         """Erstellt ArtistBlacklist-Instanz."""
-        with patch(
-            "utils.artist_blacklist.ARTIST_BLACKLIST_FILE",
-            temp_blacklist_file
-        ):
+        with patch("utils.artist_blacklist.ARTIST_BLACKLIST_FILE", temp_blacklist_file):
             return ArtistBlacklist()
 
     @pytest.fixture
     def temp_blacklist_file(self):
         """Temporäre Blacklist-Datei."""
-        with tempfile.NamedTemporaryFile(
-            mode="w", suffix=".json", delete=False
-        ) as f:
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
             json.dump({}, f)
             temp_path = f.name
         yield temp_path
         if os.path.exists(temp_path):
             os.remove(temp_path)
 
-    def test_get_filtered_top_artists_no_blacklist(
-        self, sample_counter, artist_blacklist
-    ):
+    def test_get_filtered_top_artists_no_blacklist(self, sample_counter, artist_blacklist):
         """Test: Gefilterte Top-Künstler ohne Blacklist-Einträge."""
-        top_artists = get_filtered_top_artists(
-            sample_counter,
-            artist_blacklist,
-            top_n=3
-        )
+        top_artists = get_filtered_top_artists(sample_counter, artist_blacklist, top_n=3)
 
         assert len(top_artists) == 3
         assert top_artists[0][0] == "Artist A"
         assert top_artists[1][0] == "Artist B"
         assert top_artists[2][0] == "Artist C"
 
-    def test_get_filtered_top_artists_with_blacklist(
-        self, sample_counter, artist_blacklist
-    ):
+    def test_get_filtered_top_artists_with_blacklist(self, sample_counter, artist_blacklist):
         """Test: Gefilterte Top-Künstler mit geblacklisteten Einträgen."""
         # Blackliste Artist B und C
         artist_blacklist.add_to_blacklist("Artist B", 90)
         artist_blacklist.add_to_blacklist("Artist C", 80)
 
-        top_artists = get_filtered_top_artists(
-            sample_counter,
-            artist_blacklist,
-            top_n=3
-        )
+        top_artists = get_filtered_top_artists(sample_counter, artist_blacklist, top_n=3)
 
         # Sollte A, D, E zurückgeben (B und C übersprungen)
         assert len(top_artists) == 3
@@ -293,21 +270,14 @@ class TestFilteredTopArtists:
         assert top_artists[1][0] == "Artist D"
         assert top_artists[2][0] == "Artist E"
 
-    def test_get_filtered_top_artists_max_total_limit(
-        self, sample_counter, artist_blacklist
-    ):
+    def test_get_filtered_top_artists_max_total_limit(self, sample_counter, artist_blacklist):
         """Test: max_total Limit wird respektiert."""
         # Blackliste alle außer letzten
         for artist in ["Artist A", "Artist B", "Artist C", "Artist D"]:
             artist_blacklist.add_to_blacklist(artist, 50)
 
         # Frage 3 an, aber prüfe maximal 4
-        top_artists = get_filtered_top_artists(
-            sample_counter,
-            artist_blacklist,
-            top_n=3,
-            max_total=4
-        )
+        top_artists = get_filtered_top_artists(sample_counter, artist_blacklist, top_n=3, max_total=4)
 
         # Sollte nur Artist E und F finden (innerhalb max_total=4)
         assert len(top_artists) <= 2
@@ -319,18 +289,13 @@ class TestUpdateArtistBlacklist:
     @pytest.fixture
     def artist_blacklist(self, temp_blacklist_file):
         """Erstellt ArtistBlacklist-Instanz."""
-        with patch(
-            "utils.artist_blacklist.ARTIST_BLACKLIST_FILE",
-            temp_blacklist_file
-        ):
+        with patch("utils.artist_blacklist.ARTIST_BLACKLIST_FILE", temp_blacklist_file):
             return ArtistBlacklist()
 
     @pytest.fixture
     def temp_blacklist_file(self):
         """Temporäre Blacklist-Datei."""
-        with tempfile.NamedTemporaryFile(
-            mode="w", suffix=".json", delete=False
-        ) as f:
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
             json.dump({}, f)
             temp_path = f.name
         yield temp_path
@@ -340,10 +305,7 @@ class TestUpdateArtistBlacklist:
     def test_update_no_albums_found(self, artist_blacklist):
         """Test: Keine Alben gefunden - auf Blacklist setzen."""
         update_artist_blacklist_from_search_results(
-            "New Artist",
-            50,
-            found_new_albums=False,
-            artist_blacklist=artist_blacklist
+            "New Artist", 50, found_new_albums=False, artist_blacklist=artist_blacklist
         )
 
         assert artist_blacklist.is_blacklisted("New Artist") is True
@@ -351,10 +313,7 @@ class TestUpdateArtistBlacklist:
     def test_update_albums_found_not_blacklisted(self, artist_blacklist):
         """Test: Alben gefunden - nicht auf Blacklist setzen."""
         update_artist_blacklist_from_search_results(
-            "Popular Artist",
-            40,
-            found_new_albums=True,
-            artist_blacklist=artist_blacklist
+            "Popular Artist", 40, found_new_albums=True, artist_blacklist=artist_blacklist
         )
 
         assert artist_blacklist.is_blacklisted("Popular Artist") is False
@@ -368,10 +327,7 @@ class TestUpdateArtistBlacklist:
 
         # Neue Alben gefunden
         update_artist_blacklist_from_search_results(
-            "Previously Blacklisted",
-            35,
-            found_new_albums=True,
-            artist_blacklist=artist_blacklist
+            "Previously Blacklisted", 35, found_new_albums=True, artist_blacklist=artist_blacklist
         )
 
         assert artist_blacklist.is_blacklisted("Previously Blacklisted") is False

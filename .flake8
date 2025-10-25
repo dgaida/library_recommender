@@ -1,8 +1,8 @@
 [flake8]
 max-line-length = 127
-max-complexity = 10
+max-complexity = 20
 
-exclude = 
+exclude =
     .git,
     __pycache__,
     .venv,
@@ -16,18 +16,32 @@ exclude =
     .mypy_cache,
     .tox,
     htmlcov,
-    data
+    data,
+    logs
 
-ignore = 
+# Ignorierte Fehler-Codes:
+# E501: Zeilenlänge (wird von Black behandelt)
+# W503: Line break before binary operator (veraltet)
+# E203: Whitespace before ':' (Black-Konflikt)
+# E266: Too many leading '#' for block comment
+# W291: Trailing whitespace (wird von pre-commit hook behandelt)
+# C901: Komplexität (zu streng für einige Funktionen)
+ignore =
     E501,
     W503,
     E203,
     E266,
     W291
 
+# Spezifische Ignores pro Datei
 per-file-ignores =
     __init__.py:F401,F403
     tests/*:F401,F811
+    main.py:F401
+    # Web-Scraping ist komplex, C901 OK
+    library/search.py:C901
+    # Import-Checks in main.py sind OK
+    main.py:F401
 
 count = True
 statistics = True

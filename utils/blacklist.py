@@ -86,24 +86,12 @@ class Blacklist:
         try:
             os.makedirs(DATA_DIR, exist_ok=True)
             with open(filepath, "w", encoding="utf-8") as f:
-                json.dump(
-                    self.blacklists[category],
-                    f,
-                    ensure_ascii=False,
-                    indent=2
-                )
-            logger.info(
-                f"{len(self.blacklists[category])} {category} "
-                f"in Blacklist gespeichert"
-            )
+                json.dump(self.blacklists[category], f, ensure_ascii=False, indent=2)
+            logger.info(f"{len(self.blacklists[category])} {category} " f"in Blacklist gespeichert")
         except IOError as e:
             logger.error(f"Fehler beim Speichern von {filepath}: {e}")
 
-    def is_blacklisted(
-        self,
-        category: str,
-        item: Dict[str, Any]
-    ) -> bool:
+    def is_blacklisted(self, category: str, item: Dict[str, Any]) -> bool:
         """
         Prüft, ob ein Medium auf der Blacklist steht.
 
@@ -136,12 +124,7 @@ class Blacklist:
 
         return False
 
-    def add_to_blacklist(
-        self,
-        category: str,
-        item: Dict[str, Any],
-        reason: str = "Nicht in Bibliothek gefunden"
-    ) -> None:
+    def add_to_blacklist(self, category: str, item: Dict[str, Any], reason: str = "Nicht in Bibliothek gefunden") -> None:
         """
         Fügt ein Medium zur Blacklist hinzu.
 
@@ -171,15 +154,9 @@ class Blacklist:
         self.blacklists[category].append(blacklist_entry)
         self._save_blacklist(category)
 
-        logger.info(
-            f"✅ '{item['title']}' zur {category}-Blacklist hinzugefügt: {reason}"
-        )
+        logger.info(f"✅ '{item['title']}' zur {category}-Blacklist hinzugefügt: {reason}")
 
-    def remove_from_blacklist(
-        self,
-        category: str,
-        item: Dict[str, Any]
-    ) -> bool:
+    def remove_from_blacklist(self, category: str, item: Dict[str, Any]) -> bool:
         """
         Entfernt ein Medium von der Blacklist.
 
@@ -205,11 +182,7 @@ class Blacklist:
             for bl in self.blacklists[category]
             if not (
                 bl["title"].lower().strip() == title_lower
-                and (
-                    not author_lower
-                    or not bl.get("author")
-                    or bl.get("author", "").lower().strip() == author_lower
-                )
+                and (not author_lower or not bl.get("author") or bl.get("author", "").lower().strip() == author_lower)
             )
         ]
 
@@ -249,11 +222,7 @@ class Blacklist:
             Dictionary mit Statistiken pro Kategorie
         """
         stats: Dict[str, Dict[str, Any]] = {
-            category: {
-                "count": len(items),
-                "items": items
-            }
-            for category, items in self.blacklists.items()
+            category: {"count": len(items), "items": items} for category, items in self.blacklists.items()
         }
         return stats
 

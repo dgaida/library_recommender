@@ -46,7 +46,7 @@ class AppState:
         else:
             rejected = {"films": [], "albums": [], "books": []}
             AppState.save_rejected_state(rejected)
-            print(f"DEBUG: Neue state.json erstellt.")
+            print("DEBUG: Neue state.json erstellt.")
             return rejected
 
     @staticmethod
