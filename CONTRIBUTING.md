@@ -639,7 +639,6 @@ pytest tests/ --cov=. --cov-report=html
 ## 💬 Fragen?
 
 - **Issues**: [GitHub Issues](https://github.com/dgaida/library_recommender/issues)
-- **Discussions**: [GitHub Discussions](https://github.com/dgaida/library_recommender/discussions)
 - **Email**: daniel.gaida@th-koeln.de
 
 ---

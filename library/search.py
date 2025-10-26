@@ -570,6 +570,106 @@ class KoelnLibrarySearch:
 
         return None
 
+    def extract_genres_from_description(self, description: str) -> List[str]:
+        """
+        Extrahiert Genre-Angaben aus der Medienbeschreibung.
+
+        Genre sind in der Bibliotheksbeschreibung durch Sternchen markiert,
+        z.B. *Drama*, *Komödie*, *Thriller*.
+
+        Args:
+            description: Beschreibungstext aus dem Bibliothekskatalog
+
+        Returns:
+            Liste der gefundenen Genres
+
+        Example:
+            >>> genres = extract_genres_from_description("*Drama* *Thriller* Uv")
+            >>> print(genres)
+            ['Drama', 'Thriller']
+        """
+        import re
+        from utils.logging_config import get_logger
+
+        logger = get_logger(__name__)
+
+        if not description:
+            return []
+
+        # Pattern für *Genre*
+        pattern = r"\*([^*]+)\*"
+        matches = re.findall(pattern, description)
+
+        genres = [match.strip() for match in matches if match.strip()]
+
+        if genres:
+            logger.debug(f"Genres extrahiert: {genres}")
+
+        return genres
+
+    def is_film_medium(self, description: str) -> bool:
+        """
+        Prüft, ob ein Medium anhand der Beschreibung ein Film ist.
+
+        Filme enthalten das Kürzel "Uv" in der Beschreibung.
+
+        Args:
+            description: Beschreibungstext aus dem Bibliothekskatalog
+
+        Returns:
+            True wenn Film, sonst False
+
+        Example:
+            >>> is_film = is_film_medium("*Drama* Uv Verfügbar")
+            >>> print(is_film)
+            True
+        """
+        from utils.logging_config import get_logger
+
+        logger = get_logger(__name__)
+
+        if not description:
+            logger.debug("Keine Beschreibung vorhanden")
+            return False
+
+        # Prüfe auf "Uv" Kürzel (mit Wortgrenzen)
+        import re
+
+        has_uv = bool(re.search(r"\bUv\b", description))
+
+        logger.debug(f"Film-Check (Uv): {has_uv}")
+        return has_uv
+
+    def truncate_description(self, description: str, max_length: int = 300) -> str:
+        """
+        Kürzt eine Beschreibung auf maximale Zeichenlänge.
+
+        Args:
+            description: Zu kürzende Beschreibung
+            max_length: Maximale Zeichenlänge (default: 300)
+
+        Returns:
+            Gekürzte Beschreibung mit "..." falls nötig
+
+        Example:
+            >>> short = truncate_description("Eine sehr lange Beschreibung...", 20)
+            >>> print(short)
+            'Eine sehr lange Be...'
+        """
+        from utils.logging_config import get_logger
+
+        logger = get_logger(__name__)
+
+        if not description or len(description) <= max_length:
+            return description
+
+        # Kürze auf max_length - 3 (für "...")
+        truncated = description[: max_length - 3].strip() + "..."
+
+        logger.debug(f"Beschreibung gekürzt: {len(description)} -> {len(truncated)} Zeichen")
+
+        return truncated
+
     @staticmethod
     def display_results(results: List[Dict[str, Any]]) -> None:
         """

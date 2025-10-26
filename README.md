@@ -41,8 +41,17 @@ Eine intelligente Empfehlungs-App für die **Stadtbibliothek Köln**, die verfü
 ### 🎮 **Moderne Benutzeroberfläche**
 - **Mehrfachauswahl**: Mehrere Titel gleichzeitig verwalten
 - **🏷️ Quellen-Emojis**: Zeigen Herkunft jeder Empfehlung (🏆 Oscar, ⭐ FBW, 📻 Radio, 💎 Personalisiert, 📖 Ratgeber)
-- **🔍 KI-Google-Suche**: 1-2 Sätze Zusammenfassung zu jedem Medium (powered by Groq AI)
+- **🔍 KI-Google-Suche**:
+  - 1-2 Sätze Zusammenfassung zu jedem Medium
+  - 🎬 YouTube-Trailer für Filme
+  - 🖼️ Cover-Images für alle Medien
 - **Persistente Ablehnungen**: Abgelehnte Titel nie wieder angezeigt
+
+<p align="center">
+   <img src="images/GUI%20Bibliothek%20Filme.png"
+       alt="Screenshot der Bibliothek GUI - Tab Filme"
+       width="800">
+   </p>
 
 ### 💾 **Export & Caching**
 - Empfehlungen als übersichtliche Markdown-Datei
@@ -66,7 +75,7 @@ cd library_recommender
 pip install -r requirements.txt
 ```
 
-### 3. Groq API Key einrichten (optional, für Google-Suche)
+### 3. Groq API Key einrichten (optional, für Google-Suche mit visuellen Medien)
 Kostenlosen Account erstellen: https://groq.com
 
 Erstelle eine `secrets.env` mit:
@@ -74,7 +83,8 @@ Erstelle eine `secrets.env` mit:
 GROQ_API_KEY=gsk_...
 ```
 
-> **Hinweis**: Ohne Groq API Key funktioniert die Google-Suche nicht, alle anderen Features bleiben verfügbar.
+> **Hinweis**: Ohne Groq API Key funktioniert die Google-Suche mit Zusammenfassungen,
+> Trailer-Suche und Cover-Images nicht. Alle anderen Features bleiben verfügbar.
 
 ### 4. MP3-Archiv Pfad anpassen (optional)
 Für personalisierte Musikempfehlungen bearbeite `data_sources/mp3_analysis.py`:
@@ -97,11 +107,15 @@ python main.py
 Die App öffnet sich automatisch im Browser unter `http://localhost:7860`
 
 ### Workflow
-1. **Automatische Vorschläge** beim Start mit Quellen-Emojis
+1. **Automatische Vorschläge** beim Start mit Quellen-Emojis (dynamisch 4 pro Quelle)
 2. **Medium auswählen** → Google-Button wird aktiv
-3. **🔍 Google-Suche** → KI-generierte Kurzzusammenfassung
+3. **🔍 Google-Suche** →
+   - KI-generierte Kurzzusammenfassung (1-2 Sätze)
+   - 🎬 YouTube-Trailer (nur Filme)
+   - 🖼️ Cover-Image (alle Medien)
 4. **Mehrere auswählen** → "Entfernen" → Neue Vorschläge automatisch nachgeladen
 5. **"Alle Empfehlungen speichern"** → Erstellt `recommended.md`
+   - Filme werden nach Genre sortiert
 
 ## 📁 Projektstruktur
 

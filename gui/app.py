@@ -84,7 +84,7 @@ def load_or_fetch_books() -> List[Dict[str, Any]]:
                     "author": g["author"],
                     "type": "Buch",
                     "description": g["description"],
-                    "source": t.get("source", SOURCE_BEST_GUIDES),
+                    "source": g.get("source", SOURCE_BEST_GUIDES),
                 }
             )
 
@@ -211,8 +211,7 @@ def suggest(category: str) -> Tuple[gr.update, str, gr.update, str]:
     """
     Erstellt neue balancierte Vorschläge für eine Kategorie.
 
-    Generiert 12 Vorschläge mit 4 Items pro Datenquelle für ausgewogene
-    Empfehlungen aus allen verfügbaren Quellen.
+    Die Anzahl wird dynamisch berechnet (4 pro Quelle).
 
     Args:
         category: Kategorie ('films', 'albums', 'books')
@@ -220,14 +219,17 @@ def suggest(category: str) -> Tuple[gr.update, str, gr.update, str]:
     Returns:
         Tuple mit (checkbox_update, info_text, button_state, detail_text)
     """
-    # 12 Vorschläge mit je 4 pro Quelle
-    suggestions = get_n_suggestions(category, n=12, items_per_source=4)
+    logger.info(f"Erstelle Vorschläge für Kategorie: {category}")
+
+    # Hole Vorschläge (Anzahl wird dynamisch berechnet)
+    suggestions = get_n_suggestions(category, items_per_source=4)
 
     # Aktualisiere globale Vorschläge
     current_suggestions[category] = suggestions
 
     if not suggestions:
-        return gr.update(choices=[], value=[]), "Keine Vorschläge gefunden.", gr.update(interactive=False), ""
+        logger.warning(f"Keine Vorschläge für {category} gefunden")
+        return (gr.update(choices=[], value=[]), "Keine Vorschläge gefunden.", gr.update(interactive=False), "")
 
     # Erstelle Auswahloptionen für die CheckboxGroup
     choices = []
@@ -237,38 +239,53 @@ def suggest(category: str) -> Tuple[gr.update, str, gr.update, str]:
             display_text += f" - {s['author']}"
         # Emoji hinzufügen
         if s.get("source"):
+            from utils.sources import get_source_emoji
+
             emoji = get_source_emoji(s["source"])
             if emoji:
                 display_text = f"{emoji} {display_text}"
         choices.append(display_text)
 
     info_text = (
-        f"{len(suggestions)} Vorschläge gefunden (balanciert aus allen Quellen). Wählen Sie Titel aus, um sie zu entfernen."
+        f"{len(suggestions)} Vorschläge gefunden (balanciert aus allen Quellen). " "Wählen Sie Titel aus, um sie zu entfernen."
     )
 
-    return gr.update(choices=choices, value=[]), info_text, gr.update(interactive=False), ""
+    logger.info(f"{len(suggestions)} Vorschläge für {category} erstellt")
+
+    return (gr.update(choices=choices, value=[]), info_text, gr.update(interactive=False), "")
 
 
-def get_n_suggestions(category: str, n: int = 12, items_per_source: int = 4) -> List[Dict[str, Any]]:
+def get_n_suggestions(category: str, items_per_source: int = 4) -> List[Dict[str, Any]]:
     """
-    Holt n neue Vorschläge für eine Kategorie, balanciert nach Quelle.
+    Holt neue Vorschläge für eine Kategorie, balanciert nach Quelle.
+
+    Die Gesamtanzahl wird dynamisch berechnet:
+    n = Anzahl Quellen * items_per_source
 
     Args:
         category: Kategorie ('films', 'albums', 'books')
-        n: Gesamtanzahl gewünschter Vorschläge (default: 12)
         items_per_source: Items pro Quelle (default: 4)
 
     Returns:
         Liste von Empfehlungen, balanciert nach Quelle
+
+    Example:
+        >>> suggestions = get_n_suggestions('films', items_per_source=4)
+        >>> # Bei 3 Quellen -> 12 Vorschläge
     """
+    logger.info(f"Hole Vorschläge für {category} ({items_per_source} pro Quelle)")
+
     if category == "films":
-        suggestions = recommender.suggest_films(films, n=n, items_per_source=items_per_source)
+        suggestions = recommender.suggest_films(films, items_per_source=items_per_source)
     elif category == "albums":
-        suggestions = recommender.suggest_albums(albums, n=n, items_per_source=items_per_source)
+        suggestions = recommender.suggest_albums(albums, items_per_source=items_per_source)
     elif category == "books":
-        suggestions = recommender.suggest_books(books, n=n, items_per_source=items_per_source)
+        suggestions = recommender.suggest_books(books, items_per_source=items_per_source)
     else:
+        logger.warning(f"Unbekannte Kategorie: {category}")
         suggestions = []
+
+    logger.info(f"{len(suggestions)} Vorschläge für {category} geholt")
 
     return suggestions if suggestions else []
 
@@ -486,6 +503,7 @@ def reject_selected(selected_items: List[str], category: str) -> Tuple[gr.update
         Tuple mit Updates für alle GUI-Komponenten
     """
     if not selected_items:
+        logger.debug("Keine Items zum Ablehnen ausgewählt")
         return (
             gr.update(),
             "Keine Items ausgewählt.",
@@ -496,13 +514,27 @@ def reject_selected(selected_items: List[str], category: str) -> Tuple[gr.update
             "",
         )
 
+    logger.info(f"Lehne {len(selected_items)} {category} ab")
+
     suggestions = current_suggestions.get(category, [])
     rejected_titles = []
     indices_to_remove = []
 
     # Identifiziere alle zu entfernenden Items
     for selected_item in selected_items:
-        selected_item_clean = remove_emoji(selected_item)
+        # Entferne Emoji
+        emoji_pattern = re.compile(
+            "["
+            "\U0001f300-\U0001f9ff"
+            "\U0001f600-\U0001f64f"
+            "\U0001f680-\U0001f6ff"
+            "\U0001f1e0-\U0001f1ff"
+            "\U00002702-\U000027b0"
+            "\U000024c2-\U0001f251"
+            "]+",
+            flags=re.UNICODE,
+        )
+        selected_item_clean = emoji_pattern.sub("", selected_item).strip()
 
         for i, s in enumerate(suggestions):
             display_text = f"{s['title']}"
@@ -514,6 +546,7 @@ def reject_selected(selected_items: List[str], category: str) -> Tuple[gr.update
                 indices_to_remove.append(i)
                 rejected_item = {"title": s["title"]}
                 state.reject(category, rejected_item)
+                logger.debug(f"Item abgelehnt: {s['title']}")
                 break
 
     # Entferne Items (von hinten nach vorne)
@@ -522,7 +555,7 @@ def reject_selected(selected_items: List[str], category: str) -> Tuple[gr.update
 
     # Versuche neue Vorschläge zu holen (balanciert, 1 pro Quelle)
     needed_count = len(rejected_titles)
-    new_suggestions = get_n_suggestions(category, n=needed_count, items_per_source=1)
+    new_suggestions = get_n_suggestions(category, items_per_source=1)
 
     # Füge neue Vorschläge hinzu
     current_suggestions[category].extend(new_suggestions)
@@ -541,14 +574,16 @@ def reject_selected(selected_items: List[str], category: str) -> Tuple[gr.update
 
     rejected_text = "', '".join(rejected_titles)
     if len(new_suggestions) == needed_count:
-        info_text = f"{len(rejected_titles)} Titel wurden abgelehnt und durch neue ersetzt."
-        success_msg = f"✅ '{rejected_text}' wurde(n) erfolgreich abgelehnt und ersetzt"
+        info_text = f"{len(rejected_titles)} Titel wurden abgelehnt " "und durch neue ersetzt."
+        success_msg = f"✅ '{rejected_text}' wurde(n) erfolgreich " "abgelehnt und ersetzt"
     elif new_suggestions:
-        info_text = f"{len(rejected_titles)} Titel abgelehnt, {len(new_suggestions)} neue Vorschläge verfügbar."
-        success_msg = f"✅ '{rejected_text}' wurde(n) abgelehnt, {len(new_suggestions)} Ersetzungen verfügbar"
+        info_text = f"{len(rejected_titles)} Titel abgelehnt, " f"{len(new_suggestions)} neue Vorschläge verfügbar."
+        success_msg = f"✅ '{rejected_text}' wurde(n) abgelehnt " "(keine Ersetzungen verfügbar)"
     else:
-        info_text = f"{len(rejected_titles)} Titel wurden abgelehnt. Keine weiteren Vorschläge verfügbar."
-        success_msg = f"✅ '{rejected_text}' wurde(n) abgelehnt (keine Ersetzungen verfügbar)"
+        info_text = f"{len(rejected_titles)} Titel wurden abgelehnt. " "Keine weiteren Vorschläge verfügbar."
+        success_msg = f"✅ '{rejected_text}' wurde(n) abgelehnt, " f"{len(new_suggestions)} Ersetzungen verfügbar"
+
+    logger.info(f"{len(rejected_titles)} Items abgelehnt, " f"{len(new_suggestions)} neue hinzugefügt")
 
     return (
         gr.update(choices=choices, value=[]),
@@ -596,7 +631,7 @@ def initialize_recommendations() -> Tuple[List[Dict[str, Any]], List[Dict[str, A
     """
     Lädt initiale balancierte Vorschläge für alle Kategorien beim Start.
 
-    Ruft für jede Kategorie Empfehlungen ab (12 Items mit 4 pro Quelle)
+    Ruft für jede Kategorie Empfehlungen ab (4 pro Quelle, dynamisch berechnet)
     und speichert sie automatisch in einer Markdown-Datei.
 
     Returns:
@@ -604,20 +639,22 @@ def initialize_recommendations() -> Tuple[List[Dict[str, Any]], List[Dict[str, A
     """
     logger.info("Lade initiale balancierte Vorschläge...")
 
-    # Filme laden (12 mit je 4 pro Quelle)
-    film_suggestions = get_n_suggestions("films", n=12, items_per_source=4)
+    # Filme laden (4 pro Quelle, dynamisch)
+    film_suggestions = get_n_suggestions("films", items_per_source=4)
     current_suggestions["films"] = film_suggestions
 
-    # Alben laden (12 mit je 4 pro Quelle)
-    album_suggestions = get_n_suggestions("albums", n=12, items_per_source=4)
+    # Alben laden (4 pro Quelle, dynamisch)
+    album_suggestions = get_n_suggestions("albums", items_per_source=4)
     current_suggestions["albums"] = album_suggestions
 
-    # Bücher laden (12 mit je 4 pro Quelle)
-    book_suggestions = get_n_suggestions("books", n=12, items_per_source=4)
+    # Bücher laden (4 pro Quelle, dynamisch)
+    book_suggestions = get_n_suggestions("books", items_per_source=4)
     current_suggestions["books"] = book_suggestions
 
     # Automatisch in Datei speichern
     try:
+        from utils.io import save_recommendations_to_markdown
+
         recommendations = {
             "films": film_suggestions,
             "albums": album_suggestions,
@@ -625,7 +662,7 @@ def initialize_recommendations() -> Tuple[List[Dict[str, Any]], List[Dict[str, A
         }
         filename = save_recommendations_to_markdown(recommendations)
         total_count = len(film_suggestions) + len(album_suggestions) + len(book_suggestions)
-        logger.info(f"{total_count} initiale balancierte Empfehlungen in '{filename}' gespeichert")
+        logger.info(f"{total_count} initiale balancierte Empfehlungen " f"in '{filename}' gespeichert")
     except Exception as e:
         logger.error(f"Fehler beim Speichern der initialen Empfehlungen: {e}")
 
@@ -661,90 +698,537 @@ def get_initial_choices(suggestions: List[Dict[str, Any]]) -> List[str]:
     return choices
 
 
-# CSS für besseres Styling
+# Modernes, dark-mode-freundliches CSS
 css = """
-.suggestion-container {
-    border: 1px solid #ddd;
-    border-radius: 8px;
-    padding: 15px;
-    margin: 10px 0;
-    background-color: #f9f9f9;
+/* =================================================================
+   GLOBALE VARIABLEN & THEME
+   ================================================================= */
+:root {
+    --primary-color: #667eea;
+    --primary-hover: #5568d3;
+    --secondary-color: #764ba2;
+    --success-color: #48bb78;
+    --success-hover: #38a169;
+    --danger-color: #f56565;
+    --danger-hover: #e53e3e;
+    --info-color: #4299e1;
+    --warning-color: #ed8936;
+
+    --bg-primary: #ffffff;
+    --bg-secondary: #f7fafc;
+    --bg-tertiary: #edf2f7;
+    --bg-gradient-start: #667eea;
+    --bg-gradient-end: #764ba2;
+
+    --text-primary: #2d3748;
+    --text-secondary: #4a5568;
+    --text-tertiary: #718096;
+
+    --border-color: #e2e8f0;
+    --border-radius: 12px;
+    --border-radius-sm: 8px;
+    --border-radius-lg: 16px;
+
+    --shadow-sm: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+    --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+    --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+
+    --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.suggestion-info {
-    background-color: #e8f4f8;
-    padding: 10px;
-    border-radius: 5px;
-    margin: 10px 0;
-    border-left: 4px solid #17a2b8;
+/* Dark Mode Support */
+@media (prefers-color-scheme: dark) {
+    :root {
+        --bg-primary: #1a202c;
+        --bg-secondary: #2d3748;
+        --bg-tertiary: #4a5568;
+
+        --text-primary: #f7fafc;
+        --text-secondary: #e2e8f0;
+        --text-tertiary: #cbd5e0;
+
+        --border-color: #4a5568;
+    }
 }
 
-.reject-button {
-    background-color: #dc3545 !important;
-    border-color: #dc3545 !important;
+/* =================================================================
+   GLOBALE STYLES
+   ================================================================= */
+.gradio-container {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto',
+                 'Helvetica Neue', Arial, sans-serif !important;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+    min-height: 100vh;
+    padding: 2rem 1rem !important;
 }
 
-.reject-button:hover {
-    background-color: #c82333 !important;
-    border-color: #bd2130 !important;
+/* Haupt-Container */
+.contain {
+    background: var(--bg-primary) !important;
+    border-radius: var(--border-radius-lg) !important;
+    box-shadow: var(--shadow-xl) !important;
+    padding: 2rem !important;
+    max-width: 1400px !important;
+    margin: 0 auto !important;
 }
 
+/* =================================================================
+   HEADER & TITLE
+   ================================================================= */
+.gradio-container h1 {
+    background: linear-gradient(135deg, var(--bg-gradient-start), var(--bg-gradient-end));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    font-size: 2.5rem !important;
+    font-weight: 800 !important;
+    text-align: center !important;
+    margin-bottom: 0.5rem !important;
+    letter-spacing: -0.025em !important;
+}
+
+.gradio-container h1 + p {
+    color: var(--text-secondary) !important;
+    text-align: center !important;
+    font-size: 1.125rem !important;
+    margin-bottom: 2rem !important;
+}
+
+.gradio-container h1 {
+    /* WICHTIG: Fallback-Farbe zuerst */
+    color: #2d3748 !important;
+
+    /* Dann Gradient-Effekt */
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+/* Extra Fallback für Firefox */
+@supports not (background-clip: text) {
+    .gradio-container h1 {
+        color: #667eea !important;
+        background: none !important;
+    }
+}
+
+/* =================================================================
+   TABS
+   ================================================================= */
+.tabs {
+    border: none !important;
+    background: transparent !important;
+    margin-bottom: 2rem !important;
+}
+
+.tab-nav {
+    background: var(--bg-secondary) !important;
+    border-radius: var(--border-radius) !important;
+    padding: 0.5rem !important;
+    display: flex !important;
+    gap: 0.5rem !important;
+    border: 1px solid var(--border-color) !important;
+}
+
+.tab-nav button {
+    background: transparent !important;
+    border: none !important;
+    border-radius: var(--border-radius-sm) !important;
+    padding: 0.75rem 1.5rem !important;
+    font-weight: 600 !important;
+    font-size: 1rem !important;
+    color: var(--text-secondary) !important;
+    transition: var(--transition) !important;
+    cursor: pointer !important;
+}
+
+.tab-nav button:hover {
+    background: var(--bg-primary) !important;
+    color: var(--text-primary) !important;
+    transform: translateY(-2px) !important;
+}
+
+.tab-nav button.selected {
+    background: linear-gradient(135deg, var(--primary-color), var(--secondary-color)) !important;
+    color: white !important;
+    box-shadow: var(--shadow-md) !important;
+}
+
+/* =================================================================
+   BUTTONS
+   ================================================================= */
+button, .gr-button {
+    border-radius: var(--border-radius-sm) !important;
+    font-weight: 600 !important;
+    padding: 0.75rem 1.5rem !important;
+    transition: var(--transition) !important;
+    border: none !important;
+    cursor: pointer !important;
+    font-size: 0.95rem !important;
+    box-shadow: var(--shadow-sm) !important;
+}
+
+button:hover, .gr-button:hover {
+    transform: translateY(-2px) !important;
+    box-shadow: var(--shadow-md) !important;
+}
+
+button:active, .gr-button:active {
+    transform: translateY(0) !important;
+}
+
+/* Primary Button */
+button[variant="primary"], .gr-button-primary {
+    background: linear-gradient(135deg, var(--primary-color), var(--secondary-color)) !important;
+    color: white !important;
+}
+
+button[variant="primary"]:hover, .gr-button-primary:hover {
+    background: linear-gradient(135deg, var(--primary-hover), var(--secondary-color)) !important;
+}
+
+/* Save Button */
 .save-button {
-    background-color: #28a745 !important;
-    border-color: #28a745 !important;
-    font-weight: bold !important;
+    background: linear-gradient(135deg, var(--success-color), #38b2ac) !important;
+    color: white !important;
+    font-size: 1.1rem !important;
+    padding: 1rem 2rem !important;
+    box-shadow: var(--shadow-lg) !important;
 }
 
 .save-button:hover {
-    background-color: #218838 !important;
-    border-color: #1e7e34 !important;
+    background: linear-gradient(135deg, var(--success-hover), #319795) !important;
+    box-shadow: var(--shadow-xl) !important;
 }
 
+/* Reject/Remove Button */
+.reject-button {
+    background: linear-gradient(135deg, var(--danger-color), #fc8181) !important;
+    color: white !important;
+}
+
+.reject-button:hover {
+    background: linear-gradient(135deg, var(--danger-hover), #f56565) !important;
+}
+
+.reject-button:disabled {
+    background: var(--bg-tertiary) !important;
+    color: var(--text-tertiary) !important;
+    cursor: not-allowed !important;
+    opacity: 0.5 !important;
+    transform: none !important;
+}
+
+/* Google Search Button */
 .google-button {
-    background-color: #4285f4 !important;
-    border-color: #4285f4 !important;
+    background: linear-gradient(135deg, var(--info-color), #63b3ed) !important;
     color: white !important;
 }
 
 .google-button:hover {
-    background-color: #3367d6 !important;
-    border-color: #3367d6 !important;
+    background: linear-gradient(135deg, #3182ce, var(--info-color)) !important;
 }
 
 .google-button:disabled {
-    background-color: #cccccc !important;
-    border-color: #cccccc !important;
-    color: #666666 !important;
+    background: var(--bg-tertiary) !important;
+    color: var(--text-tertiary) !important;
+    cursor: not-allowed !important;
+    opacity: 0.5 !important;
+    transform: none !important;
 }
 
+/* =================================================================
+   CONTAINERS & CARDS
+   ================================================================= */
+.suggestion-container {
+    background: var(--bg-secondary) !important;
+    border: 1px solid var(--border-color) !important;
+    border-radius: var(--border-radius) !important;
+    padding: 1.5rem !important;
+    margin: 1rem 0 !important;
+    box-shadow: var(--shadow-sm) !important;
+    transition: var(--transition) !important;
+}
+
+.suggestion-container:hover {
+    box-shadow: var(--shadow-md) !important;
+    transform: translateY(-2px) !important;
+}
+
+/* Info Box */
+.suggestion-info {
+    background: linear-gradient(135deg, #e6fffa 0%, #e0f2fe 100%) !important;
+    border-left: 4px solid var(--info-color) !important;
+    border-radius: var(--border-radius-sm) !important;
+    padding: 1rem !important;
+    margin: 1rem 0 !important;
+    color: #0c4a6e !important;
+    font-weight: 500 !important;
+    box-shadow: var(--shadow-sm) !important;
+}
+
+/* Success Message */
 .success-message {
-    background-color: #d4edda;
-    color: #155724;
-    border: 1px solid #c3e6cb;
-    padding: 8px 12px;
-    border-radius: 4px;
-    margin: 5px 0;
+    background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%) !important;
+    border-left: 4px solid var(--success-color) !important;
+    border-radius: var(--border-radius-sm) !important;
+    padding: 1rem !important;
+    margin: 0.5rem 0 !important;
+    color: #064e3b !important;
+    font-weight: 600 !important;
+    box-shadow: var(--shadow-sm) !important;
+    animation: slideInDown 0.3s ease-out !important;
+}
+
+@keyframes slideInDown {
+    from {
+        opacity: 0;
+        transform: translateY(-20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* =================================================================
+   CHECKBOX GROUP & SELECTIONS
+   ================================================================= */
+.gradio-checkboxgroup {
+    background: var(--bg-primary) !important;
+    border-radius: var(--border-radius) !important;
 }
 
 .gradio-checkboxgroup label {
-    padding: 8px 12px;
-    margin: 4px 0;
-    border-radius: 6px;
-    border: 1px solid #e0e0e0;
-    background-color: #fafafa;
-    transition: all 0.2s ease;
-    display: block;
+    background: var(--bg-secondary) !important;
+    border: 2px solid var(--border-color) !important;
+    border-radius: var(--border-radius-sm) !important;
+    padding: 1rem 1.25rem !important;
+    margin: 0.5rem 0 !important;
+    transition: var(--transition) !important;
+    cursor: pointer !important;
+    display: flex !important;
+    align-items: center !important;
+    gap: 0.75rem !important;
 }
 
 .gradio-checkboxgroup label:hover {
-    background-color: #f0f8ff;
-    border-color: #007bff;
+    background: linear-gradient(135deg, #faf5ff 0%, #f3e8ff 100%) !important;
+    border-color: var(--primary-color) !important;
+    transform: translateX(4px) !important;
+    box-shadow: var(--shadow-sm) !important;
 }
 
 .gradio-checkboxgroup input[type="checkbox"]:checked + span {
-    background-color: #e7f3ff;
-    border-color: #007bff;
-    font-weight: 500;
+    background: linear-gradient(135deg, #ede9fe 0%, #ddd6fe 100%) !important;
+    border-color: var(--primary-color) !important;
+    font-weight: 600 !important;
+    box-shadow: var(--shadow-md) !important;
+}
+
+.gradio-checkboxgroup input[type="checkbox"] {
+    width: 1.25rem !important;
+    height: 1.25rem !important;
+    border: 2px solid var(--border-color) !important;
+    border-radius: 4px !important;
+    cursor: pointer !important;
+}
+
+.gradio-checkboxgroup input[type="checkbox"]:checked {
+    background: linear-gradient(135deg, var(--primary-color), var(--secondary-color)) !important;
+    border-color: var(--primary-color) !important;
+}
+
+/* =================================================================
+   TEXT AREAS & INPUTS
+   ================================================================= */
+textarea, .gr-text-input, .gr-textbox {
+    background: var(--bg-secondary) !important;
+    border: 2px solid var(--border-color) !important;
+    border-radius: var(--border-radius-sm) !important;
+    padding: 1rem !important;
+    color: var(--text-primary) !important;
+    font-size: 0.95rem !important;
+    line-height: 1.6 !important;
+    transition: var(--transition) !important;
+}
+
+textarea:focus, .gr-text-input:focus, .gr-textbox:focus {
+    outline: none !important;
+    border-color: var(--primary-color) !important;
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1) !important;
+}
+
+/* =================================================================
+   MEDIA DISPLAY (Images, Videos)
+   ================================================================= */
+.gr-html img {
+    border-radius: var(--border-radius) !important;
+    box-shadow: var(--shadow-lg) !important;
+    transition: var(--transition) !important;
+}
+
+.gr-html img:hover {
+    transform: scale(1.02) !important;
+    box-shadow: var(--shadow-xl) !important;
+}
+
+.gr-html iframe {
+    border-radius: var(--border-radius) !important;
+    box-shadow: var(--shadow-lg) !important;
+}
+
+/* Media Container */
+.gr-html > div {
+    background: var(--bg-secondary) !important;
+    border-radius: var(--border-radius) !important;
+    padding: 1.5rem !important;
+    margin: 1rem 0 !important;
+    box-shadow: var(--shadow-md) !important;
+}
+
+.gr-html h4 {
+    color: var(--text-primary) !important;
+    font-weight: 600 !important;
+    margin-bottom: 1rem !important;
+    font-size: 1.1rem !important;
+}
+
+/* =================================================================
+   RESPONSIVE DESIGN
+   ================================================================= */
+@media (max-width: 768px) {
+    .gradio-container {
+        padding: 1rem 0.5rem !important;
+    }
+
+    .contain {
+        padding: 1rem !important;
+        border-radius: var(--border-radius) !important;
+    }
+
+    .gradio-container h1 {
+        font-size: 1.875rem !important;
+    }
+
+    .tab-nav {
+        flex-direction: column !important;
+    }
+
+    .tab-nav button {
+        width: 100% !important;
+    }
+
+    button, .gr-button {
+        width: 100% !important;
+        padding: 0.875rem 1rem !important;
+    }
+
+    .gradio-checkboxgroup label {
+        padding: 0.875rem 1rem !important;
+    }
+}
+
+/* =================================================================
+   SCROLLBAR STYLING
+   ================================================================= */
+::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+}
+
+::-webkit-scrollbar-track {
+    background: var(--bg-secondary);
+    border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb {
+    background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+    border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: linear-gradient(135deg, var(--primary-hover), var(--secondary-color));
+}
+
+/* =================================================================
+   LOADING & ANIMATIONS
+   ================================================================= */
+.loading {
+    animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+@keyframes pulse {
+    0%, 100% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.5;
+    }
+}
+
+.fade-in {
+    animation: fadeIn 0.3s ease-in;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
+/* =================================================================
+   TOOLTIPS & HINTS
+   ================================================================= */
+[title]:hover::after {
+    content: attr(title);
+    position: absolute;
+    bottom: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--text-primary);
+    color: var(--bg-primary);
+    padding: 0.5rem 1rem;
+    border-radius: var(--border-radius-sm);
+    font-size: 0.875rem;
+    white-space: nowrap;
+    box-shadow: var(--shadow-md);
+    z-index: 1000;
+}
+
+/* =================================================================
+   ACCESSIBILITY
+   ================================================================= */
+*:focus {
+    outline: 2px solid var(--primary-color) !important;
+    outline-offset: 2px !important;
+}
+
+button:focus, .gr-button:focus {
+    outline: 3px solid var(--primary-color) !important;
+    outline-offset: 2px !important;
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+    :root {
+        --border-color: #000000;
+        --text-primary: #000000;
+    }
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+    * {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
 }
 """
 
@@ -771,9 +1255,444 @@ initial_film_choices = get_initial_choices(initial_films)
 initial_album_choices = get_initial_choices(initial_albums)
 initial_book_choices = get_initial_choices(initial_books)
 
-with gr.Blocks(css=css, title="Bibliothek-Empfehlungen") as demo:
-    gr.Markdown("# 🎬💿📚 Bibliothek-Empfehlungen")
-    gr.Markdown("Entdecken Sie verfügbare Medien in der Stadtbibliothek Köln!")
+
+def create_custom_theme() -> gr.Theme:
+    """
+    Erstellt ein benutzerdefiniertes Gradio Theme mit modernem Design.
+
+    Returns:
+        Konfiguriertes Gradio Theme
+    """
+    # from utils.logging_config import get_logger
+
+    # logger = get_logger(__name__)
+    logger.info("Erstelle benutzerdefiniertes Theme")
+
+    theme = gr.themes.Soft(
+        primary_hue="purple",
+        secondary_hue="blue",
+        neutral_hue="slate",
+        font=[
+            gr.themes.GoogleFont("Inter"),
+            "ui-sans-serif",
+            "system-ui",
+            "sans-serif",
+        ],
+        font_mono=[
+            gr.themes.GoogleFont("IBM Plex Mono"),
+            "ui-monospace",
+            "Consolas",
+            "monospace",
+        ],
+    ).set(
+        # Buttons
+        button_primary_background_fill="linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+        button_primary_background_fill_hover="linear-gradient(135deg, #5568d3 0%, #6a3f8f 100%)",
+        button_primary_text_color="white",
+        button_primary_border_color="transparent",
+        # Inputs
+        input_background_fill="*neutral_50",
+        input_border_color="*neutral_300",
+        input_border_width="2px",
+        # Containers
+        background_fill_primary="white",
+        background_fill_secondary="*neutral_50",
+        # Borders
+        block_border_width="1px",
+        block_border_color="*neutral_200",
+        block_radius="12px",
+        block_shadow="*shadow_md",
+    )
+
+    return theme
+
+
+def create_statistics_display(films_count: int, albums_count: int, books_count: int) -> str:
+    """
+    Erstellt eine Statistik-Anzeige mit aktuellen Zahlen.
+
+    Args:
+        films_count: Anzahl Filmvorschläge
+        albums_count: Anzahl Albumvorschläge
+        books_count: Anzahl Buchvorschläge
+
+    Returns:
+        HTML-String für Statistik-Display
+    """
+    total = films_count + albums_count + books_count
+
+    return f"""
+    <div style="
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1rem;
+        margin: 2rem 0;
+    ">
+        <div style="
+            background: linear-gradient(135deg, #e6fffa 0%, #e0f2fe 100%);
+            padding: 1.5rem;
+            border-radius: 12px;
+            text-align: center;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        ">
+            <div style="font-size: 2.5rem; font-weight: 800; color: #0c4a6e;">
+                {films_count}
+            </div>
+            <div style="color: #0c4a6e; font-weight: 600; margin-top: 0.5rem;">
+                🎬 Filme
+            </div>
+        </div>
+
+        <div style="
+            background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+            padding: 1.5rem;
+            border-radius: 12px;
+            text-align: center;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        ">
+            <div style="font-size: 2.5rem; font-weight: 800; color: #78350f;">
+                {albums_count}
+            </div>
+            <div style="color: #78350f; font-weight: 600; margin-top: 0.5rem;">
+                🎵 Alben
+            </div>
+        </div>
+
+        <div style="
+            background: linear-gradient(135deg, #ddd6fe 0%, #c4b5fd 100%);
+            padding: 1.5rem;
+            border-radius: 12px;
+            text-align: center;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        ">
+            <div style="font-size: 2.5rem; font-weight: 800; color: #3730a3;">
+                {books_count}
+            </div>
+            <div style="color: #3730a3; font-weight: 600; margin-top: 0.5rem;">
+                📚 Bücher
+            </div>
+        </div>
+
+        <div style="
+            background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%);
+            padding: 1.5rem;
+            border-radius: 12px;
+            text-align: center;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        ">
+            <div style="font-size: 2.5rem; font-weight: 800; color: #064e3b;">
+                {total}
+            </div>
+            <div style="color: #064e3b; font-weight: 600; margin-top: 0.5rem;">
+                ✨ Gesamt
+            </div>
+        </div>
+    </div>
+    """
+
+
+def create_header_section() -> None:
+    """
+    Erstellt einen ansprechenden Header-Bereich mit Titel und Beschreibung.
+
+    Returns:
+        None: Komponenten werden direkt in Gradio-Block erstellt
+    """
+    gr.HTML(
+        """
+        <div style="text-align: center; margin-bottom: 2rem;">
+            <h1 style="
+                font-size: 2.5rem;
+                font-weight: 800;
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                -webkit-background-clip: text;
+                -webkit-text-fill-color: transparent;
+                background-clip: text;
+                color: #667eea;  /* Fallback! */
+            ">
+                🎬📀📚 Bibliothek-Empfehlungen
+            </h1>
+        </div>
+        """
+    )
+
+    gr.Markdown(
+        """
+        ### Entdecken Sie verfügbare Medien in der Stadtbibliothek Köln!
+
+        Intelligente Empfehlungen aus kuratierten Premium-Listen mit Live-Verfügbarkeitscheck,
+        KI-gestützter Suche und visuellen Medien.
+        """,
+        elem_classes=["header-section"],
+    )
+
+
+def create_info_card(icon: str, title: str, description: str) -> str:
+    """
+    Erstellt eine HTML-Info-Karte.
+
+    Args:
+        icon: Emoji-Icon
+        title: Titel der Karte
+        description: Beschreibungstext
+
+    Returns:
+        HTML-String für die Info-Karte
+
+    Example:
+        >>> card = create_info_card("🎬", "Filme", "Premium-Auswahl")
+        >>> gr.HTML(card)
+    """
+    return f"""
+    <div style="
+        background: linear-gradient(135deg, #faf5ff 0%, #f3e8ff 100%);
+        border-left: 4px solid #667eea;
+        border-radius: 12px;
+        padding: 1.5rem;
+        margin: 1rem 0;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    ">
+        <div style="display: flex; align-items: center; gap: 1rem;">
+            <span style="font-size: 2rem;">{icon}</span>
+            <div>
+                <h3 style="margin: 0; color: #2d3748; font-weight: 700;">
+                    {title}
+                </h3>
+                <p style="margin: 0.25rem 0 0 0; color: #4a5568;">
+                    {description}
+                </p>
+            </div>
+        </div>
+    </div>
+    """
+
+
+def create_footer_section() -> None:
+    """
+    Erstellt einen informativen Footer-Bereich.
+
+    Returns:
+        None: Komponenten werden direkt erstellt
+    """
+    gr.Markdown(
+        """
+        ---
+
+        ### ℹ️ Hinweise
+
+        - 🔄 **Live-Verfügbarkeit**: Die Verfügbarkeit wird in Echtzeit geprüft
+        - 🏷️ **Quellen-Emojis**: Zeigen die Herkunft jeder Empfehlung
+        - 💎 **Personalisiert**: Basierend auf Ihrem MP3-Archiv
+        - 🔍 **KI-Suche**: Powered by Groq AI & DuckDuckGo
+
+        **🌐 Katalog**: [Stadtbibliothek Köln](https://katalog.stbib-koeln.de)
+
+        *Entwickelt mit ❤️ für Bibliotheksliebhaber und Medienentdecker*
+        """,
+        elem_classes=["footer-section"],
+    )
+
+
+def create_loading_spinner() -> str:
+    """
+    Erstellt einen animierten Lade-Spinner.
+
+    Returns:
+        HTML-String für Spinner
+    """
+    return """
+    <div style="
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        padding: 2rem;
+    ">
+        <div style="
+            border: 4px solid #f3f4f6;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+        "></div>
+    </div>
+    <style>
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+    """
+
+
+def create_empty_state(category: str) -> str:
+    """
+    Erstellt eine ansprechende "Empty State" Anzeige.
+
+    Args:
+        category: Kategorie ('films', 'albums', 'books')
+
+    Returns:
+        HTML-String für Empty State
+    """
+    icons = {"films": "🎬", "albums": "🎵", "books": "📚"}
+
+    labels = {"films": "Filme", "albums": "Alben", "books": "Bücher"}
+
+    icon = icons.get(category, "📦")
+    label = labels.get(category, "Medien")
+
+    return f"""
+    <div style="
+        text-align: center;
+        padding: 4rem 2rem;
+        background: linear-gradient(135deg, #faf5ff 0%, #f3e8ff 100%);
+        border-radius: 16px;
+        margin: 2rem 0;
+    ">
+        <div style="font-size: 4rem; margin-bottom: 1rem;">
+            {icon}
+        </div>
+        <h3 style="
+            color: #2d3748;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+        ">
+            Keine {label} gefunden
+        </h3>
+        <p style="color: #718096; margin-bottom: 2rem;">
+            Klicken Sie auf "Neue {label} vorschlagen" um Empfehlungen zu erhalten
+        </p>
+        <div style="
+            display: inline-block;
+            padding: 0.5rem 1rem;
+            background: white;
+            border-radius: 8px;
+            color: #667eea;
+            font-weight: 600;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        ">
+            💡 Tipp: Wählen Sie mehrere Titel aus um sie zu entfernen
+        </div>
+    </div>
+    """
+
+
+def create_badge(text: str, color: str = "blue") -> str:
+    """
+    Erstellt ein kleines Badge/Label.
+
+    Args:
+        text: Badge-Text
+        color: Farbe (blue, green, red, purple, yellow)
+
+    Returns:
+        HTML-String für Badge
+    """
+    colors = {
+        "blue": "linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)",
+        "green": "linear-gradient(135deg, #10b981 0%, #059669 100%)",
+        "red": "linear-gradient(135deg, #ef4444 0%, #dc2626 100%)",
+        "purple": "linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%)",
+        "yellow": "linear-gradient(135deg, #f59e0b 0%, #d97706 100%)",
+    }
+
+    bg = colors.get(color, colors["blue"])
+
+    return f"""
+    <span style="
+        display: inline-block;
+        padding: 0.25rem 0.75rem;
+        background: {bg};
+        color: white;
+        border-radius: 9999px;
+        font-size: 0.875rem;
+        font-weight: 600;
+        margin: 0.25rem;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    ">
+        {text}
+    </span>
+    """
+
+
+def create_progress_bar(current: int, total: int) -> str:
+    """
+    Erstellt einen Fortschrittsbalken.
+
+    Args:
+        current: Aktueller Wert
+        total: Gesamtwert
+
+    Returns:
+        HTML-String für Fortschrittsbalken
+    """
+    percentage = int((current / total * 100)) if total > 0 else 0
+
+    return f"""
+    <div style="margin: 1rem 0;">
+        <div style="
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 0.5rem;
+            color: #4a5568;
+            font-weight: 600;
+        ">
+            <span>{current} von {total}</span>
+            <span>{percentage}%</span>
+        </div>
+        <div style="
+            background: #e2e8f0;
+            border-radius: 9999px;
+            height: 8px;
+            overflow: hidden;
+        ">
+            <div style="
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                height: 100%;
+                width: {percentage}%;
+                transition: width 0.3s ease;
+                border-radius: 9999px;
+            "></div>
+        </div>
+    </div>
+    """
+
+
+def create_tooltip_icon(text: str, tooltip: str) -> str:
+    """
+    Erstellt ein Icon mit Tooltip.
+
+    Args:
+        text: Anzuzeigender Text/Icon
+        tooltip: Tooltip-Text
+
+    Returns:
+        HTML-String mit Tooltip
+    """
+    return f"""
+    <span style="
+        position: relative;
+        cursor: help;
+        border-bottom: 2px dotted #cbd5e0;
+    " title="{tooltip}">
+        {text}
+    </span>
+    """
+
+
+with gr.Blocks(theme=create_custom_theme(), css=css, title="Bibliothek-Empfehlungen") as demo:
+    # Header
+    create_header_section()
+
+    # Statistiken
+    stats_html = gr.HTML(value=create_statistics_display(len(initial_films), len(initial_albums), len(initial_books)))
+
+    # Info-Karten (optional)
+    with gr.Row():
+        gr.HTML(create_info_card("🎬", "Premium-Filme", "BBC, FBW & Oscar-Gewinner"))
+        gr.HTML(create_info_card("🎵", "Kuratierte Musik", "Radio Eins, Oscar & Personalisiert"))
+        gr.HTML(create_info_card("📚", "Beste Bücher", "NYT Kanon & Top-Ratgeber"))
 
     # Globaler Speichern-Button oben
     with gr.Row():
@@ -858,7 +1777,9 @@ with gr.Blocks(css=css, title="Bibliothek-Empfehlungen") as demo:
     with gr.Tab("📚 Bücher"):
         with gr.Column(elem_classes=["suggestion-container"]):
             book_checkbox = gr.CheckboxGroup(
-                label="Empfohlene Bücher (balanciert: 6 NYT Kanon, 6 Ratgeber)",
+                # TODO: diese Anzahl und die Inhalte sollten dynamisch sein und sich anpassen an die Zahl an Quellen
+                #  und dem eingestellten Parameter. gilt auch für CDs und DVDs
+                label="Empfohlene Bücher (balanciert: 4 NYT Kanon, 4 Ratgeber)",
                 choices=initial_book_choices,
                 value=[],
                 interactive=True,
@@ -967,6 +1888,10 @@ with gr.Blocks(css=css, title="Bibliothek-Empfehlungen") as demo:
     book_google_btn.click(
         fn=lambda x: google_search_selected(x, "books"), inputs=[book_checkbox], outputs=[book_detail, book_media]
     )
+
+    # Footer am Ende
+    create_footer_section()
+
 
 if __name__ == "__main__":
     demo.launch()
