@@ -10,7 +10,13 @@ from data_sources.films import fetch_wikipedia_titles
 from data_sources.fbw_films import fetch_fbw_films, fetch_oscar_best_picture_winners
 from data_sources.oscar_music import add_oscar_music_to_albums
 
-from utils.sources import format_source_for_display, SOURCE_RADIO_EINS_TOP_100, get_source_emoji, SOURCE_NYT_CANON
+from utils.sources import (
+    format_source_for_display,
+    SOURCE_RADIO_EINS_TOP_100,
+    get_source_emoji,
+    SOURCE_NYT_CANON,
+    SOURCE_BEST_GUIDES,
+)
 from data_sources.mp3_analysis import add_top_artist_albums_to_collection
 
 from data_sources.albums import fetch_radioeins_albums
@@ -78,7 +84,7 @@ def load_or_fetch_books() -> List[Dict[str, Any]]:
                     "author": g["author"],
                     "type": "Buch",
                     "description": g["description"],
-                    "source": "Die besten Ratgeber des 21. Jahrhunderts",
+                    "source": t.get("source", SOURCE_BEST_GUIDES),
                 }
             )
 

@@ -2,6 +2,12 @@ import os
 import json
 import requests
 from bs4 import BeautifulSoup
+from typing import List, Dict, Any
+
+from utils.logging_config import get_logger
+from utils.sources import SOURCE_BEST_GUIDES
+
+logger = get_logger(__name__)
 
 DATA_DIR = os.path.join(os.path.dirname(__file__), "..", "data")
 os.makedirs(DATA_DIR, exist_ok=True)
@@ -12,7 +18,7 @@ URL = (
 )
 
 
-def fetch_guides_from_site():
+def fetch_guides_from_site() -> List[Dict[str, Any]]:
     """
     Holt die Liste der 'besten Ratgeber des 21. Jahrhunderts' von der Webseite.
 
@@ -24,6 +30,7 @@ def fetch_guides_from_site():
             - "title" (str): Titel des Ratgebers
             - "author" (str): Autor/in
             - "description" (str): Beschreibungstext
+            - "source": Quellen-Bezeichnung
 
     Raises:
         requests.RequestException: Bei Netzwerkproblemen
@@ -81,13 +88,13 @@ def fetch_guides_from_site():
             paragraphs = accordion_div.find_all("p")
             description = " ".join(p.get_text(strip=True) for p in paragraphs)
 
-        guides.append({"title": title, "author": author, "description": description})
+        guides.append({"title": title, "author": author, "description": description, "source": SOURCE_BEST_GUIDES})
 
     print(f"DEBUG: Extrahiert {len(guides)} Ratgeber-Einträge.")
     return guides
 
 
-def save_guides_to_json():
+def save_guides_to_json() -> None:
     """
     Speichert die Ratgeber-Liste in guides.json.
 

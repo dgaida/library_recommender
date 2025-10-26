@@ -66,8 +66,8 @@ class Recommender:
             # Handle personalisierte Empfehlungen
             if "Interessant für dich" in source:
                 source = "Personalisiert"
-            elif "besten Ratgeber" in source:
-                source = "Ratgeber"
+            # elif "besten Ratgeber" in source:
+            #    source = "Ratgeber"
 
             items_by_source[source].append(item)
 

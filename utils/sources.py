@@ -16,6 +16,7 @@ SOURCE_RADIO_EINS_TOP_100 = "Radio Eins Top 100 Alben 2019"
 
 # Buch-Quellen
 SOURCE_NYT_CANON = "New York Times Kanon des 21. Jahrhunderts"
+SOURCE_BEST_GUIDES = "Die besten Ratgeber des 21. Jahrhunderts"
 
 
 # Personalisierte Empfehlungen
@@ -47,6 +48,7 @@ SOURCE_EMOJIS = {
     SOURCE_BBC_100_FILMS: "🎬",
     SOURCE_RADIO_EINS_TOP_100: "📻",
     SOURCE_NYT_CANON: "📚",
+    SOURCE_BEST_GUIDES: "📖",
 }
 
 

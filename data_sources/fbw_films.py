@@ -1,20 +1,9 @@
 #!/usr/bin/env python3
 """
-FBW-Filmempfehlungen – Extraktion der Filme mit Prädikat „besonders wertvoll“.
+FBW-Filmempfehlungen – Extraktion der Filme mit Prädikat „besonders wertvoll".
 
 Diese Datei lädt die Filme von der Webseite der Deutschen Film- und Medienbewertung (FBW)
-und speichert diejenigen Filme, die das Prädikat „besonders wertvoll“ erhalten haben, in einer JSON-Datei.
-
-Ziel-Format (data/films.json):
-
-[
-  {
-    "title": "Chihiros Reise ins Zauberland",
-    "author": "Hayao Miyazaki",
-    "type": "DVD"
-  },
-  ...
-]
+und speichert diejenigen Filme, die das Prädikat „besonders wertvoll" erhalten haben.
 """
 
 import requests
@@ -22,68 +11,82 @@ from bs4 import BeautifulSoup
 import json
 import os
 import time
+from typing import List, Dict, Any
 
 from utils.io import DATA_DIR
 from utils.sources import SOURCE_FBW_EXCEPTIONAL, SOURCE_OSCAR_BEST_PICTURE
+from utils.logging_config import get_logger
 
+logger = get_logger(__name__)
 
 BASE_URL = "https://www.fbw-filmbewertung.com"
 FILM_LIST_URL = f"{BASE_URL}/filme"
 
 
-def fetch_fbw_films(max_pages=5, delay=1.0):
+def fetch_fbw_films(max_pages: int = 5, delay: float = 1.0) -> List[Dict[str, Any]]:
     """
     Ruft Filme von der FBW-Filmbewertungsseite ab, die das
     Prädikat "besonders wertvoll" tragen.
 
     Args:
-        max_pages (int): Anzahl der Seiten, die durchsucht werden sollen.
-        delay (float): Wartezeit (Sekunden) zwischen Seitenabrufen.
+        max_pages: Anzahl der Seiten, die durchsucht werden sollen (default: 5)
+        delay: Wartezeit (Sekunden) zwischen Seitenabrufen (default: 1.0)
 
     Returns:
-        list[dict]: Liste von Filmen mit Schlüsseln:
-            - "title" (str): Titel des Films
-            - "author" (str): Regisseur/in
-            - "description" (str): Kurzbeschreibung
-            - "url" (str): Link zur Filmseite
-            - "type" (str): Immer "DVD"
+        Liste von Filmen mit Schlüsseln:
+            - title: Titel des Films
+            - author: Regisseur/in
+            - description: Kurzbeschreibung
+            - url: Link zur Filmseite
+            - type: Immer "DVD"
+            - source: Quellen-Bezeichnung
+
+    Raises:
+        requests.RequestException: Bei Netzwerkproblemen
+
+    Example:
+        >>> films = fetch_fbw_films(max_pages=2)
+        >>> print(len(films))
+        25
+        >>> print(films[0]['title'])
+        'Das Leben der Anderen'
     """
-    all_films = []
+    all_films: List[Dict[str, Any]] = []
 
     session = requests.Session()
     headers = {"User-Agent": "Mozilla/5.0 (compatible; FBW-Scraper/1.0)"}
 
     for page in range(1, max_pages + 1):
         url = f"{FILM_LIST_URL}?page={page}"
-        print(f"DEBUG: Rufe Seite {page} ab: {url}")
+        logger.info(f"Rufe Seite {page} ab: {url}")
 
         try:
             response = session.get(url, headers=headers, timeout=15)
             response.raise_for_status()
         except requests.RequestException as e:
-            print(f"FEHLER beim Laden von Seite {page}: {e}")
+            logger.error(f"Fehler beim Laden von Seite {page}: {e}")
             continue
 
         soup = BeautifulSoup(response.text, "html.parser")
 
         film_items = soup.select("div.row--filmitem.clearfix")
         if not film_items:
-            print(f"DEBUG: Keine Filmitems auf Seite {page} gefunden.")
+            logger.debug(f"Keine Filmitems auf Seite {page} gefunden.")
             break
 
         for item in film_items:
             # Prüfe auf das "besonders wertvoll"-Siegel
             seal_img = item.select_one("div.film_rating img[alt*='besonders wertvoll']")
             if not seal_img:
-                continue  # überspringe Filme ohne Siegel
+                continue
 
             # Titel
             title_tag = item.select_one("h2 a")
-            title = title_tag.text.strip() if title_tag else "Unbekannt"
-            link = BASE_URL + title_tag["href"] if title_tag and title_tag.has_attr("href") else None
+            title: str = title_tag.text.strip() if title_tag else "Unbekannt"
+            link: str = BASE_URL + title_tag["href"] if title_tag and title_tag.has_attr("href") else ""
 
             # Regie
-            director = ""
+            director: str = ""
             regie_tag = item.select_one(".row--filmitem-additionalinfos-cast")
             if regie_tag and "Regie:" in regie_tag.text:
                 text = regie_tag.get_text(" ", strip=True)
@@ -92,9 +95,9 @@ def fetch_fbw_films(max_pages=5, delay=1.0):
 
             # Beschreibung
             desc_tag = item.select_one("p.film_presstext")
-            description = desc_tag.text.strip() if desc_tag else ""
+            description: str = desc_tag.text.strip() if desc_tag else ""
 
-            film_info = {
+            film_info: Dict[str, Any] = {
                 "title": title,
                 "author": director,
                 "description": description,
@@ -104,14 +107,17 @@ def fetch_fbw_films(max_pages=5, delay=1.0):
             }
             all_films.append(film_info)
 
-        print(f"DEBUG: {len(film_items)} Filme auf Seite {page} gefunden, davon {len(all_films)} mit Siegel.")
+        logger.debug(
+            f"{len(film_items)} Filme auf Seite {page} gefunden, "
+            f"davon {len([f for f in all_films if f['source'] == SOURCE_FBW_EXCEPTIONAL])} mit Siegel."
+        )
         time.sleep(delay)
 
-    print(f"DEBUG: Insgesamt {len(all_films)} Filme mit 'besonders wertvoll' gefunden.")
+    logger.info(f"Insgesamt {len(all_films)} Filme mit 'besonders wertvoll' gefunden")
     return all_films
 
 
-def fetch_oscar_best_picture_winners(url="https://de.wikipedia.org/wiki/Oscar/Bester_Film"):
+def fetch_oscar_best_picture_winners(url: str = "https://de.wikipedia.org/wiki/Oscar/Bester_Film") -> List[Dict[str, Any]]:
     """
     Ruft alle Gewinnerfilme des Oscars für 'Bester Film' von der deutschen Wikipedia ab.
 
@@ -119,19 +125,29 @@ def fetch_oscar_best_picture_winners(url="https://de.wikipedia.org/wiki/Oscar/Be
       - Jahr der Verleihung
       - Produzent bzw. Studio
       - Titel des Gewinnerfilms
-      - (Optional) URL zur Wikipedia-Seite des Films
+      - URL zur Wikipedia-Seite des Films
 
     Args:
-        url (str, optional): URL der Wikipedia-Seite. Standardmäßig die deutsche Seite zu
-            'Oscar/Bester Film'.
+        url: URL der Wikipedia-Seite (default: deutsche Seite zu 'Oscar/Bester Film')
 
     Returns:
-        list[dict]: Liste von Gewinnerfilmen mit folgenden Schlüsseln:
-            - "year" (str): Jahr der Oscarverleihung
-            - "producer" (str): Produzent oder Studio
-            - "title" (str): Titel des ausgezeichneten Films
-            - "url" (str): Vollständige Wikipedia-URL des Films
-            - "type" (str): Immer "Oscar Bester Film"
+        Liste von Gewinnerfilmen mit Schlüsseln:
+            - year: Jahr der Oscarverleihung
+            - producer: Produzent oder Studio
+            - title: Titel des ausgezeichneten Films
+            - url: Vollständige Wikipedia-URL des Films
+            - type: Immer "DVD"
+            - source: Quellen-Bezeichnung
+
+    Raises:
+        RuntimeError: Nach 3 erfolglosen Verbindungsversuchen
+
+    Example:
+        >>> winners = fetch_oscar_best_picture_winners()
+        >>> print(winners[0]['title'])
+        'Oppenheimer'
+        >>> print(winners[0]['year'])
+        '2024'
     """
     headers = {
         "User-Agent": (
@@ -139,13 +155,15 @@ def fetch_oscar_best_picture_winners(url="https://de.wikipedia.org/wiki/Oscar/Be
         )
     }
 
+    logger.info(f"Lade Oscar-Seite: {url}")
+
     for attempt in range(3):
         try:
             resp = requests.get(url, headers=headers, timeout=10)
             resp.raise_for_status()
             break
         except requests.exceptions.RequestException as e:
-            print(f"Versuch {attempt+1}/3 fehlgeschlagen: {e}")
+            logger.warning(f"Versuch {attempt + 1}/3 fehlgeschlagen: {e}")
             time.sleep(2)
     else:
         raise RuntimeError(f"Fehler: Zugriff auf {url} nicht möglich.")
@@ -153,7 +171,7 @@ def fetch_oscar_best_picture_winners(url="https://de.wikipedia.org/wiki/Oscar/Be
     base_url = "https://de.wikipedia.org"
     soup = BeautifulSoup(resp.text, "html.parser")
 
-    results = []
+    results: List[Dict[str, Any]] = []
     tables = soup.find_all("table", class_="wikitable")
 
     for table in tables:
@@ -164,16 +182,16 @@ def fetch_oscar_best_picture_winners(url="https://de.wikipedia.org/wiki/Oscar/Be
                 continue
 
             year_link = cols[1].find("a")
-            year = year_link.text.strip() if year_link else cols[1].get_text(strip=True)
-            producer = cols[2].get_text(strip=True)
+            year: str = year_link.text.strip() if year_link else cols[1].get_text(strip=True)
+            producer: str = cols[2].get_text(strip=True)
 
             film_link = cols[3].find("a")
             if not film_link:
                 continue
 
-            title = film_link.get("title", film_link.text.strip())
+            title: str = film_link.get("title", film_link.text.strip())
             href = film_link.get("href")
-            film_url = base_url + href if href else None
+            film_url: str = base_url + href if href else ""
 
             results.append(
                 {
@@ -186,38 +204,40 @@ def fetch_oscar_best_picture_winners(url="https://de.wikipedia.org/wiki/Oscar/Be
                 }
             )
 
-    print(f"DEBUG: {len(results)} Oscar-Gewinnerfilme gefunden.")
+    logger.info(f"{len(results)} Oscar-Gewinnerfilme gefunden")
     return results
 
 
-def save_fbw_films_to_json(filename="films.json"):
+def save_fbw_films_to_json(filename: str = "films.json") -> None:
     """
     Lädt Filme von FBW und speichert sie als JSON-Datei im data-Verzeichnis.
 
-    Ruft `fetch_fbw_films()` auf und schreibt die Ergebnisse in eine JSON-Datei
+    Ruft fetch_fbw_films() auf und schreibt die Ergebnisse in eine JSON-Datei
     im konfigurierten DATA_DIR.
 
     Args:
-        filename (str): Name der Ausgabedatei. Standard: "films.json"
-
-    Returns:
-        None: Datei wird direkt geschrieben
+        filename: Name der Ausgabedatei (default: "films.json")
 
     Raises:
         IOError: Bei Schreibproblemen
 
     Example:
         >>> save_fbw_films_to_json("meine_filme.json")
-        ✅ 150 Filme in 'data/meine_filme.json' gespeichert.
+        # INFO: ✅ 150 Filme in 'data/meine_filme.json' gespeichert.
     """
     films = fetch_fbw_films(max_pages=10)
     output_path = os.path.join(DATA_DIR, filename)
 
-    os.makedirs(DATA_DIR, exist_ok=True)
-    with open(output_path, "w", encoding="utf-8") as f:
-        json.dump(films, f, ensure_ascii=False, indent=2)
+    try:
+        os.makedirs(DATA_DIR, exist_ok=True)
+        with open(output_path, "w", encoding="utf-8") as f:
+            json.dump(films, f, ensure_ascii=False, indent=2)
 
-    print(f"✅ {len(films)} Filme in '{output_path}' gespeichert.")
+        logger.info(f"✅ {len(films)} Filme in '{output_path}' gespeichert")
+
+    except IOError as e:
+        logger.error(f"Fehler beim Speichern in {output_path}: {e}")
+        raise
 
 
 if __name__ == "__main__":
