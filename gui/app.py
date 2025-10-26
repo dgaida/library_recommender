@@ -2,6 +2,7 @@ import gradio as gr
 import os
 import json
 import re
+from typing import List, Dict, Any, Tuple, Optional
 from library.search import KoelnLibrarySearch
 from recommender.recommender import Recommender
 from recommender.state import AppState
@@ -17,15 +18,18 @@ from data_sources.books import fetch_books_from_site
 from data_sources.guides import fetch_guides_from_site
 from preprocessing.filters import filter_existing_albums
 from utils.search_utils import get_media_summary, extract_title_and_author
+from utils.logging_config import get_logger
 
 from utils.io import DATA_DIR, save_recommendations_to_markdown
+
+logger = get_logger(__name__)
 
 FILMS_FILE = os.path.join(DATA_DIR, "films.json")
 ALBUMS_FILE = os.path.join(DATA_DIR, "albums.json")
 BOOKS_FILE = os.path.join(DATA_DIR, "books.json")
 
 
-def load_or_fetch_books():
+def load_or_fetch_books() -> List[Dict[str, Any]]:
     """
     Lädt Bücher aus dem lokalen Cache oder ruft sie von der Quelle ab.
 
@@ -35,7 +39,7 @@ def load_or_fetch_books():
     aufbereitet und anschließend als JSON gespeichert.
 
     Returns:
-        list[dict]: Liste von Büchern und Ratgebern mit Schlüsseln:
+        Liste von Büchern und Ratgebern mit Schlüsseln:
             - "title" (str): Titel
             - "author" (str): Autor/Autorin
             - "type" (str): "Buch" oder "Ratgeber"
@@ -44,7 +48,7 @@ def load_or_fetch_books():
     if os.path.exists(BOOKS_FILE):
         with open(BOOKS_FILE, "r", encoding="utf-8") as f:
             books = json.load(f)
-        print(f"DEBUG: {len(books)} Bücher aus Cache geladen.")
+        logger.info(f"{len(books)} Bücher aus Cache geladen.")
     else:
         # Bücher (New York Times Kanon)
         books_data = fetch_books_from_site()
@@ -81,55 +85,57 @@ def load_or_fetch_books():
         with open(BOOKS_FILE, "w", encoding="utf-8") as f:
             json.dump(books, f, ensure_ascii=False, indent=2)
 
-        print(f"DEBUG: {len(books)} Bücher & Ratgeber geladen und gespeichert.")
+        logger.info(f"{len(books)} Bücher & Ratgeber geladen und gespeichert.")
 
     return books
 
 
-def load_or_fetch_films():
+def load_or_fetch_films() -> List[Dict[str, Any]]:
     """
-    Lädt Filme aus dem lokalen Cache oder von externen Quellen (Wikipedia + FBW).
+    Lädt Filme aus dem lokalen Cache oder von externen Quellen.
 
     Falls bereits eine `films.json` existiert, wird diese Datei geladen.
     Andernfalls werden die Daten kombiniert aus:
       - `fetch_wikipedia_titles()` (Wikipedia-Liste)
       - `fetch_fbw_films()` (FBW-Filmbewertungsstelle)
+      - `fetch_oscar_best_picture_winners()` (Oscar-Gewinner)
     Duplikate werden anhand des Titels entfernt, alphabetisch sortiert
     und anschließend in `films.json` gespeichert.
 
     Returns:
-        list[dict]: Liste von Filmen mit Schlüsseln:
+        Liste von Filmen mit Schlüsseln:
             - "title" (str): Titel des Films
             - "author" (str): Regisseur/in
             - "type" (str): Immer "DVD"
-            - "description" (str, optional): Kurzbeschreibung (falls von FBW verfügbar)
+            - "description" (str, optional): Kurzbeschreibung
+            - "source" (str): Herkunftsquelle
     """
     if os.path.exists(FILMS_FILE):
         with open(FILMS_FILE, "r", encoding="utf-8") as f:
             films = json.load(f)
-        print(f"DEBUG: {len(films)} Filme aus Cache geladen.")
+        logger.info(f"{len(films)} Filme aus Cache geladen.")
     else:
         # Wikipedia-Filme laden
         wiki_films = [
             {"title": t["title"], "author": t.get("regie", ""), "type": "DVD", "source": t.get("source", "")}
             for t in fetch_wikipedia_titles()
         ]
-        print(f"DEBUG: {len(wiki_films)} Filme von Wikipedia geladen.")
+        logger.info(f"{len(wiki_films)} Filme von Wikipedia geladen.")
 
         # FBW-Filme laden
-        fbw_films = fetch_fbw_films(max_pages=750)  # 150
-        print(f"DEBUG: {len(fbw_films)} Filme von FBW geladen.")
+        fbw_films = fetch_fbw_films(max_pages=750)
+        logger.info(f"{len(fbw_films)} Filme von FBW geladen.")
 
+        # Oscar-Filme laden
         oscar_films = fetch_oscar_best_picture_winners()
+        logger.info(f"{len(oscar_films)} Oscar-Filme geladen.")
 
         combined = wiki_films + fbw_films + oscar_films
 
         # Kombinieren und Duplikate anhand des Titels entfernen
-        # combined = wiki_films + fbw_films
         unique_films = {}
         for f in combined:
             title = f["title"].strip()
-            # falls derselbe Titel doppelt vorkommt, überschreibt FBW den Wikipedia-Eintrag (wegen mehr Infos)
             unique_films[title.lower()] = f
 
         # Alphabetisch nach Titel sortieren
@@ -138,33 +144,35 @@ def load_or_fetch_films():
         with open(FILMS_FILE, "w", encoding="utf-8") as f:
             json.dump(sorted_films, f, ensure_ascii=False, indent=2)
 
-        print(f"DEBUG: {len(sorted_films)} Filme kombiniert, bereinigt und gespeichert.")
+        logger.info(f"{len(sorted_films)} Filme kombiniert, bereinigt und gespeichert.")
         films = sorted_films
 
     return films
 
 
-def load_or_fetch_albums():
+def load_or_fetch_albums() -> List[Dict[str, Any]]:
     """
-    Lädt Musikalben aus dem lokalen Cache oder von Radioeins und Oscar-Filmmusik.
+    Lädt Musikalben aus dem lokalen Cache oder von verschiedenen Quellen.
 
     Falls bereits eine `albums.json` existiert, wird diese Datei geladen.
     Ansonsten werden die Daten kombiniert aus:
       - `fetch_radioeins_albums()` (Radio Eins Top 100)
       - `add_oscar_music_to_albums()` (Oscar-Gewinner Filmmusik)
+      - `add_top_artist_albums_to_collection()` (Personalisierte Top-Interpreten)
     Danach werden Alben mit `filter_existing_albums` herausgefiltert, die bereits im
     lokalen Musikarchiv vorhanden sind.
 
     Returns:
-        list[dict]: Liste von Alben mit Schlüsseln:
+        Liste von Alben mit Schlüsseln:
             - "title" (str): Titel des Albums
             - "author" (str): Künstler/in oder Band/Komponist
             - "type" (str): Immer "CD"
+            - "source" (str): Herkunftsquelle
     """
     if os.path.exists(ALBUMS_FILE):
         with open(ALBUMS_FILE, "r", encoding="utf-8") as f:
             albums = json.load(f)
-        print(f"DEBUG: {len(albums)} Alben aus Cache geladen.")
+        logger.info(f"{len(albums)} Alben aus Cache geladen.")
     else:
         # Radio Eins Alben laden
         albums = [
@@ -173,29 +181,41 @@ def load_or_fetch_albums():
         ]
         with open(ALBUMS_FILE, "w", encoding="utf-8") as f:
             json.dump(albums, f, ensure_ascii=False, indent=2)
-        print(f"DEBUG: {len(albums)} Alben von Radioeins geladen und gespeichert.")
+        logger.info(f"{len(albums)} Alben von Radioeins geladen und gespeichert.")
 
         # Oscar-Filmmusik hinzufügen
-        print("DEBUG: Füge Oscar-Filmmusik hinzu...")
+        logger.info("Füge Oscar-Filmmusik hinzu...")
         add_oscar_music_to_albums()
 
-        # NEU: Top-Interpreten-Alben hinzufügen
-        print("DEBUG: Analysiere MP3-Archiv für personalisierte Empfehlungen...")
+        # Top-Interpreten-Alben hinzufügen
+        logger.info("Analysiere MP3-Archiv für personalisierte Empfehlungen...")
         add_top_artist_albums_to_collection("H:\\MP3 Archiv", top_n=10)
 
-        # Neu laden nach Oscar-Update
+        # Neu laden nach Updates
         with open(ALBUMS_FILE, "r", encoding="utf-8") as f:
             albums = json.load(f)
-        print(f"DEBUG: {len(albums)} Alben nach allen Updates geladen.")
+        logger.info(f"{len(albums)} Alben nach allen Updates geladen.")
 
     albums = filter_existing_albums(albums, "H:\\MP3 Archiv")
 
     return albums
 
 
-def suggest(category):
-    """Erstellt neue Vorschläge für eine Kategorie"""
-    suggestions = get_n_suggestions(category, 6)
+def suggest(category: str) -> Tuple[gr.update, str, gr.update, str]:
+    """
+    Erstellt neue balancierte Vorschläge für eine Kategorie.
+
+    Generiert 12 Vorschläge mit 4 Items pro Datenquelle für ausgewogene
+    Empfehlungen aus allen verfügbaren Quellen.
+
+    Args:
+        category: Kategorie ('films', 'albums', 'books')
+
+    Returns:
+        Tuple mit (checkbox_update, info_text, button_state, detail_text)
+    """
+    # 12 Vorschläge mit je 4 pro Quelle
+    suggestions = get_n_suggestions(category, n=12, items_per_source=4)
 
     # Aktualisiere globale Vorschläge
     current_suggestions[category] = suggestions
@@ -205,32 +225,49 @@ def suggest(category):
 
     # Erstelle Auswahloptionen für die CheckboxGroup
     choices = []
-    for i, s in enumerate(suggestions):
+    for s in suggestions:
         display_text = f"{s['title']}"
         if s.get("author"):
             display_text += f" - {s['author']}"
+        # Emoji hinzufügen
+        if s.get("source"):
+            emoji = get_source_emoji(s["source"])
+            if emoji:
+                display_text = f"{emoji} {display_text}"
         choices.append(display_text)
 
-    info_text = f"{len(suggestions)} Vorschläge gefunden. Wählen Sie Titel aus, um sie zu entfernen."
+    info_text = (
+        f"{len(suggestions)} Vorschläge gefunden (balanciert aus allen Quellen). Wählen Sie Titel aus, um sie zu entfernen."
+    )
 
     return gr.update(choices=choices, value=[]), info_text, gr.update(interactive=False), ""
 
 
-def get_n_suggestions(category, n=4):
-    """Holt genau einen neuen Vorschlag für eine Kategorie"""
+def get_n_suggestions(category: str, n: int = 12, items_per_source: int = 4) -> List[Dict[str, Any]]:
+    """
+    Holt n neue Vorschläge für eine Kategorie, balanciert nach Quelle.
+
+    Args:
+        category: Kategorie ('films', 'albums', 'books')
+        n: Gesamtanzahl gewünschter Vorschläge (default: 12)
+        items_per_source: Items pro Quelle (default: 4)
+
+    Returns:
+        Liste von Empfehlungen, balanciert nach Quelle
+    """
     if category == "films":
-        suggestions = recommender.suggest_films(films, n=n)
+        suggestions = recommender.suggest_films(films, n=n, items_per_source=items_per_source)
     elif category == "albums":
-        suggestions = recommender.suggest_albums(albums, n=n)
+        suggestions = recommender.suggest_albums(albums, n=n, items_per_source=items_per_source)
     elif category == "books":
-        suggestions = recommender.suggest_books(books, n=n)
+        suggestions = recommender.suggest_books(books, n=n, items_per_source=items_per_source)
     else:
         suggestions = []
 
     return suggestions if suggestions else []
 
 
-def remove_emoji(text):
+def remove_emoji(text: str) -> str:
     """
     Entfernt Emojis am Anfang eines Strings.
 
@@ -238,25 +275,22 @@ def remove_emoji(text):
     zu identifizieren und zu entfernen.
 
     Args:
-        text (str): String möglicherweise mit Emoji
+        text: String möglicherweise mit Emoji
 
     Returns:
-        str: String ohne Emoji
+        String ohne Emoji
 
     Example:
         >>> remove_emoji("🎬 Der Pate")
         'Der Pate'
-        >>> remove_emoji("Normaler Text")
-        'Normaler Text'
     """
-    # Regex für Emojis (vereinfacht)
     emoji_pattern = re.compile(
         "["
-        "\U0001f300-\U0001f9ff"  # Symbole & Piktogramme
-        "\U0001f600-\U0001f64f"  # Emoticons
-        "\U0001f680-\U0001f6ff"  # Transport & Karten
-        "\U0001f1e0-\U0001f1ff"  # Flaggen
-        "\U00002702-\U000027b0"  # Dingbats
+        "\U0001f300-\U0001f9ff"
+        "\U0001f600-\U0001f64f"
+        "\U0001f680-\U0001f6ff"
+        "\U0001f1e0-\U0001f1ff"
+        "\U00002702-\U000027b0"
         "\U000024c2-\U0001f251"
         "]+",
         flags=re.UNICODE,
@@ -264,7 +298,7 @@ def remove_emoji(text):
     return emoji_pattern.sub("", text).strip()
 
 
-def on_selection_change(selected_items, category):
+def on_selection_change(selected_items: List[str], category: str) -> Tuple[gr.update, str, gr.update]:
     """
     Wird aufgerufen, wenn Items in der Liste ausgewählt werden.
 
@@ -272,18 +306,11 @@ def on_selection_change(selected_items, category):
     basierend auf der Auswahl.
 
     Args:
-        selected_items (list[str]): Liste ausgewählter Display-Strings
-        category (str): Kategorie ('films', 'albums', 'books')
+        selected_items: Liste ausgewählter Display-Strings
+        category: Kategorie ('films', 'albums', 'books')
 
     Returns:
-        tuple: (remove_button_state, detail_text, google_button_state)
-            - remove_button_state: gr.update() für Entfernen-Button
-            - detail_text (str): Formatierter Text mit Details
-            - google_button_state: gr.update() für Google-Button
-
-    Example:
-        >>> on_selection_change(["Der Pate - Francis Ford Coppola"], "films")
-        (gr.update(interactive=True), "1 Element(e) ausgewählt...", gr.update(interactive=True))
+        Tuple mit (remove_button_state, detail_text, google_button_state)
     """
     if not selected_items:
         return gr.update(interactive=False), "", gr.update(interactive=False)
@@ -295,7 +322,6 @@ def on_selection_change(selected_items, category):
     suggestions = current_suggestions.get(category, [])
 
     for selected_item in selected_items:
-        # NEU: Entferne Emojis für Vergleich
         selected_item_clean = remove_emoji(selected_item)
 
         for s in suggestions:
@@ -304,27 +330,23 @@ def on_selection_change(selected_items, category):
                 display_text += f" - {s['author']}"
 
             if display_text == selected_item_clean:
-                # print("**", s, "**")
-
                 detail_text += f"• {s['title']}"
                 if s.get("author"):
                     detail_text += f"\n  Autor/Künstler: {s['author']}"
                 if s.get("bib_number"):
                     detail_text += f"\n  Verfügbarkeit: {s['bib_number']}"
-                # Quelle anzeigen
                 if s.get("source"):
                     source_formatted = format_source_for_display(s["source"])
                     detail_text += f"\n  Quelle: {source_formatted}"
                 detail_text += "\n\n"
                 break
 
-    # Google-Button nur bei genau einem ausgewählten Item aktivieren
     google_btn_interactive = len(selected_items) == 1
 
     return gr.update(interactive=True), detail_text.strip(), gr.update(interactive=google_btn_interactive)
 
 
-def create_media_html(youtube_id, cover_url, media_type, title):
+def create_media_html(youtube_id: Optional[str], cover_url: Optional[str], media_type: str, title: str) -> str:
     """
     Erstellt HTML für die visuelle Darstellung von Medien.
 
@@ -352,7 +374,7 @@ def create_media_html(youtube_id, cover_url, media_type, title):
                 <h4 style="margin-bottom: 10px; color: #333;">🎬 Trailer</h4>
                 <iframe
                     width="800"
-                    height="420"
+                    height="460"
                     src="https://www.youtube.com/embed/{youtube_id}"
                     title="YouTube video player"
                     frameborder="0"
@@ -397,30 +419,21 @@ def create_media_html(youtube_id, cover_url, media_type, title):
     return "".join(html_parts)
 
 
-def google_search_selected(selected_items, category):
+def google_search_selected(selected_items: List[str], category: str) -> Tuple[str, str]:
     """
     Googelt das ausgewählte Medium und gibt Zusammenfassung mit visuellen Medien zurück.
-
-    Verwendet DuckDuckGo Search und Groq AI, um eine 1-2 Sätze
-    Zusammenfassung des ausgewählten Mediums zu erstellen.
 
     Args:
         selected_items: Liste mit genau einem ausgewählten Item
         category: Kategorie des Mediums ('films', 'albums', 'books')
 
     Returns:
-        tuple: (text_output, html_output) für Textbox und HTML-Komponente
-
-    Example:
-        >>> google_search_selected(["Mulholland Drive - David Lynch"], "films")
-        '🔍 Informationen zu: Mulholland Drive - David Lynch\n\n[Zusammenfassung]'
+        Tuple mit (text_output, html_output)
     """
     if not selected_items or len(selected_items) != 1:
         return "Bitte wählen Sie genau ein Medium aus.", ""
 
     selected_item = selected_items[0]
-
-    # Entferne Emojis für Vergleich
     selected_item_clean = remove_emoji(selected_item)
 
     # Extrahiere Titel und Autor
@@ -436,46 +449,35 @@ def google_search_selected(selected_items, category):
     else:
         media_type = "medium"
 
-    print(f"DEBUG: Google-Suche für {media_type}: '{title}' von '{author}'")
+    logger.info(f"Google-Suche für {media_type}: '{title}' von '{author}'")
 
     try:
-        # Hole Zusammenfassung und visuelle Medien
         media_data = get_media_summary(title, author, media_type)
 
-        # Formatiere Text-Ausgabe
         text_result = f"🔍 Informationen zu: {title}"
         if author:
             text_result += f" - {author}"
         text_result += f"\n\n{media_data['summary']}"
 
-        # Erstelle HTML für visuelle Medien
         html_result = create_media_html(media_data.get("youtube_id"), media_data.get("cover_url"), media_type, title)
 
         return text_result, html_result
 
     except Exception as e:
+        logger.error(f"Fehler bei Google-Suche: {e}")
         return f"❌ Fehler bei der Suche: {str(e)}", ""
 
 
-def reject_selected(selected_items, category):
+def reject_selected(selected_items: List[str], category: str) -> Tuple[gr.update, str, gr.update, str, str, gr.update, str]:
     """
-    Entfernt die ausgewählten Items und ersetzt sie durch neue.
-
-    Markiert ausgewählte Items als abgelehnt im AppState und versucht,
-    sie durch neue Empfehlungen zu ersetzen.
+    Entfernt die ausgewählten Items und ersetzt sie durch neue (balanciert).
 
     Args:
-        selected_items (list[str]): Liste ausgewählter Display-Strings
-        category (str): Kategorie ('films', 'albums', 'books')
+        selected_items: Liste ausgewählter Display-Strings
+        category: Kategorie ('films', 'albums', 'books')
 
     Returns:
-        tuple: (checkbox_update, info_text, button_state, detail_text,
-                success_msg, google_button_state)
-            Alle Updates für die GUI-Komponenten
-
-    Example:
-        >>> reject_selected(["Film A", "Film B"], "films")
-        # Entfernt beide Filme und fügt 2 neue hinzu
+        Tuple mit Updates für alle GUI-Komponenten
     """
     if not selected_items:
         return (
@@ -485,17 +487,15 @@ def reject_selected(selected_items, category):
             "",
             "",
             gr.update(interactive=False),
-            "",  # <-- HTML-Reset
+            "",
         )
 
-        # Finde die entsprechenden Vorschläge
     suggestions = current_suggestions.get(category, [])
     rejected_titles = []
     indices_to_remove = []
 
     # Identifiziere alle zu entfernenden Items
     for selected_item in selected_items:
-        # Entferne Emojis für Vergleich
         selected_item_clean = remove_emoji(selected_item)
 
         for i, s in enumerate(suggestions):
@@ -506,7 +506,6 @@ def reject_selected(selected_items, category):
             if display_text == selected_item_clean:
                 rejected_titles.append(s["title"])
                 indices_to_remove.append(i)
-                # Lehne das Item ab
                 rejected_item = {"title": s["title"]}
                 state.reject(category, rejected_item)
                 break
@@ -515,9 +514,9 @@ def reject_selected(selected_items, category):
     for i in sorted(indices_to_remove, reverse=True):
         current_suggestions[category].pop(i)
 
-    # Versuche neue Vorschläge zu holen
+    # Versuche neue Vorschläge zu holen (balanciert, 1 pro Quelle)
     needed_count = len(rejected_titles)
-    new_suggestions = get_n_suggestions(category, needed_count)
+    new_suggestions = get_n_suggestions(category, n=needed_count, items_per_source=1)
 
     # Füge neue Vorschläge hinzu
     current_suggestions[category].extend(new_suggestions)
@@ -528,7 +527,6 @@ def reject_selected(selected_items, category):
         display_text = f"{s['title']}"
         if s.get("author"):
             display_text += f" - {s['author']}"
-        # Emoji hinzufügen
         if s.get("source"):
             emoji = get_source_emoji(s["source"])
             if emoji:
@@ -553,11 +551,11 @@ def reject_selected(selected_items, category):
         "",
         success_msg,
         gr.update(interactive=False),
-        "",  # <-- Leere HTML-Komponente
+        "",
     )
 
 
-def save_current_recommendations():
+def save_current_recommendations() -> str:
     """
     Speichert die aktuell angezeigten Empfehlungen in eine Markdown-Datei.
 
@@ -565,24 +563,17 @@ def save_current_recommendations():
     schreibt sie formatiert in 'recommended.md'.
 
     Returns:
-        str: Erfolgsmeldung oder Fehlermeldung
-
-    Example:
-        >>> save_current_recommendations()
-        '✅ 18 Empfehlungen erfolgreich in 'recommended.md' gespeichert!'
+        Erfolgsmeldung oder Fehlermeldung
     """
     try:
-        # Bereite die Daten vor
         recommendations = {}
 
         for category in ["films", "albums", "books"]:
             suggestions = current_suggestions.get(category, [])
             recommendations[category] = suggestions
 
-        # Speichere in Markdown
         filename = save_recommendations_to_markdown(recommendations)
 
-        # Zähle Items
         total_count = sum(len(items) for items in recommendations.values())
 
         if total_count == 0:
@@ -591,40 +582,32 @@ def save_current_recommendations():
         return f"✅ {total_count} Empfehlungen erfolgreich in '{filename}' gespeichert!"
 
     except Exception as e:
+        logger.error(f"Fehler beim Speichern: {e}")
         return f"❌ Fehler beim Speichern: {str(e)}"
 
 
-def initialize_recommendations():
+def initialize_recommendations() -> Tuple[List[Dict[str, Any]], List[Dict[str, Any]], List[Dict[str, Any]]]:
     """
-    Lädt initiale Vorschläge für Filme, Alben und Bücher beim Start der App.
+    Lädt initiale balancierte Vorschläge für alle Kategorien beim Start.
 
-    Ruft für jede Kategorie Empfehlungen ab und speichert sie automatisch
-    in einer Markdown-Datei.
+    Ruft für jede Kategorie Empfehlungen ab (12 Items mit 4 pro Quelle)
+    und speichert sie automatisch in einer Markdown-Datei.
 
     Returns:
-        tuple: (film_suggestions, album_suggestions, book_suggestions)
-            Listen mit initialen Empfehlungen für jede Kategorie
-
-    Side Effects:
-        - Füllt `current_suggestions` Dictionary
-        - Erstellt 'recommended.md' Datei
-
-    Example:
-        >>> films, albums, books = initialize_recommendations()
-        DEBUG: 6 initiale Empfehlungen in 'recommended.md' gespeichert
+        Tuple mit (film_suggestions, album_suggestions, book_suggestions)
     """
-    print("DEBUG: Lade initiale Vorschläge...")
+    logger.info("Lade initiale balancierte Vorschläge...")
 
-    # Filme laden
-    film_suggestions = get_n_suggestions("films", 8)
+    # Filme laden (12 mit je 4 pro Quelle)
+    film_suggestions = get_n_suggestions("films", n=12, items_per_source=4)
     current_suggestions["films"] = film_suggestions
 
-    # Alben laden
-    album_suggestions = get_n_suggestions("albums", 8)
+    # Alben laden (12 mit je 4 pro Quelle)
+    album_suggestions = get_n_suggestions("albums", n=12, items_per_source=4)
     current_suggestions["albums"] = album_suggestions
 
-    # Bücher laden
-    book_suggestions = get_n_suggestions("books", 8)
+    # Bücher laden (12 mit je 4 pro Quelle)
+    book_suggestions = get_n_suggestions("books", n=12, items_per_source=4)
     current_suggestions["books"] = book_suggestions
 
     # Automatisch in Datei speichern
@@ -636,14 +619,14 @@ def initialize_recommendations():
         }
         filename = save_recommendations_to_markdown(recommendations)
         total_count = len(film_suggestions) + len(album_suggestions) + len(book_suggestions)
-        print(f"DEBUG: {total_count} initiale Empfehlungen in '{filename}' gespeichert")
+        logger.info(f"{total_count} initiale balancierte Empfehlungen in '{filename}' gespeichert")
     except Exception as e:
-        print(f"DEBUG: Fehler beim Speichern der initialen Empfehlungen: {e}")
+        logger.error(f"Fehler beim Speichern der initialen Empfehlungen: {e}")
 
     return film_suggestions, album_suggestions, book_suggestions
 
 
-def get_initial_choices(suggestions):
+def get_initial_choices(suggestions: List[Dict[str, Any]]) -> List[str]:
     """
     Erstellt die Auswahloptionen für die initiale Anzeige.
 
@@ -651,32 +634,23 @@ def get_initial_choices(suggestions):
     die CheckboxGroup-Komponente.
 
     Args:
-        suggestions (list[dict]): Liste von Empfehlungen
+        suggestions: Liste von Empfehlungen
 
     Returns:
-        list[str]: Liste formatierter Display-Strings mit Emojis
-
-    Example:
-        >>> suggestions = [{"title": "Der Pate", "author": "Coppola", "source": "Oscar"}]
-        >>> get_initial_choices(suggestions)
-        ['🏆 Der Pate - Coppola']
+        Liste formatierter Display-Strings mit Emojis
     """
     if not suggestions:
         return []
 
     choices = []
     for s in suggestions:
-        # print("***", s, "***")
         display_text = f"{s['title']}"
         if s.get("author"):
             display_text += f" - {s['author']}"
-        # Emoji am Anfang
         if s.get("source"):
             emoji = get_source_emoji(s["source"])
-            # print("<<<", emoji, ">>>")
             if emoji:
                 display_text = f"{emoji} {display_text}"
-        # print("<<<", display_text, ">>>")
         choices.append(display_text)
     return choices
 
@@ -746,7 +720,6 @@ css = """
     margin: 5px 0;
 }
 
-/* CheckboxGroup styling für bessere Lesbarkeit */
 .gradio-checkboxgroup label {
     padding: 8px 12px;
     margin: 4px 0;
@@ -775,23 +748,22 @@ library_search = KoelnLibrarySearch()
 recommender = Recommender(library_search, state)
 
 # Lade Datenquellen (nur einmal beim Start)
-print("DEBUG: Lade Datenquellen...")
+logger.info("Lade Datenquellen...")
 films = load_or_fetch_films()
 albums = load_or_fetch_albums()
 books = load_or_fetch_books()
 
 # Globale Variablen für aktuelle Vorschläge
-current_suggestions = {"films": [], "albums": [], "books": []}
+current_suggestions: Dict[str, List[Dict[str, Any]]] = {"films": [], "albums": [], "books": []}
 
 # Lade initiale Vorschläge
-print("DEBUG: Initialisiere Empfehlungen...")
+logger.info("Initialisiere balancierte Empfehlungen...")
 initial_films, initial_albums, initial_books = initialize_recommendations()
 
 # Erstelle initiale Auswahloptionen
 initial_film_choices = get_initial_choices(initial_films)
 initial_album_choices = get_initial_choices(initial_albums)
 initial_book_choices = get_initial_choices(initial_books)
-
 
 with gr.Blocks(css=css, title="Bibliothek-Empfehlungen") as demo:
     gr.Markdown("# 🎬💿📚 Bibliothek-Empfehlungen")
@@ -806,7 +778,7 @@ with gr.Blocks(css=css, title="Bibliothek-Empfehlungen") as demo:
     with gr.Tab("🎬 Filme"):
         with gr.Column(elem_classes=["suggestion-container"]):
             film_checkbox = gr.CheckboxGroup(
-                label="Empfohlene Filme",
+                label="Empfohlene Filme (balanciert: 4 BBC, 4 FBW, 4 Oscar)",
                 choices=initial_film_choices,
                 value=[],
                 interactive=True,
@@ -825,7 +797,8 @@ with gr.Blocks(css=css, title="Bibliothek-Empfehlungen") as demo:
             film_info = gr.Textbox(
                 label="Information",
                 value=(
-                    f"{len(initial_films)} Filme beim Start geladen. Wählen Sie Titel aus, um sie zu entfernen."
+                    f"{len(initial_films)} Filme beim Start geladen (balanciert aus allen Quellen). "
+                    "Wählen Sie Titel aus, um sie zu entfernen."
                     if initial_films
                     else "Keine Filme verfügbar."
                 ),
@@ -842,7 +815,7 @@ with gr.Blocks(css=css, title="Bibliothek-Empfehlungen") as demo:
     with gr.Tab("🎵 Musik"):
         with gr.Column(elem_classes=["suggestion-container"]):
             album_checkbox = gr.CheckboxGroup(
-                label="Empfohlene Alben",
+                label="Empfohlene Alben (balanciert: 4 Radio Eins, 4 Oscar, 4 Personalisiert)",
                 choices=initial_album_choices,
                 value=[],
                 interactive=True,
@@ -861,7 +834,8 @@ with gr.Blocks(css=css, title="Bibliothek-Empfehlungen") as demo:
             album_info = gr.Textbox(
                 label="Information",
                 value=(
-                    f"{len(initial_albums)} Alben beim Start geladen. Wählen Sie Titel aus, um sie zu entfernen."
+                    f"{len(initial_albums)} Alben beim Start geladen (balanciert aus allen Quellen). "
+                    "Wählen Sie Titel aus, um sie zu entfernen."
                     if initial_albums
                     else "Keine Alben verfügbar."
                 ),
@@ -878,7 +852,7 @@ with gr.Blocks(css=css, title="Bibliothek-Empfehlungen") as demo:
     with gr.Tab("📚 Bücher"):
         with gr.Column(elem_classes=["suggestion-container"]):
             book_checkbox = gr.CheckboxGroup(
-                label="Empfohlene Bücher",
+                label="Empfohlene Bücher (balanciert: 6 NYT Kanon, 6 Ratgeber)",
                 choices=initial_book_choices,
                 value=[],
                 interactive=True,
@@ -897,7 +871,8 @@ with gr.Blocks(css=css, title="Bibliothek-Empfehlungen") as demo:
             book_info = gr.Textbox(
                 label="Information",
                 value=(
-                    f"{len(initial_books)} Bücher beim Start geladen. Wählen Sie Titel aus, um sie zu entfernen."
+                    f"{len(initial_books)} Bücher beim Start geladen (balanciert aus allen Quellen). "
+                    "Wählen Sie Titel aus, um sie zu entfernen."
                     if initial_books
                     else "Keine Bücher verfügbar."
                 ),
@@ -986,7 +961,6 @@ with gr.Blocks(css=css, title="Bibliothek-Empfehlungen") as demo:
     book_google_btn.click(
         fn=lambda x: google_search_selected(x, "books"), inputs=[book_checkbox], outputs=[book_detail, book_media]
     )
-
 
 if __name__ == "__main__":
     demo.launch()
