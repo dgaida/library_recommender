@@ -18,24 +18,39 @@ class TestBalancedRecommender:
 
     @pytest.fixture
     def mock_library_search(self):
-        """Mock für KoelnLibrarySearch mit verfügbaren Items."""
+        """Mock für KoelnLibrarySearch mit UV-Kürzel für Filme."""
         mock = Mock()
+        # WICHTIG: Alle Film-Mocks müssen "Uv" enthalten
         mock.search = Mock(
             return_value=[
-                {"title": "Test Film", "author": "Test Director", "zentralbibliothek_info": "verfügbar in Zentralbibliothek"}
+                {
+                    "title": "Test Film",
+                    "author": "Test Director",
+                    "zentralbibliothek_info": "Uv *Drama* verfügbar in Zentralbibliothek",
+                }
             ]
         )
         return mock
 
     @pytest.fixture
     def mock_state(self):
-        """Mock für AppState."""
+        """Mock für AppState"""
         with patch("recommender.state.STATE_FILE", "/tmp/test_state.json"):
+            from recommender.state import AppState
+
             return AppState()
 
     @pytest.fixture
     def mock_blacklist(self):
-        """Mock für Blacklist."""
+        """Mock für Blacklist"""
+        mock = Mock()
+        mock.is_blacklisted = Mock(return_value=False)
+        mock.add_to_blacklist = Mock()
+        return mock
+
+    @pytest.fixture
+    def mock_borrowed_blacklist(self):
+        """Mock für BorrowedBlacklist"""
         mock = Mock()
         mock.is_blacklisted = Mock(return_value=False)
         mock.add_to_blacklist = Mock()
@@ -43,7 +58,7 @@ class TestBalancedRecommender:
 
     @pytest.fixture
     def sample_films(self):
-        """Erstellt Sample-Filme aus verschiedenen Quellen."""
+        """Erstellt Sample-Filme aus verschiedenen Quellen (alle mit UV)."""
         films = []
 
         # 10 BBC Filme
@@ -121,69 +136,82 @@ class TestBalancedRecommender:
 
         return albums
 
-    def test_get_items_by_source(self, mock_library_search, mock_state, mock_blacklist, sample_films):
+    def test_get_items_by_source(self, mock_library_search, mock_state, mock_blacklist, mock_borrowed_blacklist, sample_films):
         """Test: Gruppierung von Items nach Quelle."""
         with patch("recommender.recommender.get_blacklist", return_value=mock_blacklist):
-            recommender = Recommender(mock_library_search, mock_state)
+            with patch("recommender.recommender.get_borrowed_blacklist", return_value=mock_borrowed_blacklist):
+                from recommender.recommender import Recommender
 
-            items_by_source = recommender._get_items_by_source(sample_films)
+                recommender = Recommender(mock_library_search, mock_state)
 
-            # Sollte 3 Quellen haben
-            assert len(items_by_source) == 3
+                items_by_source = recommender._get_items_by_source(sample_films)
 
-            # Jede Quelle sollte 10 Items haben
-            assert len(items_by_source["BBC 100 Greatest Films of the 21st Century"]) == 10
-            assert len(items_by_source["FBW Prädikat besonders wertvoll"]) == 10
-            assert len(items_by_source["Oscar (Bester Film)"]) == 10
+                # Sollte 3 Quellen haben
+                assert len(items_by_source) == 3
 
-    def test_balanced_film_recommendations(self, mock_library_search, mock_state, mock_blacklist, sample_films):
-        """Test: Balancierte Filmempfehlungen (4 pro Quelle)."""
+                # Jede Quelle sollte 10 Items haben
+                assert len(items_by_source["BBC 100 Greatest Films of the 21st Century"]) == 10
+                assert len(items_by_source["FBW Prädikat besonders wertvoll"]) == 10
+                assert len(items_by_source["Oscar (Bester Film)"]) == 10
+
+    def test_balanced_film_recommendations(
+        self, mock_library_search, mock_state, mock_blacklist, mock_borrowed_blacklist, sample_films
+    ):
+        """Test: Balancierte Filmempfehlungen (4 pro Quelle) mit UV-Kürzel."""
         with patch("recommender.recommender.get_blacklist", return_value=mock_blacklist):
-            recommender = Recommender(mock_library_search, mock_state)
+            with patch("recommender.recommender.get_borrowed_blacklist", return_value=mock_borrowed_blacklist):
+                from recommender.recommender import Recommender
 
-            results = recommender.suggest_films(sample_films, n=12, items_per_source=4)
+                recommender = Recommender(mock_library_search, mock_state)
 
-            # Sollte 12 Filme zurückgeben
-            assert len(results) == 12
+                results = recommender.suggest_films(sample_films, items_per_source=4)
 
-            # Zähle Filme pro Quelle
-            source_counts = defaultdict(int)
-            for film in results:
-                source = film.get("source", "Unbekannt")
-                source_counts[source] += 1
+                # Sollte 12 Filme zurückgeben
+                assert len(results) == 12
 
-            # Jede Quelle sollte 4 Filme beigetragen haben
-            assert source_counts["BBC 100 Greatest Films of the 21st Century"] == 4
-            assert source_counts["FBW Prädikat besonders wertvoll"] == 4
-            assert source_counts["Oscar (Bester Film)"] == 4
+                # Zähle Filme pro Quelle
+                source_counts = defaultdict(int)
+                for film in results:
+                    source = film.get("source", "Unbekannt")
+                    source_counts[source] += 1
 
-    def test_balanced_album_recommendations(self, mock_library_search, mock_state, mock_blacklist, sample_albums):
+                # Jede Quelle sollte 4 Filme beigetragen haben
+                assert source_counts["BBC 100 Greatest Films of the 21st Century"] == 4
+                assert source_counts["FBW Prädikat besonders wertvoll"] == 4
+                assert source_counts["Oscar (Bester Film)"] == 4
+
+    def test_balanced_album_recommendations(
+        self, mock_library_search, mock_state, mock_blacklist, mock_borrowed_blacklist, sample_albums
+    ):
         """Test: Balancierte Album-Empfehlungen (4 pro Quelle)."""
         with patch("recommender.recommender.get_blacklist", return_value=mock_blacklist):
-            recommender = Recommender(mock_library_search, mock_state)
+            with patch("recommender.recommender.get_borrowed_blacklist", return_value=mock_borrowed_blacklist):
+                from recommender.recommender import Recommender
 
-            results = recommender.suggest_albums(sample_albums, n=12, items_per_source=4)
+                recommender = Recommender(mock_library_search, mock_state)
 
-            # Sollte 12 Alben zurückgeben
-            assert len(results) == 12
+                results = recommender.suggest_albums(sample_albums, items_per_source=4)
 
-            # Zähle Alben pro Quelle (mit Normalisierung für personalisierte)
-            source_counts = defaultdict(int)
-            for album in results:
-                source = album.get("source", "Unbekannt")
-                # Normalisiere personalisierte Empfehlungen
-                if "Interessant für dich" in source:
-                    source = "Personalisiert"
-                source_counts[source] += 1
+                # Sollte 12 Alben zurückgeben
+                assert len(results) == 12
 
-            # Jede Quelle sollte 4 Alben beigetragen haben
-            assert source_counts["Radio Eins Top 100 Alben 2019"] == 4
-            assert source_counts["Oscar (Beste Filmmusik)"] == 4
-            assert source_counts["Personalisiert"] == 4
+                # Zähle Alben pro Quelle (mit Normalisierung für personalisierte)
+                source_counts = defaultdict(int)
+                for album in results:
+                    source = album.get("source", "Unbekannt")
+                    # Normalisiere personalisierte Empfehlungen
+                    if "Interessant für dich" in source:
+                        source = "Personalisiert"
+                    source_counts[source] += 1
 
-    def test_exhausted_sources(self, mock_library_search, mock_state, mock_blacklist):
+                # Jede Quelle sollte 4 Alben beigetragen haben
+                assert source_counts["Radio Eins Top 100 Alben 2019"] == 4
+                assert source_counts["Oscar (Beste Filmmusik)"] == 4
+                assert source_counts["Personalisiert"] == 4
+
+    def test_exhausted_sources(self, mock_state, mock_blacklist, mock_borrowed_blacklist):
         """Test: Verhalten wenn Quellen erschöpft sind."""
-        # Nur 2 Filme von einer Quelle
+        # Nur 2 Filme von einer Quelle (mit UV!)
         limited_films = [
             {
                 "title": f"Film {i}",
@@ -194,14 +222,21 @@ class TestBalancedRecommender:
             for i in range(2)
         ]
 
+        # Mock mit UV-Kürzel
+        mock_library_search = Mock()
+        mock_library_search.search = Mock(return_value=[{"title": "Test", "zentralbibliothek_info": "Uv verfügbar"}])
+
         with patch("recommender.recommender.get_blacklist", return_value=mock_blacklist):
-            recommender = Recommender(mock_library_search, mock_state)
+            with patch("recommender.recommender.get_borrowed_blacklist", return_value=mock_borrowed_blacklist):
+                from recommender.recommender import Recommender
 
-            # Frage 12 Filme an, aber nur 2 verfügbar
-            results = recommender.suggest_films(limited_films, n=12, items_per_source=4)
+                recommender = Recommender(mock_library_search, mock_state)
 
-            # Sollte maximal 2 zurückgeben
-            assert len(results) <= 2
+                # Frage 12 Filme an, aber nur 2 verfügbar
+                results = recommender.suggest_films(limited_films, items_per_source=4)
+
+                # Sollte maximal 2 zurückgeben
+                assert len(results) <= 2
 
     def test_personalized_source_normalization(self, mock_library_search, mock_state, mock_blacklist):
         """Test: Normalisierung personalisierter Quellen."""

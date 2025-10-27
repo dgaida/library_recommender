@@ -7,6 +7,7 @@ Eine intelligente Empfehlungs-App für die **Stadtbibliothek Köln**, die verfü
 ![License](https://img.shields.io/badge/license-MIT-blue.svg)
 [![Tests](https://github.com/dgaida/library_recommender/actions/workflows/tests.yml/badge.svg)](https://github.com/dgaida/library_recommender/actions/workflows/tests.yml)
 [![Code Quality](https://github.com/dgaida/library_recommender/actions/workflows/lint.yml/badge.svg)](https://github.com/dgaida/library_recommender/actions/workflows/lint.yml)
+[![CodeQL](https://github.com/dgaida/library_recommender/actions/workflows/codeql.yml/badge.svg)](https://github.com/dgaida/library_recommender/actions/workflows/codeql.yml)
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 [![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
 

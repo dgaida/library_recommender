@@ -7,6 +7,7 @@ import sys
 from typing import NoReturn
 from dotenv import load_dotenv
 from utils.logging_config import setup_logging, get_logger
+from utils.borrowed_blacklist import initialize_borrowed_blacklist
 from gui import launch_app
 
 # Lade Umgebungsvariablen
@@ -53,6 +54,10 @@ def main() -> NoReturn:
     check_dependencies()
 
     try:
+        # NEU: Initialisiere Entleih-Blacklist beim Start
+        logger.info("Initialisiere Entleih-Blacklist...")
+        initialize_borrowed_blacklist()
+
         # Gradio-App starten
         logger.info("Starte Gradio-Webinterface...")
         launch_app(share=False, inbrowser=True)

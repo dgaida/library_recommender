@@ -26,6 +26,8 @@ from preprocessing.filters import filter_existing_albums
 from utils.search_utils import get_media_summary, extract_title_and_author
 from utils.logging_config import get_logger
 
+from utils.borrowed_blacklist import get_borrowed_blacklist
+from utils.blacklist import get_blacklist
 from utils.io import DATA_DIR, save_recommendations_to_markdown
 
 logger = get_logger(__name__)
@@ -696,6 +698,296 @@ def get_initial_choices(suggestions: List[Dict[str, Any]]) -> List[str]:
                 display_text = f"{emoji} {display_text}"
         choices.append(display_text)
     return choices
+
+
+def search_favorite_medium(author: str, title: str, media_type: str) -> Tuple[str, str, gr.update, gr.update, gr.update]:
+    """
+    Sucht nach einem individuellen Medium im Bibliothekskatalog.
+
+    Logik:
+    - Wenn Titel angegeben: Suche nach spezifischem Medium
+    - Wenn nur Autor: Suche alle Medien des Autors (max. 2 verfügbare)
+    - Gefunden & verfügbar: Füge zu entsprechendem Tab hinzu
+    - Gefunden & entliehen: Auf Entleih-Blacklist
+    - Nicht gefunden: Auf normale Blacklist
+
+    Args:
+        author: Autor/Künstler/Regisseur
+        title: Titel des Mediums (optional)
+        media_type: Medienart (DVD, CD, Buch)
+
+    Returns:
+        Tuple mit (result_text, success_msg, film_update, album_update, book_update)
+    """
+    logger.info(f"Favoriten-Suche: Autor='{author}', Titel='{title}', Typ={media_type}")
+
+    # Validierung
+    if not author and not title:
+        error_msg = "❌ Bitte geben Sie mindestens einen Autor/Künstler oder Titel an."
+        return error_msg, "", gr.update(), gr.update(), gr.update()
+
+    # Bestimme Kategorie
+    category = _get_category_from_media_type(media_type)
+
+    # Prüfe Entleih-Blacklist
+    borrowed_blacklist = get_borrowed_blacklist()
+    if title and borrowed_blacklist.is_blacklisted(title, author):
+        info_msg = f"ℹ️ '{title}' ist aktuell entliehen. Wird automatisch geprüft wenn verfügbar."
+        return info_msg, "", gr.update(), gr.update(), gr.update()
+
+    # Suche durchführen
+    search_engine = KoelnLibrarySearch()
+
+    # Baue Suchquery
+    if title:
+        query = f"{title} {author} {media_type}".strip()
+    else:
+        query = f"{author} {media_type}".strip()
+
+    logger.debug(f"Suchquery: '{query}'")
+
+    try:
+        results = search_engine.search(query)
+    except Exception as e:
+        logger.error(f"Fehler bei der Suche: {e}", exc_info=True)
+        error_msg = f"❌ Fehler bei der Suche: {str(e)}"
+        return error_msg, "", gr.update(), gr.update(), gr.update()
+
+    if not results:
+        # Keine Treffer - auf Blacklist
+        _handle_no_results(title, author, category, media_type)
+        error_msg = f"❌ Keine Treffer für '{title or author}' gefunden."
+        return error_msg, "", gr.update(), gr.update(), gr.update()
+
+    # Filtere und verarbeite Ergebnisse
+    if title:
+        # Spezifisches Medium gesucht
+        return _handle_specific_medium(results, title, author, media_type, category)
+    else:
+        # Alle Medien des Autors (max. 2)
+        return _handle_artist_search(results, author, media_type, category)
+
+
+def _get_category_from_media_type(media_type: str) -> str:
+    """Wandelt Medientyp in Kategorie um."""
+    if media_type == "DVD":
+        return "films"
+    elif media_type == "CD":
+        return "albums"
+    elif media_type == "Buch":
+        return "books"
+    return "films"  # Default
+
+
+def _handle_no_results(title: str, author: str, category: str, media_type: str) -> None:
+    """Behandelt Fall ohne Suchergebnisse."""
+    blacklist = get_blacklist()
+
+    item = {"title": title or author, "author": author, "type": media_type}
+
+    reason = "Keine Treffer bei individueller Suche"
+    blacklist.add_to_blacklist(category, item, reason=reason)
+
+    logger.info(f"Auf Blacklist: '{title or author}' - {reason}")
+
+
+def _handle_specific_medium(
+    results: List[Dict[str, Any]], title: str, author: str, media_type: str, category: str
+) -> Tuple[str, str, gr.update, gr.update, gr.update]:
+    """
+    Behandelt Suche nach spezifischem Medium.
+
+    Returns:
+        Tuple mit Updates
+    """
+    borrowed_blacklist = get_borrowed_blacklist()
+    available_items: List[Dict[str, Any]] = []
+    borrowed_items: List[Dict[str, Any]] = []
+
+    for result in results:
+        zentralbib_info = result.get("zentralbibliothek_info", "")
+
+        if "verfügbar" in zentralbib_info.lower():
+            # Verfügbar
+            available_items.append(
+                {
+                    "title": result.get("title", title),
+                    "author": author,
+                    "type": media_type,
+                    "bib_number": zentralbib_info[:300],  # 300 Zeichen Limit
+                    "source": "Favoriten (Individuelle Suche)",
+                }
+            )
+        elif "entliehen" in zentralbib_info.lower():
+            # Entliehen - auf Entleih-Blacklist
+            borrowed_blacklist.add_to_blacklist(
+                title=result.get("title", title), author=author, media_type=media_type, availability_text=zentralbib_info
+            )
+            borrowed_items.append(result)
+
+    if available_items:
+        # Füge erstes verfügbares Medium hinzu
+        item = available_items[0]
+        _add_to_suggestions(category, item)
+
+        success_msg = f"✅ '{item['title']}' gefunden und zu {_get_tab_name(category)} hinzugefügt!"
+        result_text = f"📦 Gefunden: {item['title']}\n📍 Verfügbarkeit: {item['bib_number'][:100]}..."
+
+        # Update entsprechender Tab
+        updates = _create_tab_updates(category)
+        return result_text, success_msg, updates[0], updates[1], updates[2]
+
+    elif borrowed_items:
+        # Nur entliehene gefunden
+        info_msg = f"📅 '{title}' ist aktuell entliehen. Wird automatisch geprüft wenn verfügbar."
+        return info_msg, "", gr.update(), gr.update(), gr.update()
+
+    else:
+        # Treffer aber nicht verfügbar
+        _handle_no_results(title, author, category, media_type)
+        error_msg = f"❌ '{title}' gefunden aber nicht verfügbar."
+        return error_msg, "", gr.update(), gr.update(), gr.update()
+
+
+def _handle_artist_search(
+    results: List[Dict[str, Any]], artist: str, media_type: str, category: str
+) -> Tuple[str, str, gr.update, gr.update, gr.update]:
+    """
+    Behandelt Suche nach allen Medien eines Künstlers (max. 2).
+
+    Für CDs: Filtert bereits vorhandene Alben aus MP3-Archiv heraus.
+
+    Returns:
+        Tuple mit Updates
+    """
+    from preprocessing.filters import filter_existing_albums
+
+    borrowed_blacklist = get_borrowed_blacklist()
+    available_items: List[Dict[str, Any]] = []
+
+    for result in results[:15]:  # Max. 15 Treffer prüfen
+        zentralbib_info = result.get("zentralbibliothek_info", "")
+        result_title = result.get("title", "")
+
+        if "verfügbar" in zentralbib_info.lower():
+            available_items.append(
+                {
+                    "title": result_title,
+                    "author": artist,
+                    "type": media_type,
+                    "bib_number": zentralbib_info[:300],
+                    "source": "Favoriten (Künstler-Suche)",
+                }
+            )
+        elif "entliehen" in zentralbib_info.lower():
+            borrowed_blacklist.add_to_blacklist(
+                title=result_title, author=artist, media_type=media_type, availability_text=zentralbib_info
+            )
+
+        # Stoppe wenn 2 verfügbare gefunden
+        if len(available_items) >= 2:
+            break
+
+    # NEU: Für CDs - Filtere bereits vorhandene Alben
+    if media_type == "CD" and available_items:
+        logger.info(f"Filtere bereits vorhandene Alben von '{artist}'...")
+
+        # Konvertiere zu Format für filter_existing_albums
+        albums_to_check = [(item["author"], item["title"]) for item in available_items]
+
+        # Filtere mit MP3-Archiv
+        filtered_albums = filter_existing_albums(albums_to_check, "H:\\MP3 Archiv")
+
+        # Konvertiere zurück zu Item-Format
+        filtered_titles = {album[1].lower() for album in filtered_albums}
+        available_items = [item for item in available_items if item["title"].lower() in filtered_titles]
+
+        logger.info(f"{len(available_items)} neue Alben nach MP3-Filterung " f"(von ursprünglich {len(albums_to_check)})")
+
+    if available_items:
+        # Füge max. 2 hinzu
+        added_count = 0
+        added_titles: List[str] = []
+
+        for item in available_items[:2]:
+            _add_to_suggestions(category, item)
+            added_titles.append(item["title"])
+            added_count += 1
+
+        success_msg = f"✅ {added_count} Medium/Medien von '{artist}' zu {_get_tab_name(category)} hinzugefügt!"
+        result_text = f"📦 Gefunden von '{artist}':\n" + "\n".join(f"  • {t}" for t in added_titles)
+
+        updates = _create_tab_updates(category)
+        return result_text, success_msg, updates[0], updates[1], updates[2]
+
+    else:
+        # Keine verfügbaren gefunden (oder alle bereits vorhanden)
+        blacklist = get_blacklist()
+        item = {"title": artist, "author": artist, "type": media_type}
+        blacklist.add_to_blacklist(category, item, reason="Künstler-Suche: Keine verfügbaren/neuen Medien")
+
+        error_msg = f"❌ Keine neuen verfügbaren Medien von '{artist}' gefunden."
+        return error_msg, "", gr.update(), gr.update(), gr.update()
+
+
+def _add_to_suggestions(category: str, item: Dict[str, Any]) -> None:
+    """
+    Fügt ein Medium an den Anfang der Vorschlagsliste ein.
+
+    Args:
+        category: Kategorie ('films', 'albums', 'books')
+        item: Medium-Dictionary
+    """
+    global current_suggestions
+
+    # Füge an Position 0 ein
+    current_suggestions[category].insert(0, item)
+
+    logger.info(f"Medium an Anfang von {category} eingefügt: {item['title']}")
+
+
+def _get_tab_name(category: str) -> str:
+    """Gibt deutschen Tab-Namen zurück."""
+    names = {"films": "Filme", "albums": "Musik", "books": "Bücher"}
+    return names.get(category, category)
+
+
+def _create_tab_updates(category: str) -> Tuple[gr.update, gr.update, gr.update]:
+    """
+    Erstellt Updates für alle drei Tabs.
+
+    Args:
+        category: Aktive Kategorie die geupdatet werden soll
+
+    Returns:
+        Tuple mit (film_update, album_update, book_update)
+    """
+    from utils.sources import get_source_emoji
+
+    updates = []
+
+    for cat in ["films", "albums", "books"]:
+        if cat == category:
+            # Update diesen Tab
+            choices = []
+            for s in current_suggestions[cat]:
+                display_text = f"{s['title']}"
+                if s.get("author"):
+                    display_text += f" - {s['author']}"
+                if s.get("source"):
+                    emoji = get_source_emoji(s["source"])
+                    if emoji:
+                        display_text = f"{emoji} {display_text}"
+                    else:
+                        display_text = f"⭐ {display_text}"  # Favoriten-Emoji
+                choices.append(display_text)
+
+            updates.append(gr.update(choices=choices, value=[]))
+        else:
+            # Keine Änderung
+            updates.append(gr.update())
+
+    return tuple(updates)
 
 
 # Modernes, dark-mode-freundliches CSS
@@ -1812,6 +2104,75 @@ with gr.Blocks(theme=create_custom_theme(), css=css, title="Bibliothek-Empfehlun
             book_media = gr.HTML(value="", label="Visuelle Medien")
 
             book_message = gr.HTML(value="", visible=False, elem_classes=["success-message"])
+    with gr.Tab("⭐ Favoriten"):
+        gr.Markdown(
+            """
+            ### 🔍 Individuelle Mediensuche
+
+            Suchen Sie gezielt nach spezifischen Medien oder entdecken Sie Werke
+            Ihrer Lieblingskünstler. Gefundene Medien werden automatisch zu den
+            entsprechenden Tabs hinzugefügt.
+            """
+        )
+
+        with gr.Row():
+            with gr.Column(scale=2):
+                fav_author = gr.Textbox(
+                    label="👤 Autor / Künstler / Regisseur",
+                    placeholder="z.B. Stephen King, Radiohead, Christopher Nolan",
+                    info="Pflichtfeld wenn kein Titel angegeben",
+                )
+
+            with gr.Column(scale=2):
+                fav_title = gr.Textbox(
+                    label="📝 Titel des Mediums (optional)",
+                    placeholder="z.B. Es, OK Computer, Inception",
+                    info="Leer lassen für Künstler-Suche",
+                )
+
+            with gr.Column(scale=1):
+                fav_media_type = gr.Dropdown(
+                    label="📦 Medienart", choices=["DVD", "CD", "Buch"], value="DVD", info="Art des Mediums"
+                )
+
+        with gr.Row():
+            fav_search_btn = gr.Button("🔍 Medium suchen", variant="primary", size="lg")
+
+        fav_result = gr.Textbox(label="📊 Suchergebnis", lines=5, interactive=False)
+
+        fav_success_msg = gr.HTML(value="", visible=False, elem_classes=["success-message"])
+
+        gr.Markdown(
+            """
+            ---
+
+            ### 💡 Tipps
+
+            - **Spezifische Suche**: Geben Sie Titel + Autor an für ein bestimmtes Medium
+            - **Künstler-Suche**: Nur Autor angeben → findet bis zu 2 verfügbare Medien
+            - **Automatische Integration**: Gefundene Medien erscheinen oben in den entsprechenden Tabs
+            - **Intelligentes Tracking**:
+              - 📅 Entliehene Medien werden automatisch überwacht
+              - ⚫ Nicht gefundene Medien für 1 Jahr gespeichert
+              - 🔄 Automatische Neuprüfung nach Rückgabe
+
+            **Beispiele:**
+            - Film: `Christopher Nolan` + `Inception` + `DVD`
+            - Musik: `Radiohead` + (leer) + `CD` → findet 2 verfügbare Alben
+            - Buch: `Stephen King` + `Es` + `Buch`
+            """
+        )
+
+        # Event Handler
+        fav_search_btn.click(
+            fn=search_favorite_medium,
+            inputs=[fav_author, fav_title, fav_media_type],
+            outputs=[fav_result, fav_success_msg, film_checkbox, album_checkbox, book_checkbox],
+        ).then(
+            fn=lambda x: gr.update(visible=bool(x), value=x) if x else gr.update(visible=False),
+            inputs=[fav_success_msg],
+            outputs=[fav_success_msg],
+        )
 
     # Event Handler für globalen Speichern-Button
     save_btn.click(fn=save_current_recommendations, outputs=[save_message]).then(

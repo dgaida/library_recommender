@@ -12,6 +12,7 @@ from collections import defaultdict
 from .state import AppState
 from utils.blacklist import get_blacklist, Blacklist
 from utils.logging_config import get_logger
+from utils.borrowed_blacklist import get_borrowed_blacklist
 
 logger = get_logger(__name__)
 
@@ -174,6 +175,8 @@ class Recommender:
         """
         Prüft ob ein Medium in der Bibliothek verfügbar ist.
 
+        NEU: Fügt entliehene Medien zur Entleih-Blacklist hinzu.
+
         Für Filme: Filtert Nicht-Filme anhand des "Uv" Kürzels aus.
         Alle Verfügbarkeitsangaben werden auf 300 Zeichen begrenzt.
 
@@ -183,14 +186,14 @@ class Recommender:
 
         Returns:
             Item-Dictionary mit Verfügbarkeitsinfo oder None falls nicht verfügbar
-
-        Example:
-            >>> item = {"title": "Test Film", "author": "Director", "type": "DVD"}
-            >>> result = recommender._check_availability(item, "films")
-            >>> if result:
-            ...     print(result['bib_number'])
         """
         media_type: str = item.get("type", "")
+
+        # Prüfe zuerst Entleih-Blacklist
+        borrowed_blacklist = get_borrowed_blacklist()
+        if borrowed_blacklist.is_blacklisted(item.get("title", ""), item.get("author", "")):
+            logger.debug(f"'{item['title']}' ist entliehen - überspringe Suche")
+            return None
 
         if media_type == "Buch":
             query = f"{item.get('author', '')} {item.get('title')} {media_type}".strip()
@@ -215,8 +218,7 @@ class Recommender:
                 zentralbib_info = hit.get("zentralbibliothek_info", "")
 
                 # Prüfe auf "Uv" ohne Wortgrenzen
-                has_uv = bool(re.search("Uv", zentralbib_info))
-                # has_uv = bool(re.search(r'\bUv\b', zentralbib_info))
+                has_uv = bool(re.search(r"Uv", zentralbib_info))
 
                 if has_uv:
                     film_hits.append(hit)
@@ -233,11 +235,34 @@ class Recommender:
             # Verwende nur Film-Treffer
             hits = film_hits
 
-        # Prüfen, ob verfügbar (nur auf zentralbibliothek_info)
-        available: List[Dict[str, Any]] = [
-            h for h in hits if "zentralbibliothek_info" in h and "verfügbar" in h["zentralbibliothek_info"].lower()
-        ]
+        # Prüfen auf verfügbar UND entliehen
+        available: List[Dict[str, Any]] = []
+        borrowed: List[Dict[str, Any]] = []
 
+        for hit in hits:
+            zentralbib_info = hit.get("zentralbibliothek_info", "")
+
+            if "verfügbar" in zentralbib_info.lower():
+                available.append(hit)
+            elif "entliehen" in zentralbib_info.lower():
+                borrowed.append(hit)
+
+        # NEU: Entliehene auf Entleih-Blacklist
+        if borrowed:
+            for borrowed_item in borrowed:
+                zentralbib_info = borrowed_item.get("zentralbibliothek_info", "")
+
+                success = borrowed_blacklist.add_to_blacklist(
+                    title=borrowed_item.get("title", item.get("title", "")),
+                    author=item.get("author", ""),
+                    media_type=media_type,
+                    availability_text=zentralbib_info,
+                )
+
+                if success:
+                    logger.debug(f"📅 Auf Entleih-Blacklist: {borrowed_item.get('title', '')}")
+
+        # Prüfe verfügbare
         if available:
             # Alle Verfügbarkeits-Infos zusammenfassen
             infos: List[str] = [h["zentralbibliothek_info"] for h in hits if "zentralbibliothek_info" in h]
@@ -254,17 +279,17 @@ class Recommender:
 
             return result_item
 
-        logger.debug(f"'{item['title']}' nicht verfügbar (alle ausgeliehen)")
+        logger.debug(f"'{item['title']}' nicht verfügbar (alle entliehen)")
         return None
 
     @staticmethod
-    def _truncate_text(text: str, max_length: int = 300) -> str:
+    def _truncate_text(text: str, max_length: int = 400) -> str:
         """
         Kürzt Text auf maximale Länge.
 
         Args:
             text: Zu kürzender Text
-            max_length: Maximale Länge (default: 300)
+            max_length: Maximale Länge (default: 400)
 
         Returns:
             Gekürzter Text mit "..." falls nötig
