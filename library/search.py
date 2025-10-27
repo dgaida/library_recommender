@@ -8,12 +8,264 @@ import requests
 from bs4 import BeautifulSoup
 import urllib.parse
 import re
+from difflib import SequenceMatcher
 import time
 import random
-from typing import Dict, List, Optional, Any
+from typing import Dict, List, Optional, Any, Tuple
 from utils.logging_config import get_logger
 
 logger = get_logger(__name__)
+
+
+def normalize_name(name: str) -> str:
+    """
+    Normalisiert einen Namen für besseren Vergleich.
+
+    Args:
+        name: Zu normalisierender Name
+
+    Returns:
+        Normalisierter Name (lowercase, ohne Sonderzeichen)
+
+    Example:
+        >>> normalize_name("Coppola, Francis Ford")
+        'francis ford coppola'
+    """
+    if not name:
+        return ""
+
+    # Entferne Kommas und Reihenfolge umkehren
+    # "Mühlhoff, Rainer" -> "Rainer Mühlhoff"
+    if "," in name:
+        parts = name.split(",", 1)
+        name = f"{parts[1].strip()} {parts[0].strip()}"
+
+    # Lowercase und Sonderzeichen entfernen
+    name = name.lower().strip()
+    name = re.sub(r"[^\w\s]", " ", name)
+    name = re.sub(r"\s+", " ", name)
+
+    return name
+
+
+def calculate_name_similarity(name1: str, name2: str) -> float:
+    """
+    Berechnet Ähnlichkeit zwischen zwei Namen.
+
+    Verwendet mehrere Heuristiken:
+    - SequenceMatcher für Gesamtähnlichkeit
+    - Wort-basierter Vergleich (Nachnamen-Match)
+    - Substring-Match
+
+    Args:
+        name1: Erster Name (normalisiert)
+        name2: Zweiter Name (normalisiert)
+
+    Returns:
+        Ähnlichkeits-Score (0.0 bis 1.0)
+
+    Example:
+        >>> calculate_name_similarity("francis ford coppola", "coppola")
+        0.95
+    """
+    if not name1 or not name2:
+        return 0.0
+
+    # Exakte Übereinstimmung
+    if name1 == name2:
+        return 1.0
+
+    # SequenceMatcher für Gesamtähnlichkeit
+    sequence_score = SequenceMatcher(None, name1, name2).ratio()
+
+    # Wort-basierter Vergleich
+    words1 = set(name1.split())
+    words2 = set(name2.split())
+
+    if not words1 or not words2:
+        return sequence_score
+
+    # Jaccard-Ähnlichkeit für Wörter
+    intersection = len(words1.intersection(words2))
+    union = len(words1.union(words2))
+    word_score = intersection / union if union > 0 else 0.0
+
+    # Substring-Match (z.B. "Coppola" in "Francis Ford Coppola")
+    substring_score = 0.0
+    if name2 in name1 or name1 in name2:
+        substring_score = 0.9
+
+    # Nachnamen-Match (letztes Wort)
+    lastname1 = name1.split()[-1] if name1.split() else ""
+    lastname2 = name2.split()[-1] if name2.split() else ""
+
+    lastname_score = 0.0
+    if lastname1 and lastname2 and lastname1 == lastname2:
+        lastname_score = 0.95
+
+    # Kombiniere Scores (gewichtet)
+    final_score = max(
+        sequence_score * 0.3 + word_score * 0.4 + substring_score * 0.3,
+        lastname_score,  # Nachnamen-Match ist stark
+        substring_score,  # Substring-Match ist auch stark
+    )
+
+    return final_score
+
+
+def extract_person_field(availability_text: str) -> Optional[str]:
+    """
+    Extrahiert das Person(en)-Feld aus der Verfügbarkeitsangabe.
+
+    Args:
+        availability_text: Vollständiger Verfügbarkeitstext
+
+    Returns:
+        Person(en)-Feld oder None
+
+    Example:
+        >>> extract_person_field("Person(en): Mühlhoff, Rainer Verfasser")
+        'Mühlhoff, Rainer'
+    """
+    if not availability_text:
+        return None
+
+    # Pattern: "Person(en) :" oder "Person(en):"
+    pattern = r"Person\(en\)\s*:\s*([^\n]+?)(?:\s+(?:Verfasser|Regisseur|Schauspieler|Komponist)|\n|$)"
+    match = re.search(pattern, availability_text, re.IGNORECASE)
+
+    if match:
+        person = match.group(1).strip()
+        logger.debug(f"Person(en)-Feld gefunden: '{person}'")
+        return person
+
+    logger.debug("Kein Person(en)-Feld gefunden")
+    return None
+
+
+def check_author_match(result: Dict[str, Any], expected_author: str, threshold: float = 0.7) -> Tuple[bool, float, str]:
+    """
+    Prüft ob ein Suchergebnis zum erwarteten Autor/Künstler/Regisseur passt.
+
+    Strategie:
+    1. Prüfe Person(en)-Feld (primär)
+    2. Prüfe gesamten Verfügbarkeitstext (Fallback)
+    3. Prüfe Titel (letzter Fallback)
+
+    Args:
+        result: Suchergebnis-Dictionary
+        expected_author: Erwarteter Autor/Künstler/Regisseur
+        threshold: Mindest-Ähnlichkeit (default: 0.7)
+
+    Returns:
+        Tuple mit (match_found, similarity_score, matched_field)
+
+    Example:
+        >>> result = {"zentralbibliothek_info": "Person(en): Coppola, Francis Ford"}
+        >>> check_author_match(result, "Francis Ford Coppola")
+        (True, 1.0, 'person_field')
+    """
+    if not expected_author:
+        logger.debug("Kein erwarteter Autor angegeben")
+        return (True, 1.0, "no_author_specified")  # Akzeptiere wenn kein Autor erwartet
+
+    expected_norm = normalize_name(expected_author)
+    availability_text = result.get("zentralbibliothek_info", "")
+    title = result.get("title", "")
+
+    logger.debug(f"Prüfe Author-Match für '{expected_author}'")
+
+    # Strategie 1: Person(en)-Feld (primär)
+    person_field = extract_person_field(availability_text)
+
+    if person_field:
+        person_norm = normalize_name(person_field)
+        similarity = calculate_name_similarity(expected_norm, person_norm)
+
+        logger.debug(f"Person(en)-Feld Ähnlichkeit: {similarity:.2f} " f"('{person_norm}' vs '{expected_norm}')")
+
+        if similarity >= threshold:
+            logger.info(f"✅ Match gefunden in Person(en)-Feld: " f"{person_field} (Score: {similarity:.2f})")
+            return (True, similarity, "person_field")
+
+    # Strategie 2: Gesamter Verfügbarkeitstext (Fallback)
+    if availability_text:
+        # Suche nach Namen-Pattern im gesamten Text
+        # Extrahiere potentielle Namen (Großbuchstaben am Wortanfang)
+        name_pattern = r"\b([A-ZÄÖÜ][a-zäöüß]+(?:\s+[A-ZÄÖÜ][a-zäöüß]+)*)\b"
+        potential_names = re.findall(name_pattern, availability_text)
+
+        best_similarity = 0.0
+        best_match = None
+
+        for potential_name in potential_names:
+            potential_norm = normalize_name(potential_name)
+            similarity = calculate_name_similarity(expected_norm, potential_norm)
+
+            if similarity > best_similarity:
+                best_similarity = similarity
+                best_match = potential_name
+
+        if best_similarity >= threshold:
+            logger.info(f"✅ Match gefunden im Volltext: " f"{best_match} (Score: {best_similarity:.2f})")
+            return (True, best_similarity, "full_text")
+
+        logger.debug(f"Beste Volltext-Ähnlichkeit: {best_similarity:.2f} " f"(unter Threshold {threshold})")
+
+    # Strategie 3: Titel-Feld (letzter Fallback)
+    if title:
+        title_norm = normalize_name(title)
+        similarity = calculate_name_similarity(expected_norm, title_norm)
+
+        if similarity >= threshold:
+            logger.info(f"✅ Match gefunden im Titel: " f"{title} (Score: {similarity:.2f})")
+            return (True, similarity, "title_field")
+
+    logger.info(f"❌ Kein Author-Match gefunden für '{expected_author}'")
+    return (False, 0.0, "no_match")
+
+
+def filter_results_by_author(
+    results: List[Dict[str, Any]], expected_author: str, threshold: float = 0.7
+) -> List[Dict[str, Any]]:
+    """
+    Filtert Suchergebnisse nach Autor/Künstler/Regisseur.
+
+    Args:
+        results: Liste von Suchergebnissen
+        expected_author: Erwarteter Autor/Künstler/Regisseur
+        threshold: Mindest-Ähnlichkeit (default: 0.7)
+
+    Returns:
+        Gefilterte Liste mit passenden Ergebnissen
+
+    Example:
+        >>> results = [{"title": "Film 1", "zentralbibliothek_info": "Person(en): Coppola"}]
+        >>> filtered = filter_results_by_author(results, "Francis Ford Coppola")
+        >>> len(filtered)
+        1
+    """
+    if not expected_author:
+        logger.debug("Kein Autor zum Filtern angegeben - gebe alle Ergebnisse zurück")
+        return results
+
+    filtered_results = []
+
+    for result in results:
+        match_found, similarity, matched_field = check_author_match(result, expected_author, threshold)
+
+        if match_found:
+            # Füge Match-Info zum Result hinzu
+            result["author_match_score"] = similarity
+            result["author_match_field"] = matched_field
+            filtered_results.append(result)
+
+    logger.info(f"Autor-Filter: {len(filtered_results)}/{len(results)} " f"Ergebnisse passen zu '{expected_author}'")
+
+    # Sortiere nach Ähnlichkeits-Score (beste zuerst)
+    filtered_results.sort(key=lambda x: x.get("author_match_score", 0.0), reverse=True)
+
+    return filtered_results
 
 
 class KoelnLibrarySearch:
@@ -669,6 +921,40 @@ class KoelnLibrarySearch:
         logger.debug(f"Beschreibung gekürzt: {len(description)} -> {len(truncated)} Zeichen")
 
         return truncated
+
+    def enhanced_search(
+        self, search_term: str, expected_author: Optional[str] = None, search_type: str = "all", verbose: bool = False
+    ) -> List[Dict[str, Any]]:
+        """
+        Erweiterte Suche mit Author-Matching.
+
+        Führt normale Suche durch und filtert Ergebnisse nach Autor falls angegeben.
+
+        Args:
+            search_term: Suchbegriff
+            expected_author: Erwarteter Autor/Künstler/Regisseur (optional)
+            search_type: Art der Suche
+            verbose: Ausführliches Logging
+
+        Returns:
+            Liste gefilterte Suchergebnisse
+
+        Example:
+            >>> search = KoelnLibrarySearch()
+            >>> results = search.enhanced_search("Der Pate", expected_author="Coppola")
+        """
+        # Normale Suche durchführen
+        results = self.search(search_term, search_type, verbose)
+
+        if not results:
+            return []
+
+        # Wenn Autor angegeben, filtere Ergebnisse
+        if expected_author:
+            logger.info(f"Filtere {len(results)} Ergebnisse nach Autor '{expected_author}'")
+            results = filter_results_by_author(results, expected_author)
+
+        return results
 
     @staticmethod
     def display_results(results: List[Dict[str, Any]]) -> None:

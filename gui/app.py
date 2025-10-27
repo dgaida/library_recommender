@@ -721,51 +721,55 @@ def search_favorite_medium(author: str, title: str, media_type: str) -> Tuple[st
     """
     logger.info(f"Favoriten-Suche: Autor='{author}', Titel='{title}', Typ={media_type}")
 
-    # Validierung
-    if not author and not title:
-        error_msg = "❌ Bitte geben Sie mindestens einen Autor/Künstler oder Titel an."
-        return error_msg, "", gr.update(), gr.update(), gr.update()
-
-    # Bestimme Kategorie
-    category = _get_category_from_media_type(media_type)
-
-    # Prüfe Entleih-Blacklist
-    borrowed_blacklist = get_borrowed_blacklist()
-    if title and borrowed_blacklist.is_blacklisted(title, author):
-        info_msg = f"ℹ️ '{title}' ist aktuell entliehen. Wird automatisch geprüft wenn verfügbar."
-        return info_msg, "", gr.update(), gr.update(), gr.update()
-
-    # Suche durchführen
-    search_engine = KoelnLibrarySearch()
-
-    # Baue Suchquery
-    if title:
-        query = f"{title} {author} {media_type}".strip()
-    else:
-        query = f"{author} {media_type}".strip()
-
-    logger.debug(f"Suchquery: '{query}'")
-
     try:
-        results = search_engine.search(query)
+        # Validierung
+        if not author and not title:
+            error_msg = "❌ Bitte geben Sie mindestens einen Autor/Künstler oder Titel an."
+            return error_msg, "", gr.update(), gr.update(), gr.update()
+
+        # Bestimme Kategorie
+        category = _get_category_from_media_type(media_type)
+
+        # Prüfe Entleih-Blacklist
+        borrowed_blacklist = get_borrowed_blacklist()
+        if title and borrowed_blacklist.is_blacklisted(title, author):
+            info_msg = f"ℹ️ '{title}' ist aktuell entliehen. Wird automatisch geprüft wenn verfügbar."
+            return info_msg, "", gr.update(), gr.update(), gr.update()
+
+        # Suche durchführen
+        search_engine = KoelnLibrarySearch()
+
+        # Baue Suchquery
+        if title:
+            query = f"{title} {author} {media_type}".strip()
+        else:
+            query = f"{author} {media_type}".strip()
+
+        logger.debug(f"Suchquery: '{query}'")
+
+        # NEU: Nutze erweiterte Suche mit Author-Matching
+        from library.search import enhanced_search
+
+        results = enhanced_search(search_engine, query, expected_author=author)
+
+        if not results:
+            # Keine Treffer - auf Blacklist
+            _handle_no_results(title, author, category, media_type)
+            error_msg = f"❌ Keine Treffer für '{title or author}' gefunden."
+            return error_msg, "", gr.update(), gr.update(), gr.update()
+
+        # Filtere und verarbeite Ergebnisse
+        if title:
+            # Spezifisches Medium gesucht
+            return _handle_specific_medium(results, title, author, media_type, category)
+        else:
+            # Alle Medien des Autors (max. 2)
+            return _handle_artist_search(results, author, media_type, category)
+
     except Exception as e:
-        logger.error(f"Fehler bei der Suche: {e}", exc_info=True)
-        error_msg = f"❌ Fehler bei der Suche: {str(e)}"
+        logger.error(f"Unerwarteter Fehler in search_favorite_medium: {e}", exc_info=True)
+        error_msg = f"❌ Ein Fehler ist aufgetreten: {str(e)}"
         return error_msg, "", gr.update(), gr.update(), gr.update()
-
-    if not results:
-        # Keine Treffer - auf Blacklist
-        _handle_no_results(title, author, category, media_type)
-        error_msg = f"❌ Keine Treffer für '{title or author}' gefunden."
-        return error_msg, "", gr.update(), gr.update(), gr.update()
-
-    # Filtere und verarbeite Ergebnisse
-    if title:
-        # Spezifisches Medium gesucht
-        return _handle_specific_medium(results, title, author, media_type, category)
-    else:
-        # Alle Medien des Autors (max. 2)
-        return _handle_artist_search(results, author, media_type, category)
 
 
 def _get_category_from_media_type(media_type: str) -> str:
@@ -804,48 +808,55 @@ def _handle_specific_medium(
     available_items: List[Dict[str, Any]] = []
     borrowed_items: List[Dict[str, Any]] = []
 
-    for result in results:
-        zentralbib_info = result.get("zentralbibliothek_info", "")
+    try:
+        for result in results:
+            zentralbib_info = result.get("zentralbibliothek_info", "")
 
-        if "verfügbar" in zentralbib_info.lower():
-            # Verfügbar
-            available_items.append(
-                {
-                    "title": result.get("title", title),
-                    "author": author,
-                    "type": media_type,
-                    "bib_number": zentralbib_info[:300],  # 300 Zeichen Limit
-                    "source": "Favoriten (Individuelle Suche)",
-                }
-            )
-        elif "entliehen" in zentralbib_info.lower():
-            # Entliehen - auf Entleih-Blacklist
-            borrowed_blacklist.add_to_blacklist(
-                title=result.get("title", title), author=author, media_type=media_type, availability_text=zentralbib_info
-            )
-            borrowed_items.append(result)
+            if "verfügbar" in zentralbib_info.lower():
+                # NEU: Füge Match-Info hinzu falls vorhanden
+                match_info = ""
+                if result.get("author_match_score"):
+                    score = result["author_match_score"]
+                    field = result.get("author_match_field", "unknown")
+                    match_info = f" (Author-Match: {score:.0%} via {field})"
 
-    if available_items:
-        # Füge erstes verfügbares Medium hinzu
-        item = available_items[0]
-        _add_to_suggestions(category, item)
+                available_items.append(
+                    {
+                        "title": result.get("title", title),
+                        "author": author,
+                        "type": media_type,
+                        "bib_number": zentralbib_info[:300] + match_info,  # Match-Info anhängen
+                        "source": "Favoriten (Individuelle Suche)",
+                    }
+                )
+            elif "entliehen" in zentralbib_info.lower():
+                borrowed_blacklist.add_to_blacklist(
+                    title=result.get("title", title), author=author, media_type=media_type, availability_text=zentralbib_info
+                )
+                borrowed_items.append(result)
 
-        success_msg = f"✅ '{item['title']}' gefunden und zu {_get_tab_name(category)} hinzugefügt!"
-        result_text = f"📦 Gefunden: {item['title']}\n📍 Verfügbarkeit: {item['bib_number'][:100]}..."
+        if available_items:
+            item = available_items[0]
+            _add_to_suggestions(category, item)
 
-        # Update entsprechender Tab
-        updates = _create_tab_updates(category)
-        return result_text, success_msg, updates[0], updates[1], updates[2]
+            success_msg = f"✅ '{item['title']}' gefunden und zu {_get_tab_name(category)} hinzugefügt!"
+            result_text = f"📦 Gefunden: {item['title']}\n📍 Verfügbarkeit: {item['bib_number'][:200]}..."
 
-    elif borrowed_items:
-        # Nur entliehene gefunden
-        info_msg = f"📅 '{title}' ist aktuell entliehen. Wird automatisch geprüft wenn verfügbar."
-        return info_msg, "", gr.update(), gr.update(), gr.update()
+            updates = _create_tab_updates(category)
+            return result_text, success_msg, updates[0], updates[1], updates[2]
 
-    else:
-        # Treffer aber nicht verfügbar
-        _handle_no_results(title, author, category, media_type)
-        error_msg = f"❌ '{title}' gefunden aber nicht verfügbar."
+        elif borrowed_items:
+            info_msg = f"📅 '{title}' ist aktuell entliehen. Wird automatisch geprüft wenn verfügbar."
+            return info_msg, "", gr.update(), gr.update(), gr.update()
+
+        else:
+            _handle_no_results(title, author, category, media_type)
+            error_msg = f"❌ '{title}' gefunden aber nicht verfügbar."
+            return error_msg, "", gr.update(), gr.update(), gr.update()
+
+    except Exception as e:
+        logger.error(f"Fehler in _handle_specific_medium: {e}", exc_info=True)
+        error_msg = f"❌ Fehler bei der Verarbeitung: {str(e)}"
         return error_msg, "", gr.update(), gr.update(), gr.update()
 
 
@@ -856,77 +867,91 @@ def _handle_artist_search(
     Behandelt Suche nach allen Medien eines Künstlers (max. 2).
 
     Für CDs: Filtert bereits vorhandene Alben aus MP3-Archiv heraus.
+    Nutzt Artist-Blacklist statt normaler Blacklist für Künstler ohne Medien.
 
     Returns:
         Tuple mit Updates
     """
     from preprocessing.filters import filter_existing_albums
+    from utils.artist_blacklist import get_artist_blacklist
 
     borrowed_blacklist = get_borrowed_blacklist()
     available_items: List[Dict[str, Any]] = []
 
-    for result in results[:15]:  # Max. 15 Treffer prüfen
-        zentralbib_info = result.get("zentralbibliothek_info", "")
-        result_title = result.get("title", "")
+    try:
+        for result in results[:15]:  # Max. 15 Treffer prüfen
+            zentralbib_info = result.get("zentralbibliothek_info", "")
+            result_title = result.get("title", "")
 
-        if "verfügbar" in zentralbib_info.lower():
-            available_items.append(
-                {
-                    "title": result_title,
-                    "author": artist,
-                    "type": media_type,
-                    "bib_number": zentralbib_info[:300],
-                    "source": "Favoriten (Künstler-Suche)",
-                }
-            )
-        elif "entliehen" in zentralbib_info.lower():
-            borrowed_blacklist.add_to_blacklist(
-                title=result_title, author=artist, media_type=media_type, availability_text=zentralbib_info
-            )
+            if "verfügbar" in zentralbib_info.lower():
+                available_items.append(
+                    {
+                        "title": result_title,
+                        "author": artist,
+                        "type": media_type,
+                        "bib_number": zentralbib_info[:300],
+                        "source": "Favoriten (Künstler-Suche)",
+                    }
+                )
+            elif "entliehen" in zentralbib_info.lower():
+                borrowed_blacklist.add_to_blacklist(
+                    title=result_title, author=artist, media_type=media_type, availability_text=zentralbib_info
+                )
 
-        # Stoppe wenn 2 verfügbare gefunden
-        if len(available_items) >= 2:
-            break
+            # Stoppe wenn 2 verfügbare gefunden
+            if len(available_items) >= 2:
+                break
 
-    # NEU: Für CDs - Filtere bereits vorhandene Alben
-    if media_type == "CD" and available_items:
-        logger.info(f"Filtere bereits vorhandene Alben von '{artist}'...")
+        # NEU: Für CDs - Filtere bereits vorhandene Alben
+        if media_type == "CD" and available_items:
+            logger.info(f"Filtere bereits vorhandene Alben von '{artist}'...")
 
-        # Konvertiere zu Format für filter_existing_albums
-        albums_to_check = [(item["author"], item["title"]) for item in available_items]
+            # FIXIERT: available_items ist bereits eine Liste von Dicts
+            # filter_existing_albums erwartet genau dieses Format
+            filtered_albums = filter_existing_albums(available_items, "H:\\MP3 Archiv")
+            available_items = filtered_albums
 
-        # Filtere mit MP3-Archiv
-        filtered_albums = filter_existing_albums(albums_to_check, "H:\\MP3 Archiv")
+            logger.info(f"{len(available_items)} neue Alben nach MP3-Filterung")
 
-        # Konvertiere zurück zu Item-Format
-        filtered_titles = {album[1].lower() for album in filtered_albums}
-        available_items = [item for item in available_items if item["title"].lower() in filtered_titles]
+        if available_items:
+            # Füge max. 2 hinzu
+            added_count = 0
+            added_titles: List[str] = []
 
-        logger.info(f"{len(available_items)} neue Alben nach MP3-Filterung " f"(von ursprünglich {len(albums_to_check)})")
+            for item in available_items[:2]:
+                _add_to_suggestions(category, item)
+                added_titles.append(item["title"])
+                added_count += 1
 
-    if available_items:
-        # Füge max. 2 hinzu
-        added_count = 0
-        added_titles: List[str] = []
+            success_msg = f"✅ {added_count} Medium/Medien von '{artist}' zu {_get_tab_name(category)} hinzugefügt!"
+            result_text = f"📦 Gefunden von '{artist}':\n" + "\n".join(f"  • {t}" for t in added_titles)
 
-        for item in available_items[:2]:
-            _add_to_suggestions(category, item)
-            added_titles.append(item["title"])
-            added_count += 1
+            updates = _create_tab_updates(category)
+            return result_text, success_msg, updates[0], updates[1], updates[2]
 
-        success_msg = f"✅ {added_count} Medium/Medien von '{artist}' zu {_get_tab_name(category)} hinzugefügt!"
-        result_text = f"📦 Gefunden von '{artist}':\n" + "\n".join(f"  • {t}" for t in added_titles)
+        else:
+            # Keine verfügbaren gefunden (oder alle bereits vorhanden)
 
-        updates = _create_tab_updates(category)
-        return result_text, success_msg, updates[0], updates[1], updates[2]
+            # FIXIERT: Für CDs (Künstler-Suche) -> Artist-Blacklist verwenden
+            if media_type == "CD":
+                artist_blacklist = get_artist_blacklist()
+                # Schätze Song-Count (0 da wir nicht wissen)
+                artist_blacklist.add_to_blacklist(
+                    artist, song_count=0, reason="Favoriten-Suche: Keine neuen verfügbaren Alben"
+                )
+                logger.info(f"'{artist}' zur Artist-Blacklist hinzugefügt")
+            else:
+                # Für Filme/Bücher -> Normale Blacklist (mit leerem Titel!)
+                blacklist = get_blacklist()
+                item = {"title": "", "author": artist, "type": media_type}  # LEER da nur Künstler-Suche
+                blacklist.add_to_blacklist(category, item, reason="Künstler-Suche: Keine verfügbaren/neuen Medien")
 
-    else:
-        # Keine verfügbaren gefunden (oder alle bereits vorhanden)
-        blacklist = get_blacklist()
-        item = {"title": artist, "author": artist, "type": media_type}
-        blacklist.add_to_blacklist(category, item, reason="Künstler-Suche: Keine verfügbaren/neuen Medien")
+            error_msg = f"❌ Keine neuen verfügbaren Medien von '{artist}' gefunden."
+            return error_msg, "", gr.update(), gr.update(), gr.update()
 
-        error_msg = f"❌ Keine neuen verfügbaren Medien von '{artist}' gefunden."
+    except Exception as e:
+        logger.error(f"Fehler in _handle_artist_search: {e}", exc_info=True)
+        error_msg = f"❌ Fehler bei der Verarbeitung: {str(e)}"
         return error_msg, "", gr.update(), gr.update(), gr.update()
 
 

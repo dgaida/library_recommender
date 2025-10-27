@@ -201,7 +201,9 @@ class Recommender:
             query = f"{item.get('title')} {item.get('author', '')} {media_type}".strip()
 
         logger.debug(f"Suche nach: '{query}'")
-        hits: List[Dict[str, Any]] = self.library_search.search(query)
+
+        # NEU: Nutze erweiterte Suche mit Author-Matching
+        hits: List[Dict[str, Any]] = self.library_search.enhanced_search(query, expected_author=item.get("author"))
 
         # Keine Treffer → Blacklist
         if not hits or len(hits) == 0:
