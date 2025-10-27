@@ -938,8 +938,6 @@ def _add_to_suggestions(category: str, item: Dict[str, Any]) -> None:
         category: Kategorie ('films', 'albums', 'books')
         item: Medium-Dictionary
     """
-    global current_suggestions
-
     # Füge an Position 0 ein
     current_suggestions[category].insert(0, item)
 
