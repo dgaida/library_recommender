@@ -113,34 +113,40 @@ def calculate_name_similarity(name1: str, name2: str) -> float:
     return final_score
 
 
-def extract_person_field(availability_text: str) -> Optional[str]:
+def extract_person_field(availability_text: str) -> List[str]:
     """
-    Extrahiert das Person(en)-Feld aus der Verfügbarkeitsangabe.
+    Extrahiert ALLE Personen aus dem Person(en)-Feld.
 
-    Args:
-        availability_text: Vollständiger Verfügbarkeitstext
+    WICHTIG: Gibt Liste zurück, da mehrere Personen möglich!
 
     Returns:
-        Person(en)-Feld oder None
+        Liste von Personen-Namen
 
     Example:
-        >>> extract_person_field("Person(en): Mühlhoff, Rainer Verfasser")
-        'Mühlhoff, Rainer'
+        >>> extract_person_field("Person(en): Spielberg, Steven [Regie] ; Law, Jude [Darst.]")
+        ['Spielberg, Steven', 'Law, Jude']
     """
     if not availability_text:
-        return None
+        return []
 
-    # Pattern: "Person(en) :" oder "Person(en):"
-    pattern = r"Person\(en\)\s*:\s*([^\n]+?)(?:\s+(?:Verfasser|Regisseur|Schauspieler|Komponist)|\n|$)"
+    # Pattern für Person(en)-Feld
+    pattern = r"Person\(en\)\s*:\s*([^\n]+?)(?:\n|$)"
     match = re.search(pattern, availability_text, re.IGNORECASE)
 
-    if match:
-        person = match.group(1).strip()
-        logger.debug(f"Person(en)-Feld gefunden: '{person}'")
-        return person
+    if not match:
+        return []
 
-    logger.debug("Kein Person(en)-Feld gefunden")
-    return None
+    persons_text = match.group(1).strip()
+
+    # Teile bei Semikolon (mehrere Personen)
+    persons = []
+    for person_part in persons_text.split(";"):
+        # Entferne Rollen-Angaben in eckigen Klammern
+        person = re.sub(r"\[.*?\]", "", person_part).strip()
+        if person:
+            persons.append(person)
+
+    return persons
 
 
 def check_author_match(result: Dict[str, Any], expected_author: str, threshold: float = 0.7) -> Tuple[bool, float, str]:
@@ -166,32 +172,43 @@ def check_author_match(result: Dict[str, Any], expected_author: str, threshold: 
         (True, 1.0, 'person_field')
     """
     if not expected_author:
-        logger.debug("Kein erwarteter Autor angegeben")
-        return (True, 1.0, "no_author_specified")  # Akzeptiere wenn kein Autor erwartet
+        if logger:
+            logger.debug("Kein erwarteter Autor angegeben")
+        return (True, 1.0, "no_author_specified")
 
     expected_norm = normalize_name(expected_author)
     availability_text = result.get("zentralbibliothek_info", "")
     title = result.get("title", "")
 
-    logger.debug(f"Prüfe Author-Match für '{expected_author}'")
+    if logger:
+        logger.debug(f"Prüfe Author-Match für '{expected_author}'")
 
-    # Strategie 1: Person(en)-Feld (primär)
-    person_field = extract_person_field(availability_text)
+    # Strategie 1: Person(en)-Feld - ALLE Personen prüfen
+    persons = extract_person_field(availability_text)
 
-    if person_field:
-        person_norm = normalize_name(person_field)
-        similarity = calculate_name_similarity(expected_norm, person_norm)
+    if persons:
+        best_person_score = 0.0
+        best_person_name = None
 
-        logger.debug(f"Person(en)-Feld Ähnlichkeit: {similarity:.2f} " f"('{person_norm}' vs '{expected_norm}')")
+        for person in persons:
+            person_norm = normalize_name(person)
+            similarity = calculate_name_similarity(expected_norm, person_norm)
 
-        if similarity >= threshold:
-            logger.info(f"✅ Match gefunden in Person(en)-Feld: " f"{person_field} (Score: {similarity:.2f})")
-            return (True, similarity, "person_field")
+            if logger:
+                logger.debug(f"Person '{person}' -> Ähnlichkeit: {similarity:.2f}")
 
-    # Strategie 2: Gesamter Verfügbarkeitstext (Fallback)
+            if similarity > best_person_score:
+                best_person_score = similarity
+                best_person_name = person
+
+        if best_person_score >= threshold:
+            if logger:
+                logger.info(f"✅ Match gefunden in Person(en)-Feld: " f"{best_person_name} (Score: {best_person_score:.2f})")
+            return (True, best_person_score, "person_field")
+
+    # Strategie 2: Gesamter Verfügbarkeitstext
     if availability_text:
         # Suche nach Namen-Pattern im gesamten Text
-        # Extrahiere potentielle Namen (Großbuchstaben am Wortanfang)
         name_pattern = r"\b([A-ZÄÖÜ][a-zäöüß]+(?:\s+[A-ZÄÖÜ][a-zäöüß]+)*)\b"
         potential_names = re.findall(name_pattern, availability_text)
 
@@ -207,21 +224,22 @@ def check_author_match(result: Dict[str, Any], expected_author: str, threshold: 
                 best_match = potential_name
 
         if best_similarity >= threshold:
-            logger.info(f"✅ Match gefunden im Volltext: " f"{best_match} (Score: {best_similarity:.2f})")
+            if logger:
+                logger.info(f"✅ Match gefunden im Volltext: " f"{best_match} (Score: {best_similarity:.2f})")
             return (True, best_similarity, "full_text")
 
-        logger.debug(f"Beste Volltext-Ähnlichkeit: {best_similarity:.2f} " f"(unter Threshold {threshold})")
-
-    # Strategie 3: Titel-Feld (letzter Fallback)
+    # Strategie 3: Titel-Feld
     if title:
         title_norm = normalize_name(title)
         similarity = calculate_name_similarity(expected_norm, title_norm)
 
         if similarity >= threshold:
-            logger.info(f"✅ Match gefunden im Titel: " f"{title} (Score: {similarity:.2f})")
+            if logger:
+                logger.info(f"✅ Match gefunden im Titel: " f"{title} (Score: {similarity:.2f})")
             return (True, similarity, "title_field")
 
-    logger.info(f"❌ Kein Author-Match gefunden für '{expected_author}'")
+    if logger:
+        logger.info(f"❌ Kein Author-Match gefunden für '{expected_author}'")
     return (False, 0.0, "no_match")
 
 
@@ -246,7 +264,8 @@ def filter_results_by_author(
         1
     """
     if not expected_author:
-        logger.debug("Kein Autor zum Filtern angegeben - gebe alle Ergebnisse zurück")
+        if logger:
+            logger.debug("Kein Autor zum Filtern angegeben - gebe alle Ergebnisse zurück")
         return results
 
     filtered_results = []
@@ -260,9 +279,10 @@ def filter_results_by_author(
             result["author_match_field"] = matched_field
             filtered_results.append(result)
 
-    logger.info(f"Autor-Filter: {len(filtered_results)}/{len(results)} " f"Ergebnisse passen zu '{expected_author}'")
+    if logger:
+        logger.info(f"Autor-Filter: {len(filtered_results)}/{len(results)} " f"Ergebnisse passen zu '{expected_author}'")
 
-    # Sortiere nach Ähnlichkeits-Score (beste zuerst)
+    # Sortiere nach Ähnlichkeits-Score
     filtered_results.sort(key=lambda x: x.get("author_match_score", 0.0), reverse=True)
 
     return filtered_results
@@ -922,13 +942,14 @@ class KoelnLibrarySearch:
 
         return truncated
 
-    def enhanced_search(
+    def search_with_author(
         self, search_term: str, expected_author: Optional[str] = None, search_type: str = "all", verbose: bool = False
     ) -> List[Dict[str, Any]]:
         """
-        Erweiterte Suche mit Author-Matching.
+        Suche mit optionalem Author-Matching.
 
-        Führt normale Suche durch und filtert Ergebnisse nach Autor falls angegeben.
+        Diese Methode sollte die normale search() Methode ersetzen
+        oder als Alternative angeboten werden.
 
         Args:
             search_term: Suchbegriff
@@ -937,11 +958,7 @@ class KoelnLibrarySearch:
             verbose: Ausführliches Logging
 
         Returns:
-            Liste gefilterte Suchergebnisse
-
-        Example:
-            >>> search = KoelnLibrarySearch()
-            >>> results = search.enhanced_search("Der Pate", expected_author="Coppola")
+            Liste (gefilterte) Suchergebnisse
         """
         # Normale Suche durchführen
         results = self.search(search_term, search_type, verbose)
@@ -952,7 +969,7 @@ class KoelnLibrarySearch:
         # Wenn Autor angegeben, filtere Ergebnisse
         if expected_author:
             logger.info(f"Filtere {len(results)} Ergebnisse nach Autor '{expected_author}'")
-            results = filter_results_by_author(results, expected_author)
+            results = filter_results_by_author(results, expected_author, threshold=0.7)
 
         return results
 

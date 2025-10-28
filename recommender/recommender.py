@@ -13,6 +13,7 @@ from .state import AppState
 from utils.blacklist import get_blacklist, Blacklist
 from utils.logging_config import get_logger
 from utils.borrowed_blacklist import get_borrowed_blacklist
+from library.search import filter_results_by_author
 
 logger = get_logger(__name__)
 
@@ -202,14 +203,30 @@ class Recommender:
 
         logger.debug(f"Suche nach: '{query}'")
 
-        # NEU: Nutze erweiterte Suche mit Author-Matching
-        hits: List[Dict[str, Any]] = self.library_search.enhanced_search(query, expected_author=item.get("author"))
+        # Normale Suche
+        hits: List[Dict[str, Any]] = self.library_search.search(query)
 
         # Keine Treffer → Blacklist
         if not hits or len(hits) == 0:
             logger.info(f"⚫ Keine Treffer für '{item['title']}' - wird geblacklistet")
             self.blacklist.add_to_blacklist(category, item, reason="Keine Treffer in Bibliothekskatalog")
             return None
+
+        expected_author = item.get("author", "")
+        if expected_author:
+            logger.info(f"Filtere {len(hits)} Treffer nach Autor '{expected_author}'")
+            filtered_hits = filter_results_by_author(hits, expected_author, threshold=0.7)
+
+            # NEU: Nutze erweiterte Suche mit Author-Matching
+            # hits: List[Dict[str, Any]] = self.library_search.enhanced_search(query, expected_author=item.get("author"))
+
+            # Wenn Filterung alle Treffer entfernt, verwende Original-Treffer
+            # (besser falsch-positive als gar nichts)
+            if filtered_hits:
+                hits = filtered_hits
+                logger.info(f"Nach Autor-Filter: {len(hits)} relevante Treffer")
+            else:
+                logger.warning("Autor-Filter hat alle Treffer entfernt, verwende Original-Treffer")
 
         # Spezielle Filterung für Filme: Prüfe auf "Uv" Kürzel
         if category == "films":
