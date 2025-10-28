@@ -60,28 +60,29 @@ class TestPersonFieldExtraction:
     """Tests für Person(en)-Feld Extraktion"""
 
     def test_extract_person_field_author(self):
-        """Test Extraktion von Autor"""
         text = "Person(en): Mühlhoff, Rainer Verfasser"
         result = extract_person_field(text)
-        assert result == "Mühlhoff, Rainer"
+        assert result == ["Mühlhoff, Rainer"]  # LISTE statt String
 
     def test_extract_person_field_director(self):
-        """Test Extraktion von Regisseur"""
         text = "Person(en): Coppola, Francis Ford Regisseur"
         result = extract_person_field(text)
-        assert result == "Coppola, Francis Ford"
+        assert result == ["Coppola, Francis Ford"]
 
     def test_extract_person_field_actor(self):
-        """Test Extraktion von Schauspieler"""
         text = "Person(en): Pacino, Al Schauspieler"
         result = extract_person_field(text)
-        assert result == "Pacino, Al"
+        assert result == ["Pacino, Al"]
 
     def test_extract_person_field_not_found(self):
-        """Test wenn kein Person(en)-Feld vorhanden"""
         text = "Nur normale Verfügbarkeit ohne Person"
         result = extract_person_field(text)
-        assert result is None
+        assert result == []  # Leere Liste statt None
+
+    def test_abbreviated_names(self):
+        result = {"title": "Test", "zentralbibliothek_info": "Person(en): King, S. Verfasser"}
+        match_found, score, _ = check_author_match(result, "Stephen King", threshold=0.8)
+        assert score <= 0.7  # Reduzierter Score für Abkürzungen
 
 
 class TestAuthorMatch:

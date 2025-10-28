@@ -52,10 +52,7 @@ def calculate_name_similarity(name1: str, name2: str) -> float:
     """
     Berechnet Ähnlichkeit zwischen zwei Namen.
 
-    Verwendet mehrere Heuristiken:
-    - SequenceMatcher für Gesamtähnlichkeit
-    - Wort-basierter Vergleich (Nachnamen-Match)
-    - Substring-Match
+    ERWEITERT: Besseres Handling für Abkürzungen und kurze Namen.
 
     Args:
         name1: Erster Name (normalisiert)
@@ -63,10 +60,6 @@ def calculate_name_similarity(name1: str, name2: str) -> float:
 
     Returns:
         Ähnlichkeits-Score (0.0 bis 1.0)
-
-    Example:
-        >>> calculate_name_similarity("francis ford coppola", "coppola")
-        0.95
     """
     if not name1 or not name2:
         return 0.0
@@ -85,12 +78,12 @@ def calculate_name_similarity(name1: str, name2: str) -> float:
     if not words1 or not words2:
         return sequence_score
 
-    # Jaccard-Ähnlichkeit für Wörter
+    # Jaccard-Ähnlichkeit
     intersection = len(words1.intersection(words2))
     union = len(words1.union(words2))
     word_score = intersection / union if union > 0 else 0.0
 
-    # Substring-Match (z.B. "Coppola" in "Francis Ford Coppola")
+    # Substring-Match
     substring_score = 0.0
     if name2 in name1 or name1 in name2:
         substring_score = 0.9
@@ -103,12 +96,28 @@ def calculate_name_similarity(name1: str, name2: str) -> float:
     if lastname1 and lastname2 and lastname1 == lastname2:
         lastname_score = 0.95
 
-    # Kombiniere Scores (gewichtet)
-    final_score = max(
-        sequence_score * 0.3 + word_score * 0.4 + substring_score * 0.3,
-        lastname_score,  # Nachnamen-Match ist stark
-        substring_score,  # Substring-Match ist auch stark
-    )
+    # NEUE: Abkürzungs-Erkennung
+    abbreviation_score = 0.0
+
+    # Prüfe ob name2 eine Abkürzung ist (z.B. "S." für "Stephen")
+    if len(words2) == 2:  # Format: "Nachname, Abk."
+        lastname_part = words2[-1]
+        abbrev_part = words2[0] if len(words2) > 1 else ""
+
+        # Ist es eine Abkürzung? (endet mit ".")
+        if abbrev_part and abbrev_part.endswith("."):
+            # Prüfe ob Nachname übereinstimmt
+            if lastname1 and lastname1 == lastname_part:
+                # Bei Abkürzungen: Reduziere Score (zu unsicher)
+                abbreviation_score = 0.6  # Niedriger Score für Abkürzungen
+
+    # Kombiniere Scores
+    if abbreviation_score > 0:
+        # Bei Abkürzungen: Verwende reduzierten Score
+        final_score = abbreviation_score
+    else:
+        # Normal: Verwende gewichteten Durchschnitt
+        final_score = max(sequence_score * 0.3 + word_score * 0.4 + substring_score * 0.3, lastname_score, substring_score)
 
     return final_score
 
@@ -118,20 +127,25 @@ def extract_person_field(availability_text: str) -> List[str]:
     Extrahiert ALLE Personen aus dem Person(en)-Feld.
 
     WICHTIG: Gibt Liste zurück, da mehrere Personen möglich!
+    Entfernt Rollen-Angaben wie [Regisseur], [Schauspieler], etc.
+
+    Args:
+        availability_text: Verfügbarkeitstext aus Bibliothek
 
     Returns:
-        Liste von Personen-Namen
+        Liste von bereinigten Personen-Namen
 
     Example:
-        >>> extract_person_field("Person(en): Spielberg, Steven [Regie] ; Law, Jude [Darst.]")
-        ['Spielberg, Steven', 'Law, Jude']
+        >>> text = "Person(en): Radford, Michael Regisseur ; Burton, Richard Schauspieler"
+        >>> extract_person_field(text)
+        ['Radford, Michael', 'Burton, Richard']
     """
     if not availability_text:
         return []
 
-    # Pattern für Person(en)-Feld
-    pattern = r"Person\(en\)\s*:\s*([^\n]+?)(?:\n|$)"
-    match = re.search(pattern, availability_text, re.IGNORECASE)
+    # Pattern für Person(en)-Feld (bis zum nächsten Feld oder Ende)
+    pattern = r"Person\(en\)\s*:\s*([^\n]+?)(?:\n[A-Z]|$)"
+    match = re.search(pattern, availability_text, re.IGNORECASE | re.DOTALL)
 
     if not match:
         return []
@@ -141,8 +155,38 @@ def extract_person_field(availability_text: str) -> List[str]:
     # Teile bei Semikolon (mehrere Personen)
     persons = []
     for person_part in persons_text.split(";"):
-        # Entferne Rollen-Angaben in eckigen Klammern
-        person = re.sub(r"\[.*?\]", "", person_part).strip()
+        # Entferne Rollen-Angaben (alles nach dem Namen)
+        # Pattern: Name gefolgt von Rolle
+        # z.B. "Radford, Michael Regisseur" -> "Radford, Michael"
+
+        # Bekannte Rollen
+        roles = [
+            "Regisseur",
+            "Schauspieler",
+            "Darsteller",
+            "Komponist",
+            "Interpret",
+            "Verfasser",
+            "Autor",
+            "Herausgeber",
+            "Sonstige",
+            "Mitwirkende",
+            "Mitwirkender",
+        ]
+
+        person = person_part.strip()
+
+        # Entferne alle Rollen-Angaben
+        for role in roles:
+            # Pattern: Rolle am Ende oder mit nachfolgendem Semikolon
+            person = re.sub(rf"\s+{role}\s*", "", person, flags=re.IGNORECASE)
+
+        # Entferne auch eckige Klammern (z.B. [Regie])
+        person = re.sub(r"\[.*?\]", "", person).strip()
+
+        # Entferne trailing Whitespace und Sonderzeichen
+        person = person.strip(" ,;")
+
         if person:
             persons.append(person)
 
@@ -153,10 +197,7 @@ def check_author_match(result: Dict[str, Any], expected_author: str, threshold: 
     """
     Prüft ob ein Suchergebnis zum erwarteten Autor/Künstler/Regisseur passt.
 
-    Strategie:
-    1. Prüfe Person(en)-Feld (primär)
-    2. Prüfe gesamten Verfügbarkeitstext (Fallback)
-    3. Prüfe Titel (letzter Fallback)
+    FIXED: Prüft nun ALLE Personen im Person(en)-Feld.
 
     Args:
         result: Suchergebnis-Dictionary
@@ -167,53 +208,46 @@ def check_author_match(result: Dict[str, Any], expected_author: str, threshold: 
         Tuple mit (match_found, similarity_score, matched_field)
 
     Example:
-        >>> result = {"zentralbibliothek_info": "Person(en): Coppola, Francis Ford"}
-        >>> check_author_match(result, "Francis Ford Coppola")
+        >>> result = {
+        ...     "zentralbibliothek_info":
+        ...     "Person(en): Radford, Michael Regisseur ; Burton, Richard Schauspieler"
+        ... }
+        >>> check_author_match(result, "Michael Radford")
         (True, 1.0, 'person_field')
     """
     if not expected_author:
-        if logger:
-            logger.debug("Kein erwarteter Autor angegeben")
         return (True, 1.0, "no_author_specified")
 
     expected_norm = normalize_name(expected_author)
     availability_text = result.get("zentralbibliothek_info", "")
     title = result.get("title", "")
 
-    if logger:
-        logger.debug(f"Prüfe Author-Match für '{expected_author}'")
-
     # Strategie 1: Person(en)-Feld - ALLE Personen prüfen
     persons = extract_person_field(availability_text)
 
     if persons:
         best_person_score = 0.0
-        best_person_name = None
+        # best_person_name = None
 
         for person in persons:
             person_norm = normalize_name(person)
             similarity = calculate_name_similarity(expected_norm, person_norm)
 
-            if logger:
-                logger.debug(f"Person '{person}' -> Ähnlichkeit: {similarity:.2f}")
-
             if similarity > best_person_score:
                 best_person_score = similarity
-                best_person_name = person
+                # best_person_name = person
 
         if best_person_score >= threshold:
-            if logger:
-                logger.info(f"✅ Match gefunden in Person(en)-Feld: " f"{best_person_name} (Score: {best_person_score:.2f})")
             return (True, best_person_score, "person_field")
 
     # Strategie 2: Gesamter Verfügbarkeitstext
     if availability_text:
-        # Suche nach Namen-Pattern im gesamten Text
+        # Suche nach Namen-Pattern
         name_pattern = r"\b([A-ZÄÖÜ][a-zäöüß]+(?:\s+[A-ZÄÖÜ][a-zäöüß]+)*)\b"
         potential_names = re.findall(name_pattern, availability_text)
 
         best_similarity = 0.0
-        best_match = None
+        # best_match = None
 
         for potential_name in potential_names:
             potential_norm = normalize_name(potential_name)
@@ -221,11 +255,9 @@ def check_author_match(result: Dict[str, Any], expected_author: str, threshold: 
 
             if similarity > best_similarity:
                 best_similarity = similarity
-                best_match = potential_name
+                # best_match = potential_name
 
         if best_similarity >= threshold:
-            if logger:
-                logger.info(f"✅ Match gefunden im Volltext: " f"{best_match} (Score: {best_similarity:.2f})")
             return (True, best_similarity, "full_text")
 
     # Strategie 3: Titel-Feld
@@ -234,12 +266,8 @@ def check_author_match(result: Dict[str, Any], expected_author: str, threshold: 
         similarity = calculate_name_similarity(expected_norm, title_norm)
 
         if similarity >= threshold:
-            if logger:
-                logger.info(f"✅ Match gefunden im Titel: " f"{title} (Score: {similarity:.2f})")
             return (True, similarity, "title_field")
 
-    if logger:
-        logger.info(f"❌ Kein Author-Match gefunden für '{expected_author}'")
     return (False, 0.0, "no_match")
 
 
