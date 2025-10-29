@@ -4,6 +4,7 @@ import json
 import re
 from typing import List, Dict, Any, Tuple, Optional
 from library.search import KoelnLibrarySearch
+from library.search import filter_results_by_author
 from recommender.recommender import Recommender
 from recommender.state import AppState
 from data_sources.films import fetch_wikipedia_titles
@@ -29,6 +30,7 @@ from utils.logging_config import get_logger
 from utils.borrowed_blacklist import get_borrowed_blacklist
 from utils.blacklist import get_blacklist
 from utils.io import DATA_DIR, save_recommendations_to_markdown
+from utils.favorites import get_favorites_manager
 
 logger = get_logger(__name__)
 
@@ -671,6 +673,91 @@ def initialize_recommendations() -> Tuple[List[Dict[str, Any]], List[Dict[str, A
     return film_suggestions, album_suggestions, book_suggestions
 
 
+def load_favorites_to_suggestions() -> Tuple[int, int, int]:
+    """
+    Lädt gespeicherte Favoriten und fügt sie zu den initialen Vorschlägen hinzu.
+
+    Returns:
+        Tuple mit (anzahl_filme, anzahl_alben, anzahl_bücher)
+    """
+    logger.info("=" * 60)
+    logger.info("⭐ LADE GESPEICHERTE FAVORITEN")
+    logger.info("=" * 60)
+
+    favorites_manager = get_favorites_manager()
+    all_favorites = favorites_manager.get_favorites()
+
+    counts = {"films": 0, "albums": 0, "books": 0}
+
+    for category, favorites in all_favorites.items():
+        if not favorites:
+            continue
+
+        logger.info(f"\n📂 {category.upper()}: {len(favorites)} Favoriten")
+
+        for fav in favorites:
+            title = fav["title"]
+            author = fav.get("author", "")
+            media_type = fav.get("media_type", "")
+            search_type = fav.get("search_type", "specific")
+
+            logger.info(f"  🔍 Suche: '{title}' von '{author}'")
+
+            # Suche nach dem Favoriten in der Bibliothek
+            try:
+                search_engine = KoelnLibrarySearch()
+
+                if search_type == "specific" and title:
+                    query = f"{title} {author} {media_type}".strip()
+                else:
+                    query = f"{author} {media_type}".strip()
+
+                results = search_engine.search(query)
+
+                # Filtere nach Autor falls vorhanden
+                if author and results:
+                    results = filter_results_by_author(results, author, threshold=0.7)
+
+                # Prüfe auf verfügbare Exemplare
+                available = [r for r in results if "verfügbar" in r.get("zentralbibliothek_info", "").lower()]
+
+                if available:
+                    # Füge zur Vorschlagsliste hinzu
+                    item = {
+                        "title": available[0].get("title", title),
+                        "author": author,
+                        "type": media_type,
+                        "bib_number": available[0].get(
+                            "zentralbibliothek_bestand", available[0].get("zentralbibliothek_info", "")
+                        )[:300],
+                        "source": "⭐ Favoriten (Gespeichert)",
+                    }
+
+                    current_suggestions[category].insert(0, item)
+                    counts[category] += 1
+
+                    logger.info(f"  ✅ Verfügbar! Hinzugefügt zu {category}")
+                else:
+                    logger.info("  ℹ️ Aktuell nicht verfügbar")
+
+            except Exception as e:
+                logger.error(f"  ❌ Fehler bei Suche: {e}")
+
+        # Kurze Pause zwischen Kategorien
+        if favorites:
+            import time
+
+            time.sleep(1)
+
+    total = sum(counts.values())
+    logger.info("\n" + "=" * 60)
+    logger.info(f"✅ {total} Favoriten geladen und verfügbar")
+    logger.info(f"   Filme: {counts['films']}, Alben: {counts['albums']}, Bücher: {counts['books']}")
+    logger.info("=" * 60 + "\n")
+
+    return counts["films"], counts["albums"], counts["books"]
+
+
 def get_initial_choices(suggestions: List[Dict[str, Any]]) -> List[str]:
     """
     Erstellt die Auswahloptionen für die initiale Anzeige.
@@ -748,9 +835,9 @@ def search_favorite_medium(author: str, title: str, media_type: str) -> Tuple[st
         logger.debug(f"Suchquery: '{query}'")
 
         # NEU: Nutze erweiterte Suche mit Author-Matching
-        from library.search import enhanced_search
+        # from library.search import search_with_author
 
-        results = enhanced_search(search_engine, query, expected_author=author)
+        results = search_engine.search_with_author(query, expected_author=author)
 
         if not results:
             # Keine Treffer - auf Blacklist
@@ -760,7 +847,17 @@ def search_favorite_medium(author: str, title: str, media_type: str) -> Tuple[st
 
         # Filtere und verarbeite Ergebnisse
         if title:
-            # Spezifisches Medium gesucht
+            # Spezifisches Medium gesucht - verwende Titel UND Autor
+            if author:
+                logger.info(f"Filtere nach Autor '{author}' und Titel '{title}'")
+
+                # NEU: Übergebe auch den Titel
+                filtered = filter_results_by_author(results, author, expected_title=title, threshold=0.7)  # NEU!
+
+                if filtered:
+                    results = filtered
+                    logger.info(f"Nach Filter: {len(results)} relevante Treffer")
+
             return _handle_specific_medium(results, title, author, media_type, category)
         else:
             # Alle Medien des Autors (max. 2)
@@ -770,6 +867,44 @@ def search_favorite_medium(author: str, title: str, media_type: str) -> Tuple[st
         logger.error(f"Unerwarteter Fehler in search_favorite_medium: {e}", exc_info=True)
         error_msg = f"❌ Ein Fehler ist aufgetreten: {str(e)}"
         return error_msg, "", gr.update(), gr.update(), gr.update()
+
+
+def show_saved_favorites() -> str:
+    """
+    Zeigt alle gespeicherten Favoriten an.
+
+    Returns:
+        Formatierte Liste aller Favoriten
+    """
+    favorites_manager = get_favorites_manager()
+    all_favorites = favorites_manager.get_favorites()
+
+    output = "## ⭐ Gespeicherte Favoriten\n\n"
+
+    total = sum(len(items) for items in all_favorites.values())
+
+    if total == 0:
+        return output + "_Noch keine Favoriten gespeichert._"
+
+    output += f"**Gesamt:** {total} Favoriten\n\n"
+
+    for category, favorites in all_favorites.items():
+        if not favorites:
+            continue
+
+        cat_name = {"films": "🎬 Filme", "albums": "🎵 Alben", "books": "📚 Bücher"}.get(category, category)
+
+        output += f"### {cat_name} ({len(favorites)})\n\n"
+
+        for fav in favorites:
+            output += f"- **{fav['title']}**"
+            if fav.get("author"):
+                output += f" - _{fav['author']}_"
+            output += f"\n  Hinzugefügt: {fav['added_at']}\n"
+
+        output += "\n"
+
+    return output
 
 
 def _get_category_from_media_type(media_type: str) -> str:
@@ -825,7 +960,8 @@ def _handle_specific_medium(
                         "title": result.get("title", title),
                         "author": author,
                         "type": media_type,
-                        "bib_number": zentralbib_info[:300] + match_info,  # Match-Info anhängen
+                        "bib_number": result.get("zentralbibliothek_bestand", zentralbib_info)[:300]
+                        + match_info,  # Match-Info anhängen
                         "source": "Favoriten (Individuelle Suche)",
                     }
                 )
@@ -838,6 +974,12 @@ def _handle_specific_medium(
         if available_items:
             item = available_items[0]
             _add_to_suggestions(category, item)
+
+            favorites_manager = get_favorites_manager()
+            favorites_manager.add_favorite(
+                category=category, title=title, author=author, media_type=media_type, search_type="specific"
+            )
+            logger.info(f"💾 Favorit gespeichert: '{title}'")
 
             success_msg = f"✅ '{item['title']}' gefunden und zu {_get_tab_name(category)} hinzugefügt!"
             result_text = f"📦 Gefunden: {item['title']}\n📍 Verfügbarkeit: {item['bib_number'][:200]}..."
@@ -889,7 +1031,7 @@ def _handle_artist_search(
                         "title": result_title,
                         "author": artist,
                         "type": media_type,
-                        "bib_number": zentralbib_info[:300],
+                        "bib_number": result.get("zentralbibliothek_bestand", zentralbib_info)[:300],  # GEÄNDERT
                         "source": "Favoriten (Künstler-Suche)",
                     }
                 )
@@ -918,10 +1060,18 @@ def _handle_artist_search(
             added_count = 0
             added_titles: List[str] = []
 
+            favorites_manager = get_favorites_manager()
+
             for item in available_items[:2]:
                 _add_to_suggestions(category, item)
                 added_titles.append(item["title"])
                 added_count += 1
+
+                # NEU: Speichere jeden als Favorit
+                favorites_manager.add_favorite(
+                    category=category, title=item["title"], author=artist, media_type=media_type, search_type="artist"
+                )
+                logger.info(f"💾 Favorit gespeichert: '{item['title']}'")
 
             success_msg = f"✅ {added_count} Medium/Medien von '{artist}' zu {_get_tab_name(category)} hinzugefügt!"
             result_text = f"📦 Gefunden von '{artist}':\n" + "\n".join(f"  • {t}" for t in added_titles)
@@ -1561,6 +1711,8 @@ books = load_or_fetch_books()
 # Globale Variablen für aktuelle Vorschläge
 current_suggestions: Dict[str, List[Dict[str, Any]]] = {"films": [], "albums": [], "books": []}
 
+fav_films, fav_albums, fav_books = load_favorites_to_suggestions()
+
 # Lade initiale Vorschläge
 logger.info("Initialisiere balancierte Empfehlungen...")
 initial_films, initial_albums, initial_books = initialize_recommendations()
@@ -2134,7 +2286,7 @@ with gr.Blocks(theme=create_custom_theme(), css=css, title="Bibliothek-Empfehlun
 
             Suchen Sie gezielt nach spezifischen Medien oder entdecken Sie Werke
             Ihrer Lieblingskünstler. Gefundene Medien werden automatisch zu den
-            entsprechenden Tabs hinzugefügt.
+            entsprechenden Tabs hinzugefügt und als Favoriten gespeichert.
             """
         )
 
@@ -2165,6 +2317,13 @@ with gr.Blocks(theme=create_custom_theme(), css=css, title="Bibliothek-Empfehlun
 
         fav_success_msg = gr.HTML(value="", visible=False, elem_classes=["success-message"])
 
+        gr.Markdown("---")
+
+        with gr.Row():
+            show_favorites_btn = gr.Button("📋 Gespeicherte Favoriten anzeigen", variant="secondary")
+
+        saved_favorites_display = gr.Markdown(value="", visible=False)
+
         gr.Markdown(
             """
             ---
@@ -2174,6 +2333,8 @@ with gr.Blocks(theme=create_custom_theme(), css=css, title="Bibliothek-Empfehlun
             - **Spezifische Suche**: Geben Sie Titel + Autor an für ein bestimmtes Medium
             - **Künstler-Suche**: Nur Autor angeben → findet bis zu 2 verfügbare Medien
             - **Automatische Integration**: Gefundene Medien erscheinen oben in den entsprechenden Tabs
+            - **Favoriten-Speicherung**: 💾 Erfolgreich gefundene Medien werden automatisch gespeichert
+            - **Beim nächsten Start**: ⭐ Gespeicherte Favoriten werden automatisch geladen und geprüft
             - **Intelligentes Tracking**:
               - 📅 Entliehene Medien werden automatisch überwacht
               - ⚫ Nicht gefundene Medien für 1 Jahr gespeichert
@@ -2195,6 +2356,10 @@ with gr.Blocks(theme=create_custom_theme(), css=css, title="Bibliothek-Empfehlun
             fn=lambda x: gr.update(visible=bool(x), value=x) if x else gr.update(visible=False),
             inputs=[fav_success_msg],
             outputs=[fav_success_msg],
+        )
+
+        show_favorites_btn.click(fn=show_saved_favorites, outputs=[saved_favorites_display]).then(
+            fn=lambda: gr.update(visible=True), outputs=[saved_favorites_display]
         )
 
     # Event Handler für globalen Speichern-Button

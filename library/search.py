@@ -72,8 +72,11 @@ def calculate_name_similarity(name1: str, name2: str) -> float:
     sequence_score = SequenceMatcher(None, name1, name2).ratio()
 
     # Wort-basierter Vergleich
-    words1 = set(name1.split())
-    words2 = set(name2.split())
+    words1_list = name1.split()
+    words2_list = name2.split()
+
+    words1 = set(words1_list)
+    words2 = set(words2_list)
 
     if not words1 or not words2:
         return sequence_score
@@ -89,8 +92,8 @@ def calculate_name_similarity(name1: str, name2: str) -> float:
         substring_score = 0.9
 
     # Nachnamen-Match (letztes Wort)
-    lastname1 = name1.split()[-1] if name1.split() else ""
-    lastname2 = name2.split()[-1] if name2.split() else ""
+    lastname1 = words1_list[-1] if words1_list else ""
+    lastname2 = words2_list[-1] if words2_list else ""
 
     lastname_score = 0.0
     if lastname1 and lastname2 and lastname1 == lastname2:
@@ -100,9 +103,9 @@ def calculate_name_similarity(name1: str, name2: str) -> float:
     abbreviation_score = 0.0
 
     # Prüfe ob name2 eine Abkürzung ist (z.B. "S." für "Stephen")
-    if len(words2) == 2:  # Format: "Nachname, Abk."
-        lastname_part = words2[-1]
-        abbrev_part = words2[0] if len(words2) > 1 else ""
+    if len(words2_list) >= 1:
+        lastname_part = words2_list[-1]
+        abbrev_part = words2_list[0] if len(words2) > 1 else ""
 
         # Ist es eine Abkürzung? (endet mit ".")
         if abbrev_part and abbrev_part.endswith("."):
@@ -141,25 +144,33 @@ def extract_person_field(availability_text: str) -> List[str]:
         ['Radford, Michael', 'Burton, Richard']
     """
     if not availability_text:
+        logger.debug("    ⚠️ Kein Verfügbarkeitstext vorhanden")
         return []
 
-    # Pattern für Person(en)-Feld (bis zum nächsten Feld oder Ende)
-    pattern = r"Person\(en\)\s*:\s*([^\n]+?)(?:\n[A-Z]|$)"
+    # GEFIXT: Pattern muss auch mit Leerzeichen statt Zeilenumbrüchen funktionieren
+    # Suche nach "Person(en) :" bis zum nächsten großgeschriebenen Feld
+    pattern = r"Person\(en\)\s*:\s*(.+?)(?:\s+(?:Erschienen|Umfang|Ausgabe|Anmerkungen|Original|FSK|Sprachen|ISMN|EAN|Notation|Bestand)|$)"
     match = re.search(pattern, availability_text, re.IGNORECASE | re.DOTALL)
 
     if not match:
+        logger.debug("    ⚠️ Person(en)-Feld nicht im Text gefunden")
+        logger.debug(f"    Text-Anfang (200 Zeichen): '{availability_text[:200]}'")
         return []
 
     persons_text = match.group(1).strip()
+    logger.debug(f"    ✓ Person(en) Rohtext gefunden ({len(persons_text)} Zeichen): '{persons_text[:150]}'")
+
+    # WICHTIG: Ersetze alle Whitespace-Kombinationen durch einzelnes Leerzeichen
+    persons_text = re.sub(r"\s+", " ", persons_text)
+    logger.debug(f"    Normalisiert: '{persons_text[:150]}'")
 
     # Teile bei Semikolon (mehrere Personen)
-    persons = []
-    for person_part in persons_text.split(";"):
-        # Entferne Rollen-Angaben (alles nach dem Namen)
-        # Pattern: Name gefolgt von Rolle
-        # z.B. "Radford, Michael Regisseur" -> "Radford, Michael"
+    parts = persons_text.split(";")
+    logger.debug(f"    Aufgeteilt in {len(parts)} Teil(e)")
 
-        # Bekannte Rollen
+    persons = []
+    for idx, person_part in enumerate(parts, 1):
+        # Entferne Rollen-Angaben
         roles = [
             "Regisseur",
             "Schauspieler",
@@ -175,21 +186,23 @@ def extract_person_field(availability_text: str) -> List[str]:
         ]
 
         person = person_part.strip()
+        original = person
 
         # Entferne alle Rollen-Angaben
         for role in roles:
-            # Pattern: Rolle am Ende oder mit nachfolgendem Semikolon
             person = re.sub(rf"\s+{role}\s*", "", person, flags=re.IGNORECASE)
 
-        # Entferne auch eckige Klammern (z.B. [Regie])
+        # Entferne auch eckige Klammern
         person = re.sub(r"\[.*?\]", "", person).strip()
-
-        # Entferne trailing Whitespace und Sonderzeichen
         person = person.strip(" ,;")
 
         if person:
             persons.append(person)
+            logger.debug(f"    Person {idx}: '{original}' -> '{person}'")
+        else:
+            logger.debug(f"    Person {idx}: '{original}' -> LEER (übersprungen)")
 
+    logger.debug(f"    ✓ Extrahiert: {len(persons)} Person(en): {persons}")
     return persons
 
 
@@ -222,96 +235,169 @@ def check_author_match(result: Dict[str, Any], expected_author: str, threshold: 
     availability_text = result.get("zentralbibliothek_info", "")
     title = result.get("title", "")
 
+    logger.debug("\n  🔍 Check Author Match")
+    logger.debug(f"  Erwarteter Autor: '{expected_author}'")
+    logger.debug(f"  Normalisiert: '{expected_norm}'")
+    logger.debug(f"  Titel: '{title}'")
+    logger.debug(f"  Verfügbarkeitstext vorhanden: {len(availability_text)} Zeichen")
+
+    # Strategie 1: Person(en)-Feld - ALLE Personen prüfen
+    logger.debug("  📋 Strategie 1: Person(en)-Feld")
     # Strategie 1: Person(en)-Feld - ALLE Personen prüfen
     persons = extract_person_field(availability_text)
 
     if persons:
+        logger.debug(f"  ➡️ {len(persons)} Person(en) gefunden")
         best_person_score = 0.0
-        # best_person_name = None
+        best_person_name = None
 
         for person in persons:
             person_norm = normalize_name(person)
             similarity = calculate_name_similarity(expected_norm, person_norm)
 
+            logger.debug(f"    • '{person}'")
+            logger.debug(f"      Normalisiert: '{person_norm}'")
+            logger.debug(f"      Score: {similarity:.3f}")
+
             if similarity > best_person_score:
                 best_person_score = similarity
-                # best_person_name = person
+                best_person_name = person
+
+        logger.info(f"  🏆 Bester Match: '{best_person_name}' (Score: {best_person_score:.3f})")
 
         if best_person_score >= threshold:
+            logger.debug(f"  ✅ MATCH über Person(en)-Feld! (Score {best_person_score:.3f} >= {threshold})")
             return (True, best_person_score, "person_field")
+        else:
+            logger.debug(f"  ❌ Person(en)-Feld Score zu niedrig ({best_person_score:.3f} < {threshold})")
+    else:
+        logger.debug("  ❌ Keine Personen im Person(en)-Feld gefunden")
 
-    # Strategie 2: Gesamter Verfügbarkeitstext
+        # Strategie 2: Gesamter Verfügbarkeitstext
+    logger.debug("  📋 Strategie 2: Volltext-Suche")
     if availability_text:
         # Suche nach Namen-Pattern
         name_pattern = r"\b([A-ZÄÖÜ][a-zäöüß]+(?:\s+[A-ZÄÖÜ][a-zäöüß]+)*)\b"
         potential_names = re.findall(name_pattern, availability_text)
 
-        best_similarity = 0.0
-        # best_match = None
+        logger.debug(f"  ➡️ {len(potential_names)} potentielle Namen gefunden")
 
-        for potential_name in potential_names:
+        best_similarity = 0.0
+        best_match = None
+
+        for potential_name in potential_names[:10]:  # Nur erste 10 zeigen
             potential_norm = normalize_name(potential_name)
             similarity = calculate_name_similarity(expected_norm, potential_norm)
 
+            if similarity > 0.3:  # Nur relevante zeigen
+                logger.debug(f"    • '{potential_name}' -> Score: {similarity:.3f}")
+
             if similarity > best_similarity:
                 best_similarity = similarity
-                # best_match = potential_name
+                best_match = potential_name
 
         if best_similarity >= threshold:
+            logger.debug(f"  ✅ MATCH über Volltext: '{best_match}' (Score: {best_similarity:.3f})")
             return (True, best_similarity, "full_text")
+        else:
+            logger.debug(f"  ❌ Volltext Score zu niedrig ({best_similarity:.3f} < {threshold})")
 
     # Strategie 3: Titel-Feld
+    logger.debug("  📋 Strategie 3: Titel-Feld")
     if title:
         title_norm = normalize_name(title)
         similarity = calculate_name_similarity(expected_norm, title_norm)
 
-        if similarity >= threshold:
-            return (True, similarity, "title_field")
+        logger.debug(f"  Titel normalisiert: '{title_norm}'")
+        logger.debug(f"  Score: {similarity:.3f}")
 
+        if similarity >= threshold:
+            logger.debug("  ✅ MATCH über Titel-Feld!")
+            return (True, similarity, "title_field")
+        else:
+            logger.debug("  ❌ Titel Score zu niedrig")
+
+    logger.info(f"  ❌ KEIN MATCH gefunden (Schwellwert: {threshold})\n")
     return (False, 0.0, "no_match")
 
 
 def filter_results_by_author(
-    results: List[Dict[str, Any]], expected_author: str, threshold: float = 0.7
+    results: List[Dict[str, Any]],
+    expected_author: str,
+    expected_title: Optional[str] = None,  # NEU: Optional Titel-Parameter
+    threshold: float = 0.7,
 ) -> List[Dict[str, Any]]:
     """
-    Filtert Suchergebnisse nach Autor/Künstler/Regisseur.
+    Filtert Suchergebnisse nach Autor/Künstler/Regisseur und optional Titel.
 
     Args:
         results: Liste von Suchergebnissen
         expected_author: Erwarteter Autor/Künstler/Regisseur
+        expected_title: Erwarteter Titel (optional, für besseres Ranking)
         threshold: Mindest-Ähnlichkeit (default: 0.7)
 
     Returns:
-        Gefilterte Liste mit passenden Ergebnissen
-
-    Example:
-        >>> results = [{"title": "Film 1", "zentralbibliothek_info": "Person(en): Coppola"}]
-        >>> filtered = filter_results_by_author(results, "Francis Ford Coppola")
-        >>> len(filtered)
-        1
+        Gefilterte Liste mit passenden Ergebnissen, sortiert nach Gesamt-Score
     """
     if not expected_author:
-        if logger:
-            logger.debug("Kein Autor zum Filtern angegeben - gebe alle Ergebnisse zurück")
+        logger.debug("Kein Autor zum Filtern angegeben - gebe alle Ergebnisse zurück")
         return results
+
+    logger.info(f"=== STARTE AUTOR-FILTERUNG für '{expected_author}' ===")
+    if expected_title:
+        logger.info(f"Mit Titel-Matching für: '{expected_title}'")
+    logger.info(f"Zu prüfen: {len(results)} Ergebnisse")
 
     filtered_results = []
 
-    for result in results:
-        match_found, similarity, matched_field = check_author_match(result, expected_author, threshold)
+    for i, result in enumerate(results, 1):
+        logger.info(f"\n--- Ergebnis {i}/{len(results)} ---")
+        logger.info(f"Titel: '{result.get('title', 'KEIN TITEL')}'")
 
-        if match_found:
-            # Füge Match-Info zum Result hinzu
-            result["author_match_score"] = similarity
-            result["author_match_field"] = matched_field
-            filtered_results.append(result)
+        # Autor-Match prüfen
+        match_found, author_similarity, matched_field = check_author_match(result, expected_author, threshold)
 
-    if logger:
-        logger.info(f"Autor-Filter: {len(filtered_results)}/{len(results)} " f"Ergebnisse passen zu '{expected_author}'")
+        # NEU: Titel-Match prüfen (falls Titel angegeben)
+        title_similarity = 0.0
+        if expected_title and result.get("title"):
+            result_title_norm = normalize_name(result["title"])
+            expected_title_norm = normalize_name(expected_title)
+            title_similarity = calculate_name_similarity(expected_title_norm, result_title_norm)
+            logger.info(f"📝 Titel-Match: '{result['title']}' -> Score: {title_similarity:.2f}")
 
-    # Sortiere nach Ähnlichkeits-Score
-    filtered_results.sort(key=lambda x: x.get("author_match_score", 0.0), reverse=True)
+        # NEU: Kombinierter Score
+        if expected_title:
+            # Gewichte: 60% Autor, 40% Titel
+            combined_score = (author_similarity * 0.6) + (title_similarity * 0.4)
+            logger.info(
+                f"🎯 Kombinierter Score: {combined_score:.2f} (Autor: {author_similarity:.2f} × 0.6 + Titel: {title_similarity:.2f} × 0.4)"
+            )
+
+            # Akzeptiere wenn kombinierter Score über Threshold ODER perfekter Titel-Match
+            if combined_score >= threshold or title_similarity >= 0.95:
+                result["author_match_score"] = author_similarity
+                result["title_match_score"] = title_similarity
+                result["combined_score"] = combined_score
+                result["author_match_field"] = matched_field
+                filtered_results.append(result)
+                logger.info(f"✅ AKZEPTIERT (Combined Score: {combined_score:.2f})")
+            else:
+                logger.info(f"❌ ABGELEHNT (Combined Score {combined_score:.2f} < {threshold})")
+        else:
+            # Nur Autor-Match (wie bisher)
+            if match_found:
+                result["author_match_score"] = author_similarity
+                result["combined_score"] = author_similarity
+                result["author_match_field"] = matched_field
+                filtered_results.append(result)
+                logger.info(f"✅ AKZEPTIERT (Score: {author_similarity:.2f})")
+            else:
+                logger.info(f"❌ ABGELEHNT (Score unter {threshold})")
+
+    logger.info(f"\n=== FILTER-ERGEBNIS: {len(filtered_results)}/{len(results)} ===\n")
+
+    # Sortiere nach kombiniertem Score (oder Autor-Score falls kein Titel)
+    filtered_results.sort(key=lambda x: x.get("combined_score", 0.0), reverse=True)
 
     return filtered_results
 
@@ -641,14 +727,16 @@ class KoelnLibrarySearch:
 
     def get_availability_details(self, detail_url: str, verbose: bool = False) -> Dict[str, Any]:
         """
-        Ruft die Detailseite auf und extrahiert Bestandsinformationen.
+        Ruft die Detailseite auf und extrahiert Bestandsinformationen UND Metadaten.
 
         Args:
             detail_url: URL zur Detailseite
             verbose: Ausführliches Logging
 
         Returns:
-            Bestandsinformationen mit Standort als Key
+            Dictionary mit zwei Keys pro Standort:
+                - "{standort}": Nur Bestandsinfo (für Anzeige)
+                - "{standort}_full": Metadaten + Bestandsinfo (für Author-Matching)
         """
         if not detail_url or detail_url.strip().lower().startswith("javascript:"):
             logger.debug(f"Ungültige Detail-URL übersprungen: {detail_url}")
@@ -669,6 +757,33 @@ class KoelnLibrarySearch:
 
             soup = BeautifulSoup(detail_response.text, "html.parser")
             availability_info: Dict[str, Any] = {}
+
+            # NEU: Extrahiere die vollständigen Metadaten (für Author-Matching)
+            detail_table = soup.find("table", class_="OuterSearchResultDetailTable")
+
+            full_metadata = ""
+            if detail_table:
+                rows = detail_table.find_all("tr")
+                for row in rows:
+                    row_text = row.get_text(separator=" ", strip=True)
+                    if row_text:
+                        full_metadata += row_text + "\n"
+
+                logger.debug(f"✓ Vollständige Metadaten extrahiert: {len(full_metadata)} Zeichen")
+            else:
+                all_tables = soup.find_all("table")
+                logger.debug(f"Kein OuterSearchResultDetailTable, suche in {len(all_tables)} Tabellen")
+
+                for table in all_tables:
+                    table_text = table.get_text(separator=" ", strip=True)
+                    if "Person(en)" in table_text or "Titel" in table_text:
+                        full_metadata = table_text
+                        logger.debug(f"✓ Metadaten in anderer Tabelle gefunden: {len(full_metadata)} Zeichen")
+                        break
+
+                if not full_metadata:
+                    full_metadata = soup.get_text(separator=" ", strip=True)
+                    logger.debug(f"Fallback: Verwende Seitentext: {len(full_metadata)} Zeichen")
 
             # Methode 1: Suche nach div-Elementen mit "stock_header_" ID
             stock_headers = soup.find_all("div", id=lambda x: x and "stock_header" in x)
@@ -706,62 +821,75 @@ class KoelnLibrarySearch:
                         current = current.next_sibling
 
                     if next_siblings:
-                        availability_info[location_text] = next_siblings
-                        logger.debug(f"Für {location_text} gefunden: {next_siblings}")
+                        # Nur Bestandsinfo (für Anzeige in GUI)
+                        bestand_info = " ".join(next_siblings)
+                        availability_info[location_text] = bestand_info
 
-            # Methode 2: Falls Methode 1 nicht funktioniert, suche nach Tabellen
+                        # Vollständige Info mit Metadaten (für Author-Matching)
+                        combined_info = full_metadata + "\n" + bestand_info
+                        availability_info[f"{location_text}_full"] = combined_info
+
+                        logger.debug(f"✓ Für {location_text}:")
+                        logger.debug(f"  Bestandsinfo: {len(bestand_info)} Zeichen")
+                        logger.debug(f"  Full (mit Metadaten): {len(combined_info)} Zeichen")
+
+            # Methode 2: Fallback für Tabellen
             if not availability_info:
-                print("DEBUG: Fallback - suche nach Tabellen mit Bestandsinfo")
+                logger.debug("Fallback - suche nach Tabellen mit Bestandsinfo")
                 tables = soup.find_all("table")
                 for table in tables:
                     rows = table.find_all("tr")
                     current_location = None
+                    bestand_text = ""
 
                     for row in rows:
                         cells = row.find_all(["td", "th"])
                         for cell in cells:
                             cell_text = cell.get_text(strip=True)
 
-                            # Prüfe, ob es ein Standort-Header ist
-                            if any(loc in cell_text.lower() for loc in ["zentralbibliothek", "ehrenfeld", "kalk", "nippes"]):
+                            if any(loc in cell_text.lower() for loc in locations):
                                 current_location = cell_text
-                                availability_info[current_location] = []
-                                print(f"DEBUG: Tabellen-Standort gefunden: {current_location}")
+                                bestand_text = ""
+                                logger.debug(f"Tabellen-Standort gefunden: {current_location}")
 
-                            # Sammle Informationen für aktuellen Standort
                             elif current_location and cell_text and len(cell_text) > 10:
-                                availability_info[current_location].append(cell_text)
-                                print(f"DEBUG: Info für {current_location}: {cell_text}")
+                                bestand_text += " " + cell_text
 
-            # Methode 3: Suche nach allem was nach "Bestand" Header kommt
+                    if current_location and bestand_text:
+                        availability_info[current_location] = bestand_text.strip()
+                        availability_info[f"{current_location}_full"] = full_metadata + "\n" + bestand_text
+
+            # Methode 3: Fallback für Bestand-Header
             if not availability_info:
-                print("DEBUG: Fallback - suche nach Bestand-Text")
+                logger.debug("Fallback - suche nach Bestand-Text")
                 bestand_headers = soup.find_all(string=lambda text: text and "bestand" in text.lower())
 
                 for header in bestand_headers:
                     parent = header.parent
                     if parent:
-                        # Finde alle nachfolgenden Elemente
-                        next_elements = parent.find_all_next(["div", "td", "p", "span"])[:20]  # Limitiere auf 20 Elemente
-
+                        next_elements = parent.find_all_next(["div", "td", "p", "span"])[:20]
                         current_location = None
+                        bestand_text = ""
+
                         for elem in next_elements:
                             elem_text = elem.get_text(strip=True)
 
-                            # print("Methode 3: elem_text", elem_text)
-
-                            if any(loc in elem_text.lower() for loc in ["zentralbibliothek", "ehrenfeld"]):
+                            if any(loc in elem_text.lower() for loc in locations):
                                 current_location = elem_text
-                                availability_info[current_location] = []
-                                print(f"DEBUG: Bestand-Standort gefunden: {current_location}")
+                                bestand_text = ""
+                                logger.debug(f"Bestand-Standort gefunden: {current_location}")
                             elif current_location and elem_text and len(elem_text) > 5:
-                                # Stoppe bei nächstem Standort
-                                if not any(loc in elem_text.lower() for loc in ["zentralbibliothek", "ehrenfeld"]):
-                                    availability_info[current_location].append(elem_text)
-                                    print(f"DEBUG: Bestand-Info für {current_location}: {elem_text[:50]}...")
+                                if not any(loc in elem_text.lower() for loc in locations):
+                                    bestand_text += " " + elem_text
+
+                        if current_location and bestand_text:
+                            availability_info[current_location] = bestand_text.strip()
+                            availability_info[f"{current_location}_full"] = full_metadata + "\n" + bestand_text
 
             if verbose:
-                logger.debug(f"Finale availability_info: {availability_info}")
+                logger.debug(f"Finale availability_info: {len(availability_info)} Keys")
+                for key in availability_info.keys():
+                    logger.debug(f"  {key}: {len(availability_info[key])} Zeichen")
 
             return availability_info
 
@@ -769,25 +897,44 @@ class KoelnLibrarySearch:
             logger.error(f"Fehler beim Abrufen der Detailseite: {e}", exc_info=True)
             return {}
 
-    def get_zentralbibliothek_info(self, detail_url: str) -> str:
+    def get_zentralbibliothek_info(self, detail_url: str, return_full: bool = False) -> str:
         """
         Extrahiert speziell die Informationen für die Zentralbibliothek.
 
         Args:
             detail_url: URL zur Detailseite
+            return_full: True = Metadaten + Bestand (für Author-Matching)
+                         False = Nur Bestand (für GUI-Anzeige)
 
         Returns:
             Bestandsinformation der Zentralbibliothek oder leerer String
         """
         availability = self.get_availability_details(detail_url)
 
-        for location, info in availability.items():
-            if "zentralbibliothek" in location.lower():
-                if isinstance(info, list):
-                    return " ".join(info)
-                else:
-                    return str(info)
+        logger.debug(f"Verfügbarkeit für {detail_url[:50]}...: {len(availability)} Keys")
 
+        for location_key in availability.keys():
+            # Prüfe ob es ein Zentralbibliothek-Key ist (nicht "_full")
+            if "zentralbibliothek" in location_key.lower() and not location_key.endswith("_full"):
+                if return_full:
+                    # Hole die Full-Version mit Metadaten
+                    full_key = f"{location_key}_full"
+                    if full_key in availability:
+                        result = availability[full_key]
+                        logger.debug(f"Zentralbibliothek-Info (FULL) gefunden: {len(result)} Zeichen")
+                        return result
+                    else:
+                        # Fallback auf normale Version
+                        result = availability[location_key]
+                        logger.debug(f"Zentralbibliothek-Info (Fallback) gefunden: {len(result)} Zeichen")
+                        return result
+                else:
+                    # Nur Bestandsinfo (für GUI)
+                    result = availability[location_key]
+                    logger.debug(f"Zentralbibliothek-Info (Bestand) gefunden: {len(result)} Zeichen")
+                    return result
+
+        logger.debug("Keine Zentralbibliothek-Info gefunden")
         return ""
 
     def _extract_item_data(self, item: Any, verbose: bool = False) -> Optional[Dict[str, Any]]:
@@ -825,8 +972,7 @@ class KoelnLibrarySearch:
                 else:
                     link = href
 
-                if verbose:
-                    logger.debug(f"Extrahierter Detail-Link: {link}")
+                logger.debug(f"📎 Detail-Link für '{title}': {link}")
 
         author = ""
         year = ""
@@ -856,7 +1002,21 @@ class KoelnLibrarySearch:
                 availability = avail_text
 
         if title:
-            zentralbibliothek_info = self.get_zentralbibliothek_info(link)
+            logger.info(f"🔗 Rufe Detailseite auf für: '{title}'")
+
+            # Hole beide Versionen:
+            # 1. Nur Bestand (für GUI-Anzeige)
+            zentralbibliothek_info = self.get_zentralbibliothek_info(link, return_full=False)
+            # 2. Full mit Metadaten (für Author-Matching)
+            zentralbibliothek_info_full = self.get_zentralbibliothek_info(link, return_full=True)
+
+            logger.info(f"📦 Zentralbibliothek-Info erhalten: {len(zentralbibliothek_info)} Zeichen (Bestand)")
+            logger.info(f"📦 Zentralbibliothek-Info (Full): {len(zentralbibliothek_info_full)} Zeichen")
+
+            if zentralbibliothek_info:
+                logger.debug(f"   Bestand (erste 200): '{zentralbibliothek_info[:200]}'")
+            else:
+                logger.warning("   ⚠️ KEINE Bestandsinfo erhalten!")
 
             return {
                 "title": title,
@@ -865,7 +1025,8 @@ class KoelnLibrarySearch:
                 "material_type": material_type,
                 "link": link,
                 "availability": availability,
-                "zentralbibliothek_info": zentralbibliothek_info,
+                "zentralbibliothek_info": zentralbibliothek_info_full,  # Full für Author-Matching!
+                "zentralbibliothek_bestand": zentralbibliothek_info,  # Nur Bestand für Anzeige
             }
 
         return None
@@ -888,11 +1049,6 @@ class KoelnLibrarySearch:
             >>> print(genres)
             ['Drama', 'Thriller']
         """
-        import re
-        from utils.logging_config import get_logger
-
-        logger = get_logger(__name__)
-
         if not description:
             return []
 
@@ -924,17 +1080,11 @@ class KoelnLibrarySearch:
             >>> print(is_film)
             True
         """
-        from utils.logging_config import get_logger
-
-        logger = get_logger(__name__)
-
         if not description:
             logger.debug("Keine Beschreibung vorhanden")
             return False
 
         # Prüfe auf "Uv" Kürzel (mit Wortgrenzen)
-        import re
-
         has_uv = bool(re.search(r"\bUv\b", description))
 
         logger.debug(f"Film-Check (Uv): {has_uv}")
@@ -956,10 +1106,6 @@ class KoelnLibrarySearch:
             >>> print(short)
             'Eine sehr lange Be...'
         """
-        from utils.logging_config import get_logger
-
-        logger = get_logger(__name__)
-
         if not description or len(description) <= max_length:
             return description
 

@@ -213,20 +213,23 @@ class Recommender:
             return None
 
         expected_author = item.get("author", "")
+        expected_title = item.get("title", "")  # NEU: Hole auch Titel
+
         if expected_author:
-            logger.info(f"Filtere {len(hits)} Treffer nach Autor '{expected_author}'")
-            filtered_hits = filter_results_by_author(hits, expected_author, threshold=0.7)
+            logger.info(f"Filtere {len(hits)} Treffer nach Autor '{expected_author}' und Titel '{expected_title}'")
 
-            # NEU: Nutze erweiterte Suche mit Author-Matching
-            # hits: List[Dict[str, Any]] = self.library_search.enhanced_search(query, expected_author=item.get("author"))
+            # NEU: Übergebe auch den Titel
+            filtered_hits = filter_results_by_author(
+                hits, expected_author, expected_title=expected_title, threshold=0.7  # NEU!
+            )
 
-            # Wenn Filterung alle Treffer entfernt, verwende Original-Treffer
-            # (besser falsch-positive als gar nichts)
             if filtered_hits:
                 hits = filtered_hits
-                logger.info(f"Nach Autor-Filter: {len(hits)} relevante Treffer")
+                logger.info(f"Nach Autor+Titel-Filter: {len(hits)} relevante Treffer")
             else:
-                logger.warning("Autor-Filter hat alle Treffer entfernt, verwende Original-Treffer")
+                logger.warning("Filter hat alle Treffer entfernt, verwende Original-Treffer")
+                self.blacklist.add_to_blacklist(category, item, reason="Keine exakten Treffer in Bibliothekskatalog")
+                return None
 
         # Spezielle Filterung für Filme: Prüfe auf "Uv" Kürzel
         if category == "films":
@@ -292,7 +295,9 @@ class Recommender:
 
             # Kopiere das Item und füge bib_number hinzu
             result_item: Dict[str, Any] = item.copy()
-            result_item["bib_number"] = truncated_info
+            # WICHTIG: Verwende "zentralbibliothek_bestand" für die Anzeige, nicht "zentralbibliothek_info"!
+            bestand_info = available[0].get("zentralbibliothek_bestand", available[0].get("zentralbibliothek_info", ""))
+            result_item["bib_number"] = Recommender._truncate_text(bestand_info, max_length=300)
 
             logger.debug(f"Verfügbarkeit gekürzt: {len(combined_info)} -> " f"{len(truncated_info)} Zeichen")
 
