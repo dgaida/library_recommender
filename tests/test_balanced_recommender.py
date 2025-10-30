@@ -17,19 +17,32 @@ class TestBalancedRecommender:
     """Tests für balancierte Empfehlungs-Verteilung."""
 
     @pytest.fixture
-    def mock_library_search(self):
-        """Mock für KoelnLibrarySearch mit UV-Kürzel für Filme."""
+    def mock_library_search(self, sample_films):
+        """Mock mit dynamischen Antworten basierend auf Query."""
         mock = Mock()
-        # WICHTIG: Alle Film-Mocks müssen "Uv" enthalten
-        mock.search = Mock(
-            return_value=[
+
+        def mock_search(query):
+            # Suche passenden Film in sample_films
+            for film in sample_films:
+                if film["title"] in query:
+                    return [
+                        {
+                            "title": film["title"],
+                            "author": film["author"],
+                            "zentralbibliothek_info": f"Uv *Drama* verfügbar - {film['title']}",
+                        }
+                    ]
+
+            # Fallback
+            return [
                 {
-                    "title": "Test Film",
-                    "author": "Test Director",
-                    "zentralbibliothek_info": "Uv *Drama* verfügbar in Zentralbibliothek",
+                    "title": sample_films[0]["title"],
+                    "author": sample_films[0]["author"],
+                    "zentralbibliothek_info": "Uv *Drama* verfügbar",
                 }
             ]
-        )
+
+        mock.search = Mock(side_effect=mock_search)
         return mock
 
     @pytest.fixture

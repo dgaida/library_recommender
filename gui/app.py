@@ -1711,16 +1711,16 @@ books = load_or_fetch_books()
 # Globale Variablen für aktuelle Vorschläge
 current_suggestions: Dict[str, List[Dict[str, Any]]] = {"films": [], "albums": [], "books": []}
 
-fav_films, fav_albums, fav_books = load_favorites_to_suggestions()
-
 # Lade initiale Vorschläge
 logger.info("Initialisiere balancierte Empfehlungen...")
 initial_films, initial_albums, initial_books = initialize_recommendations()
 
-# Erstelle initiale Auswahloptionen
-initial_film_choices = get_initial_choices(initial_films)
-initial_album_choices = get_initial_choices(initial_albums)
-initial_book_choices = get_initial_choices(initial_books)
+fav_films, fav_albums, fav_books = load_favorites_to_suggestions()
+
+# Choices aus current_suggestions erstellen (jetzt mit Favoriten!)
+initial_film_choices = get_initial_choices(current_suggestions["films"])
+initial_album_choices = get_initial_choices(current_suggestions["albums"])
+initial_book_choices = get_initial_choices(current_suggestions["books"])
 
 
 def create_custom_theme() -> gr.Theme:
