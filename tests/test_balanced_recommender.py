@@ -17,28 +17,35 @@ class TestBalancedRecommender:
     """Tests für balancierte Empfehlungs-Verteilung."""
 
     @pytest.fixture
-    def mock_library_search(self, sample_films):
-        """Mock mit dynamischen Antworten basierend auf Query."""
+    def mock_library_search(self):
+        """
+        FIXED: Mock gibt jetzt dynamisch korrekte Daten zurück.
+
+        Statt immer "BBC Film 1" → gibt den gesuchten Film zurück.
+        """
         mock = Mock()
 
         def mock_search(query):
-            # Suche passenden Film in sample_films
-            for film in sample_films:
-                if film["title"] in query:
-                    return [
-                        {
-                            "title": film["title"],
-                            "author": film["author"],
-                            "zentralbibliothek_info": f"Uv *Drama* verfügbar - {film['title']}",
-                        }
-                    ]
+            """Dynamischer Mock basierend auf Query"""
+            # Extrahiere Namen aus Query
+            # Query Format: "Radio Album 1 Radio Artist 1 CD"
+            parts = query.split()
 
-            # Fallback
+            # Versuche Titel und Autor zu extrahieren
+            # Annahme: Erste 2-3 Wörter sind Titel
+            if len(parts) >= 2:
+                # Nimm erste Wörter als Titel
+                title = " ".join(parts[:3])  # z.B. "Radio Album 1"
+                author = " ".join(parts[3:5]) if len(parts) > 3 else parts[0]  # z.B. "Radio Artist 1"
+            else:
+                title = parts[0] if parts else "Unknown"
+                author = "Unknown"
+
             return [
                 {
-                    "title": sample_films[0]["title"],
-                    "author": sample_films[0]["author"],
-                    "zentralbibliothek_info": "Uv *Drama* verfügbar",
+                    "title": title,
+                    "author": author,
+                    "zentralbibliothek_info": f"Uv *Drama* verfügbar in Zentralbibliothek - {title}",
                 }
             ]
 

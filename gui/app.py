@@ -10,6 +10,7 @@ from recommender.state import AppState
 from data_sources.films import fetch_wikipedia_titles
 from data_sources.fbw_films import fetch_fbw_films, fetch_oscar_best_picture_winners
 from data_sources.oscar_music import add_oscar_music_to_albums
+from data_sources.imdb_top250 import fetch_imdb_top_250
 
 from utils.sources import (
     format_source_for_display,
@@ -140,7 +141,11 @@ def load_or_fetch_films() -> List[Dict[str, Any]]:
         oscar_films = fetch_oscar_best_picture_winners()
         logger.info(f"{len(oscar_films)} Oscar-Filme geladen.")
 
-        combined = wiki_films + fbw_films + oscar_films
+        # IMDb Top 250 Filme laden
+        imdb_films = fetch_imdb_top_250()
+        logger.info(f"{len(imdb_films)} Filme von IMDb Top 250 geladen.")
+
+        combined = wiki_films + fbw_films + oscar_films + imdb_films
 
         # Kombinieren und Duplikate anhand des Titels entfernen
         unique_films = {}

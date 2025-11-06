@@ -81,6 +81,18 @@ def calculate_name_similarity(name1: str, name2: str) -> float:
     if not words1 or not words2:
         return sequence_score
 
+    # Prüfe ob name2 abgekürzt ist (z.B. "king s" statt "stephen king")
+    if len(words2_list) >= 2:
+        potential_abbrev = words2_list[0]
+        lastname2 = words2_list[-1]
+
+        # Abkürzung = einzelner Buchstabe ODER endet mit "."
+        if len(potential_abbrev) <= 2 or potential_abbrev.endswith("."):
+            # Prüfe ob Nachname übereinstimmt
+            if words1_list and words1_list[-1] == lastname2:
+                # Nachname OK, aber Vorname abgekürzt → unsicher
+                return 0.6  # Reduzierter Score
+
     # Jaccard-Ähnlichkeit
     intersection = len(words1.intersection(words2))
     union = len(words1.union(words2))

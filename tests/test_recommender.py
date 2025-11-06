@@ -26,33 +26,51 @@ class TestRecommender:
     """Tests für recommender/recommender.py"""
 
     @pytest.fixture
-    def mock_library_search(self, sample_films):
-        """Mock mit dynamischen Antworten basierend auf Query."""
+    def mock_library_search(self):
+        """
+        FIXED: Mock ohne sample_films Abhängigkeit.
+        Gibt statische, aber korrekte Daten zurück.
+        """
         mock = Mock()
-
-        def mock_search(query):
-            # Suche passenden Film in sample_films
-            for film in sample_films:
-                if film["title"] in query:
-                    return [
-                        {
-                            "title": film["title"],
-                            "author": film["author"],
-                            "zentralbibliothek_info": f"Uv *Drama* verfügbar - {film['title']}",
-                        }
-                    ]
-
-            # Fallback
-            return [
+        mock.search = Mock(
+            return_value=[
                 {
-                    "title": sample_films[0]["title"],
-                    "author": sample_films[0]["author"],
-                    "zentralbibliothek_info": "Uv *Drama* verfügbar",
+                    "title": "Test Film",
+                    "author": "Test Director",
+                    "zentralbibliothek_info": "Uv *Drama* verfügbar in Zentralbibliothek",
                 }
             ]
-
-        mock.search = Mock(side_effect=mock_search)
+        )
         return mock
+
+    # @pytest.fixture
+    # def mock_library_search(self, sample_films):
+    #     """Mock mit dynamischen Antworten basierend auf Query."""
+    #     mock = Mock()
+    #
+    #     def mock_search(query):
+    #         # Suche passenden Film in sample_films
+    #         for film in sample_films:
+    #             if film["title"] in query:
+    #                 return [
+    #                     {
+    #                         "title": film["title"],
+    #                         "author": film["author"],
+    #                         "zentralbibliothek_info": f"Uv *Drama* verfügbar - {film['title']}",
+    #                     }
+    #                 ]
+    #
+    #         # Fallback
+    #         return [
+    #             {
+    #                 "title": sample_films[0]["title"],
+    #                 "author": sample_films[0]["author"],
+    #                 "zentralbibliothek_info": "Uv *Drama* verfügbar",
+    #             }
+    #         ]
+    #
+    #     mock.search = Mock(side_effect=mock_search)
+    #     return mock
 
     @pytest.fixture
     def mock_state(self):
