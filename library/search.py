@@ -746,104 +746,121 @@ class KoelnLibrarySearch:
             verbose: Ausführliches Logging
 
         Returns:
-            Dictionary mit zwei Keys pro Standort:
-                - "{standort}": Nur Bestandsinfo (für Anzeige)
-                - "{standort}_full": Metadaten + Bestandsinfo (für Author-Matching)
+            Dictionary mit erweiterten Verfügbarkeits-Infos:
+            - "{standort}": Bestandsinfo (für Anzeige)
+            - "{standort}_full": Metadaten + Bestandsinfo (für Author-Matching)
+            - "zentralbibliothek_available": bool
+            - "stadtbib_available": dict {location: info}
         """
+        from utils.stadtbib_config import STADTTEILBIBLIOTHEKEN
+
         if not detail_url or detail_url.strip().lower().startswith("javascript:"):
             logger.debug(f"Ungültige Detail-URL übersprungen: {detail_url}")
             return {}
 
         try:
-            if verbose:
-                logger.debug(f"Rufe Detailseite auf: {detail_url}")
+            logger.debug(f"Rufe Detailseite auf: {detail_url}")
 
             detail_response = self.safe_get(detail_url, timeout=10)
-
-            if verbose:
-                logger.debug(f"Detailseite Status Code: {detail_response.status_code}")
-                logger.debug(f"Response URL (nach Redirects): {detail_response.url}")
-                logger.debug(f"Detailseite Länge: {len(detail_response.text)} Zeichen")
-
             detail_response.raise_for_status()
 
             soup = BeautifulSoup(detail_response.text, "html.parser")
             availability_info: Dict[str, Any] = {}
 
-            # NEU: Extrahiere die vollständigen Metadaten (für Author-Matching)
+            # Extrahiere Metadaten
             detail_table = soup.find("table", class_="OuterSearchResultDetailTable")
-
             full_metadata = ""
+
             if detail_table:
                 rows = detail_table.find_all("tr")
                 for row in rows:
                     row_text = row.get_text(separator=" ", strip=True)
                     if row_text:
                         full_metadata += row_text + "\n"
-
-                logger.debug(f"✓ Vollständige Metadaten extrahiert: {len(full_metadata)} Zeichen")
+                logger.debug(f"Metadaten extrahiert: {len(full_metadata)} Zeichen")
             else:
-                all_tables = soup.find_all("table")
-                logger.debug(f"Kein OuterSearchResultDetailTable, suche in {len(all_tables)} Tabellen")
+                # Fallback auf gesamten Text
+                full_metadata = soup.get_text(separator=" ", strip=True)
+                logger.debug(f"Fallback Metadaten: {len(full_metadata)} Zeichen")
 
-                for table in all_tables:
-                    table_text = table.get_text(separator=" ", strip=True)
-                    if "Person(en)" in table_text or "Titel" in table_text:
-                        full_metadata = table_text
-                        logger.debug(f"✓ Metadaten in anderer Tabelle gefunden: {len(full_metadata)} Zeichen")
-                        break
-
-                if not full_metadata:
-                    full_metadata = soup.get_text(separator=" ", strip=True)
-                    logger.debug(f"Fallback: Verwende Seitentext: {len(full_metadata)} Zeichen")
+            # Tracking für Verfügbarkeit
+            zentralbib_available = False
+            stadtbib_available = {}
 
             # Methode 1: Suche nach div-Elementen mit "stock_header_" ID
             stock_headers = soup.find_all("div", id=lambda x: x and "stock_header" in x)
 
-            if verbose:
-                logger.debug(f"Gefunden {len(stock_headers)} stock_header divs")
+            logger.debug(f"Gefunden {len(stock_headers)} stock_header divs")
 
-            locations = ["zentralbibliothek", "ehrenfeld", "kalk", "nippes", "rodenkirchen", "chorweiler", "mülheim", "porz"]
+            # Liste aller möglichen Standorte (Zentralbib + Stadtteilbibs)
+            locations = ["zentralbibliothek"] + [
+                name.replace("stadtteilbibliothek ", "") for name in STADTTEILBIBLIOTHEKEN.keys()
+            ]
 
             for header_div in stock_headers:
                 location_text = header_div.get_text(strip=True)
 
-                if verbose:
-                    logger.debug(f"Stock Header: {location_text}")
+                logger.debug(f"Prüfe Standort: {location_text}")
 
-                if any(loc in location_text.lower() for loc in locations):
-                    next_siblings: List[str] = []
-                    current = header_div.next_sibling
+                # Prüfe ob es ein relevanter Standort ist
+                location_lower = location_text.lower()
+                is_relevant = False
+                normalized_location = ""
 
-                    while current:
-                        if hasattr(current, "get_text"):
-                            text = current.get_text(strip=True)
-                            if text and not (
-                                hasattr(current, "get") and current.get("id") and "stock_header" in current.get("id")
-                            ):
-                                if "documentManager" in text or "StockUpdateRequest" in text:
-                                    if verbose:
-                                        logger.debug(f"Ignoriere Script-Text: {text}")
-                                else:
-                                    next_siblings.append(text)
-                            elif hasattr(current, "get") and current.get("id") and "stock_header" in current.get("id"):
-                                break
-                        elif isinstance(current, str) and current.strip():
-                            next_siblings.append(current.strip())
-                        current = current.next_sibling
+                if "zentralbibliothek" in location_lower:
+                    is_relevant = True
+                    normalized_location = "zentralbibliothek"
+                else:
+                    # Prüfe Stadtteilbibliotheken
+                    for stadtbib in STADTTEILBIBLIOTHEKEN.keys():
+                        stadtbib_short = stadtbib.replace("stadtteilbibliothek ", "")
+                        if stadtbib_short in location_lower:
+                            is_relevant = True
+                            normalized_location = stadtbib
+                            break
 
-                    if next_siblings:
-                        # Nur Bestandsinfo (für Anzeige in GUI)
-                        bestand_info = " ".join(next_siblings)
-                        availability_info[location_text] = bestand_info
+                if not is_relevant:
+                    continue
 
-                        # Vollständige Info mit Metadaten (für Author-Matching)
-                        combined_info = full_metadata + "\n" + bestand_info
-                        availability_info[f"{location_text}_full"] = combined_info
+                # Extrahiere Bestandsinfo
+                next_siblings: List[str] = []
+                current = header_div.next_sibling
 
-                        logger.debug(f"✓ Für {location_text}:")
-                        logger.debug(f"  Bestandsinfo: {len(bestand_info)} Zeichen")
-                        logger.debug(f"  Full (mit Metadaten): {len(combined_info)} Zeichen")
+                while current:
+                    if hasattr(current, "get_text"):
+                        text = current.get_text(strip=True)
+                        if text and not (
+                            hasattr(current, "get") and current.get("id") and "stock_header" in current.get("id")
+                        ):
+                            if "documentManager" not in text and "StockUpdateRequest" not in text:
+                                next_siblings.append(text)
+                        elif hasattr(current, "get") and current.get("id") and "stock_header" in current.get("id"):
+                            break
+                    elif isinstance(current, str) and current.strip():
+                        next_siblings.append(current.strip())
+                    current = current.next_sibling
+
+                if next_siblings:
+                    bestand_info = " ".join(next_siblings)
+                    combined_info = full_metadata + "\n" + bestand_info
+
+                    # Speichere Infos
+                    availability_info[location_text] = bestand_info
+                    availability_info[f"{location_text}_full"] = combined_info
+
+                    # Prüfe Verfügbarkeit
+                    is_available = "verfügbar" in bestand_info.lower()
+
+                    if normalized_location == "zentralbibliothek":
+                        if is_available:
+                            zentralbib_available = True
+                            logger.debug("✅ Zentralbibliothek VERFÜGBAR")
+                    else:
+                        if is_available:
+                            stadtbib_available[normalized_location] = bestand_info
+                            logger.debug(f"✅ {normalized_location} verfügbar")
+
+                    logger.debug(f"Für {location_text}: {len(bestand_info)} Zeichen")
 
             # Methode 2: Fallback für Tabellen
             if not availability_info:
@@ -902,6 +919,12 @@ class KoelnLibrarySearch:
                 logger.debug(f"Finale availability_info: {len(availability_info)} Keys")
                 for key in availability_info.keys():
                     logger.debug(f"  {key}: {len(availability_info[key])} Zeichen")
+
+            # Speichere Verfügbarkeits-Flags
+            availability_info["_zentralbib_available"] = zentralbib_available
+            availability_info["_stadtbib_available"] = stadtbib_available
+
+            logger.debug(f"Verfügbarkeit: Zentral={zentralbib_available}, " f"Stadtbibs={len(stadtbib_available)}")
 
             return availability_info
 

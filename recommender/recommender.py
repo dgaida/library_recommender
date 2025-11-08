@@ -14,6 +14,7 @@ from utils.blacklist import get_blacklist, Blacklist
 from utils.logging_config import get_logger
 from utils.borrowed_blacklist import get_borrowed_blacklist
 from library.search import filter_results_by_author
+from utils.stadtbib_config import get_stadtbib_abbreviation, STADTTEILBIBLIOTHEKEN
 
 logger = get_logger(__name__)
 
@@ -122,7 +123,7 @@ class Recommender:
             current_source = sources[source_index % len(sources)]
             source_items = items_by_source[current_source]
 
-            # Prüfe ob diese Quelle schon genug Items beigetragen hat
+            # Prüfe, ob diese Quelle schon genug Items beigetragen hat
             if current_counts[current_source] >= items_per_source:
                 source_index += 1
                 continue
@@ -172,11 +173,124 @@ class Recommender:
 
         return selected_items
 
+    def _filter_film_uv(self, item: Dict[str, Any], category: str, hits):
+        logger.debug("Filtere Filme nach 'Uv' Kürzel")
+        film_hits = []
+
+        for hit in hits:
+            zentralbib_info = hit.get("zentralbibliothek_info", "")
+            if re.search(r"Uv", zentralbib_info):
+                film_hits.append(hit)
+            else:
+                logger.debug(f"Kein Film (kein Uv): {hit.get('title', 'Unknown')}")
+
+        if not film_hits:
+            logger.info(f"⚫ Keine Film-Treffer für '{item['title']}' - Blacklist")
+            self.blacklist.add_to_blacklist(category, item, reason="Keine Film-Treffer")
+            return None
+
+        return film_hits
+
+    def _filter_hits_author(self, item: Dict[str, Any], category: str, hits):
+        expected_author = item.get("author", "")
+        expected_title = item.get("title", "")
+        filtered_hits = []
+
+        if expected_author:
+            logger.info(f"Filtere nach Autor '{expected_author}' + Titel '{expected_title}'")
+
+            filtered_hits = filter_results_by_author(hits, expected_author, expected_title=expected_title, threshold=0.7)
+
+            if filtered_hits:
+                logger.info(f"Nach Filter: {len(filtered_hits)} Treffer")
+            else:
+                logger.warning("Filter entfernte alle Treffer")
+                self.blacklist.add_to_blacklist(category, item, reason="Keine exakten Treffer")
+                return None
+
+        return filtered_hits
+
+    def _check_all_bibs(self, item: Dict[str, Any], hits, borrowed_blacklist):
+        # Tracking
+        zentralbib_available = False
+        zentralbib_exists = False
+        stadtbib_available_list = []  # Liste von (location, info) Tupeln
+        borrowed_items = []
+
+        for hit in hits:
+            # Hole VOLLSTÄNDIGE Verfügbarkeitsinfos von Detailseite
+            detail_url = hit.get("link", "")
+            if not detail_url:
+                continue
+
+            # WICHTIG: Nutze get_availability_details() für ALLE Standorte
+            availability_dict = self.library_search.get_availability_details(detail_url)
+
+            if not availability_dict:
+                continue
+
+            logger.debug(f"Prüfe {len(availability_dict)} Standorte für '{item['title']}'")
+
+            # Iteriere über ALLE Standorte im Dictionary
+            for location_key, availability_text in availability_dict.items():
+                # Überspringe interne Keys
+                if location_key.endswith("_full"):
+                    continue
+
+                location_lower = location_key.lower()
+
+                # Prüfe ob Zentralbibliothek
+                if "zentralbibliothek" in location_lower:
+                    zentralbib_exists = True
+
+                    # Prüfe Verfügbarkeit
+                    if "verfügbar" in availability_text.lower() and "entliehen" not in availability_text.lower():
+                        zentralbib_available = True
+                        logger.debug("✅ Zentralbib VERFÜGBAR")
+                    elif "entliehen" in availability_text.lower():
+                        # Zur Entleih-Blacklist
+                        borrowed_items.append({"title": hit.get("title", item.get("title", "")), "info": availability_text})
+                        logger.debug("📅 Zentralbib ENTLIEHEN")
+                else:
+                    # Prüfe Stadtteilbibliotheken
+                    is_stadtbib = False
+                    normalized_location = None
+
+                    for stadtbib in STADTTEILBIBLIOTHEKEN.keys():
+                        stadtbib_short = stadtbib.replace("stadtteilbibliothek ", "")
+                        if stadtbib_short in location_lower:
+                            is_stadtbib = True
+                            normalized_location = stadtbib
+                            break
+
+                    if is_stadtbib and normalized_location:
+                        # Prüfe Verfügbarkeit
+                        if "verfügbar" in availability_text.lower() and "entliehen" not in availability_text.lower():
+                            stadtbib_available_list.append({"location": normalized_location, "info": availability_text})
+                            logger.debug(f"✅ {normalized_location} verfügbar")
+
+        # Entliehene Items auf Borrowed-Blacklist
+        if borrowed_items:
+            for borrowed_item in borrowed_items:
+                borrowed_blacklist.add_to_blacklist(
+                    title=borrowed_item["title"],
+                    author=item.get("author", ""),
+                    media_type=item.get("type", ""),
+                    availability_text=borrowed_item["info"],
+                )
+                logger.debug(f"📅 Auf Borrowed-Blacklist: {borrowed_item['title']}")
+
+        return zentralbib_available, zentralbib_exists, stadtbib_available_list, borrowed_items
+
     def _check_availability(self, item: Dict[str, Any], category: str) -> Optional[Dict[str, Any]]:
         """
-        Prüft ob ein Medium in der Bibliothek verfügbar ist.
+        Prüft, ob ein Medium in der Bibliothek verfügbar ist.
 
-        NEU: Fügt entliehene Medien zur Entleih-Blacklist hinzu.
+        Logik:
+        1. Wenn Zentralbib verfügbar → normale Empfehlung
+        2. Wenn NUR Stadtbib verfügbar → Empfehlung mit Suffix
+        3. Wenn Zentralbib UND Stadtbib, aber nur Stadtbib verfügbar → SKIP
+        4. Wenn nichts verfügbar → Blacklist
 
         Für Filme: Filtert Nicht-Filme anhand des "Uv" Kürzels aus.
         Alle Verfügbarkeitsangaben werden auf 300 Zeichen begrenzt.
@@ -190,120 +304,113 @@ class Recommender:
         """
         media_type: str = item.get("type", "")
 
-        # Prüfe zuerst Entleih-Blacklist
+        # Prüfe Entleih-Blacklist
         borrowed_blacklist = get_borrowed_blacklist()
         if borrowed_blacklist.is_blacklisted(item.get("title", ""), item.get("author", "")):
-            logger.debug(f"'{item['title']}' ist entliehen - überspringe Suche")
+            logger.debug(f"'{item['title']}' ist entliehen - überspringe")
             return None
 
+        # Baue Suchquery
         if media_type == "Buch":
             query = f"{item.get('author', '')} {item.get('title')} {media_type}".strip()
         else:
             query = f"{item.get('title')} {item.get('author', '')} {media_type}".strip()
 
-        logger.debug(f"Suche nach: '{query}'")
+        logger.debug(f"Suche: '{query}'")
 
-        # Normale Suche
+        # Suche durchführen
         hits: List[Dict[str, Any]] = self.library_search.search(query)
 
-        # Keine Treffer → Blacklist
-        if not hits or len(hits) == 0:
-            logger.info(f"⚫ Keine Treffer für '{item['title']}' - wird geblacklistet")
-            self.blacklist.add_to_blacklist(category, item, reason="Keine Treffer in Bibliothekskatalog")
+        if not hits:
+            logger.info(f"⚫ Keine Treffer für '{item['title']}' - Blacklist")
+            self.blacklist.add_to_blacklist(category, item, reason="Keine Treffer")
             return None
 
-        expected_author = item.get("author", "")
-        expected_title = item.get("title", "")  # NEU: Hole auch Titel
+        # Autor-Filterung
+        filtered_hits = self._filter_hits_author(item, category, hits)
+        if len(filtered_hits) > 0:
+            hits = filtered_hits
 
-        if expected_author:
-            logger.info(f"Filtere {len(hits)} Treffer nach Autor '{expected_author}' und Titel '{expected_title}'")
-
-            # NEU: Übergebe auch den Titel
-            filtered_hits = filter_results_by_author(
-                hits, expected_author, expected_title=expected_title, threshold=0.7  # NEU!
-            )
-
-            if filtered_hits:
-                hits = filtered_hits
-                logger.info(f"Nach Autor+Titel-Filter: {len(hits)} relevante Treffer")
-            else:
-                logger.warning("Filter hat alle Treffer entfernt, verwende Original-Treffer")
-                self.blacklist.add_to_blacklist(category, item, reason="Keine exakten Treffer in Bibliothekskatalog")
-                return None
-
-        # Spezielle Filterung für Filme: Prüfe auf "Uv" Kürzel
+        # Film-Filterung (UV-Kürzel)
         if category == "films":
-            logger.debug("Filtere Filme nach 'Uv' Kürzel")
-            film_hits = []
+            hits = self._filter_film_uv(item, category, hits)
 
+        if hits is None:
+            return None
+
+        # ===================================================================
+        # KERN-LOGIK: Parse Verfügbarkeit aus ALLEN Standorten
+        # ===================================================================
+
+        zentralbib_available, zentralbib_exists, stadtbib_available_list, borrowed_items = self._check_all_bibs(
+            item, hits, borrowed_blacklist
+        )
+
+        # ===================================================================
+        # ENTSCHEIDUNGS-LOGIK (FIXED!)
+        # ===================================================================
+
+        logger.info(f"Verfügbarkeit für '{item['title']}':")
+        logger.info(f"  Zentralbib existiert: {zentralbib_exists}")
+        logger.info(f"  Zentralbib verfügbar: {zentralbib_available}")
+        logger.info(f"  Stadtbibs verfügbar: {len(stadtbib_available_list)}")
+
+        # Fall 1: Zentralbib verfügbar → normale Empfehlung ✅
+        if zentralbib_available:
+            logger.info("✅ Zentralbib verfügbar → normale Empfehlung")
+
+            # Hole Zentralbib-Info aus erstem Hit
             for hit in hits:
-                zentralbib_info = hit.get("zentralbibliothek_info", "")
+                detail_url = hit.get("link", "")
+                if detail_url:
+                    zentralbib_info = self.library_search.get_zentralbibliothek_info(detail_url, return_full=False)
+                    if zentralbib_info:
+                        result_item = item.copy()
+                        result_item["bib_number"] = self._truncate_text(zentralbib_info, 300)
+                        return result_item
 
-                # Prüfe auf "Uv" ohne Wortgrenzen
-                has_uv = bool(re.search(r"Uv", zentralbib_info))
-
-                if has_uv:
-                    film_hits.append(hit)
-                    logger.debug(f"Film bestätigt: {hit.get('title', 'Unknown')}")
-                else:
-                    logger.debug(f"Kein Film (fehlendes Uv): {hit.get('title', 'Unknown')}")
-
-            # Wenn keine Film-Treffer, auf Blacklist
-            if not film_hits:
-                logger.info(f"⚫ Keine Film-Treffer für '{item['title']}' " "(kein 'Uv' Kürzel) - wird geblacklistet")
-                self.blacklist.add_to_blacklist(category, item, reason="Keine Film-Treffer (fehlendes Uv Kürzel)")
-                return None
-
-            # Verwende nur Film-Treffer
-            hits = film_hits
-
-        # Prüfen auf verfügbar UND entliehen
-        available: List[Dict[str, Any]] = []
-        borrowed: List[Dict[str, Any]] = []
-
-        for hit in hits:
-            zentralbib_info = hit.get("zentralbibliothek_info", "")
-
-            if "verfügbar" in zentralbib_info.lower():
-                available.append(hit)
-            elif "entliehen" in zentralbib_info.lower():
-                borrowed.append(hit)
-
-        # NEU: Entliehene auf Entleih-Blacklist
-        if borrowed:
-            for borrowed_item in borrowed:
-                zentralbib_info = borrowed_item.get("zentralbibliothek_info", "")
-
-                success = borrowed_blacklist.add_to_blacklist(
-                    title=borrowed_item.get("title", item.get("title", "")),
-                    author=item.get("author", ""),
-                    media_type=media_type,
-                    availability_text=zentralbib_info,
-                )
-
-                if success:
-                    logger.debug(f"📅 Auf Entleih-Blacklist: {borrowed_item.get('title', '')}")
-
-        # Prüfe verfügbare
-        if available:
-            # Alle Verfügbarkeits-Infos zusammenfassen
-            infos: List[str] = [h["zentralbibliothek_info"] for h in hits if "zentralbibliothek_info" in h]
-
-            # Kombiniere und kürze auf 300 Zeichen
-            combined_info = ", ".join(infos)
-            truncated_info = Recommender._truncate_text(combined_info, max_length=300)
-
-            # Kopiere das Item und füge bib_number hinzu
-            result_item: Dict[str, Any] = item.copy()
-            # WICHTIG: Verwende "zentralbibliothek_bestand" für die Anzeige, nicht "zentralbibliothek_info"!
-            bestand_info = available[0].get("zentralbibliothek_bestand", available[0].get("zentralbibliothek_info", ""))
-            result_item["bib_number"] = Recommender._truncate_text(bestand_info, max_length=300)
-
-            logger.debug(f"Verfügbarkeit gekürzt: {len(combined_info)} -> " f"{len(truncated_info)} Zeichen")
-
+            # Fallback (sollte nicht erreicht werden)
+            result_item = item.copy()
+            result_item["bib_number"] = "Verfügbar in Zentralbibliothek"
             return result_item
 
-        logger.debug(f"'{item['title']}' nicht verfügbar (alle entliehen)")
+        # Fall 2: Existiert in Zentralbib (aber entliehen) UND in Stadtbib verfügbar
+        # → SKIP (warte auf Zentralbib) ⏳
+        if zentralbib_exists and stadtbib_available_list:
+            logger.info("⏳ In Zentralbib (entliehen) + Stadtbib verfügbar → SKIP")
+            return None  # NICHT auf Blacklist, nur überspringen
+
+        # Fall 3: NICHT in Zentralbib, aber in Stadtbib verfügbar
+        # → Empfehlung mit Suffix 📍
+        if not zentralbib_exists and stadtbib_available_list:
+            logger.info("📍 Nur in Stadtbib verfügbar → mit Suffix")
+
+            # Nimm erste verfügbare Stadtbib
+            first_stadtbib = stadtbib_available_list[0]
+            location = first_stadtbib["location"]
+            stadtbib_info = first_stadtbib["info"]
+
+            # Hole Abkürzung
+            abbreviation = get_stadtbib_abbreviation(location)
+
+            # Titel mit Suffix
+            modified_title = f"{item['title']} ({abbreviation})"
+
+            result_item = item.copy()
+            result_item["title"] = modified_title
+            result_item["bib_number"] = self._truncate_text(stadtbib_info, 300)
+
+            logger.info(f"✅ Empfehle mit Suffix: '{modified_title}'")
+            return result_item
+
+        # Fall 4: Nichts verfügbar → Blacklist ⚫
+        # (Nur wenn NICHT schon auf Borrowed-Blacklist)
+        if not borrowed_items:
+            logger.info("⚫ Nichts verfügbar → Blacklist")
+            self.blacklist.add_to_blacklist(category, item, reason="Nicht verfügbar")
+        else:
+            logger.info("📅 Nur entliehen → auf Borrowed-Blacklist, kein normaler Blacklist")
+
         return None
 
     @staticmethod
