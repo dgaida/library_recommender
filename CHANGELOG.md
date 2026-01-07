@@ -138,6 +138,7 @@ und dieses Projekt folgt [Semantic Versioning](https://semver.org/lang/de/).
 - [ ] Social Features (Teilen, Bewerten)
 - [ ] API für Drittanbieter
 - [ ] Cloud-Synchronisation
+- [ ] Nutzung von [OpenLibrary API](https://openlibrary.org/developers/api)
 
 ---
 
