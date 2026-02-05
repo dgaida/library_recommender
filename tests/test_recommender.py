@@ -29,18 +29,47 @@ class TestRecommender:
     def mock_library_search(self):
         """
         FIXED: Mock ohne sample_films Abhängigkeit.
-        Gibt statische, aber korrekte Daten zurück.
+        Gibt dynamische Daten zurück basierend auf Query.
         """
         mock = Mock()
-        mock.search = Mock(
-            return_value=[
+
+        def mock_search(query):
+            # Versuche Autor und Titel aus Query zu extrahieren
+            author = "Unknown"
+            title = "Unknown"
+
+            if "Test Director" in query:
+                author = "Test Director"
+                title = "Test Film"
+            elif "Test Artist" in query:
+                author = "Test Artist"
+                title = "Test Album"
+            elif "Test Author" in query:
+                author = "Test Author"
+                title = "Test Book"
+            elif "Borrowed Film" in query:
+                author = "Director"
+                title = "Borrowed Film"
+
+            return [
                 {
-                    "title": "Test Film",
-                    "author": "Test Director",
-                    "zentralbibliothek_info": "Uv *Drama* verfügbar in Zentralbibliothek",
+                    "title": title,
+                    "author": author,
+                    "zentralbibliothek_info": f"Person(en): {author} ; Uv *Drama* verfügbar in Zentralbibliothek",
+                    "link": f"http://test.com/{author}",
                 }
             ]
-        )
+
+        def mock_get_availability_details(url):
+            author = url.split("/")[-1]
+            return {
+                "Zentralbibliothek": "verfügbar",
+                "Zentralbibliothek_full": f"Person(en): {author} ; Uv verfügbar",
+            }
+
+        mock.search = Mock(side_effect=mock_search)
+        mock.get_availability_details = Mock(side_effect=mock_get_availability_details)
+        mock.get_zentralbibliothek_info = Mock(return_value="verfügbar")
         return mock
 
     # @pytest.fixture
@@ -126,10 +155,19 @@ class TestRecommender:
                 {
                     "title": "Not a Film",
                     "author": "Author",
-                    "zentralbibliothek_info": "verfügbar in Zentralbibliothek",  # Kein "Uv"!
+                    "zentralbibliothek_info": "Person(en): Author ; verfügbar in Zentralbibliothek",  # Kein "Uv"!
+                    "link": "http://test.com/notafilm",
                 }
             ]
         )
+
+        def mock_get_availability_details(url):
+            return {
+                "Zentralbibliothek": "verfügbar",
+                "Zentralbibliothek_full": "Person(en): Author ; verfügbar",
+            }
+
+        mock_library_search.get_availability_details = Mock(side_effect=mock_get_availability_details)
 
         with patch("recommender.recommender.get_blacklist", return_value=mock_blacklist):
             with patch("recommender.recommender.get_borrowed_blacklist", return_value=mock_borrowed_blacklist):
@@ -192,10 +230,19 @@ class TestRecommender:
                 {
                     "title": "Borrowed Film",
                     "author": "Director",
-                    "zentralbibliothek_info": "Uv *Drama* Entliehen, voraussichtlich bis 15/12/2025",
+                    "zentralbibliothek_info": "Person(en): Director ; Uv *Drama* Entliehen, voraussichtlich bis 15/12/2025",
+                    "link": "http://test.com/borrowed",
                 }
             ]
         )
+
+        def mock_get_availability_details(url):
+            return {
+                "Zentralbibliothek": "Entliehen",
+                "Zentralbibliothek_full": "Person(en): Director ; Uv Entliehen",
+            }
+
+        mock_library_search.get_availability_details = Mock(side_effect=mock_get_availability_details)
 
         with patch("recommender.recommender.get_blacklist", return_value=mock_blacklist):
             with patch("recommender.recommender.get_borrowed_blacklist", return_value=mock_borrowed_blacklist):

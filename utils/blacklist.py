@@ -16,11 +16,9 @@ from utils.logging_config import get_logger
 
 logger = get_logger(__name__)
 
-BLACKLIST_FILES: Dict[str, str] = {
-    "films": os.path.join(DATA_DIR, "blacklist_films.json"),
-    "albums": os.path.join(DATA_DIR, "blacklist_albums.json"),
-    "books": os.path.join(DATA_DIR, "blacklist_books.json"),
-}
+def get_blacklist_path(category: str) -> str:
+    """Gibt den Pfad zur Blacklist-Datei einer Kategorie zurück."""
+    return os.path.join(DATA_DIR, f"blacklist_{category}.json")
 
 
 class Blacklist:
@@ -53,10 +51,7 @@ class Blacklist:
         Returns:
             Liste der geblacklisteten Medien
         """
-        filepath: Optional[str] = BLACKLIST_FILES.get(category)
-        if not filepath:
-            logger.warning(f"Keine Blacklist-Datei für Kategorie '{category}'")
-            return []
+        filepath = get_blacklist_path(category)
 
         if os.path.exists(filepath):
             try:
@@ -78,10 +73,7 @@ class Blacklist:
         Args:
             category: Kategorie ('films', 'albums', 'books')
         """
-        filepath: Optional[str] = BLACKLIST_FILES.get(category)
-        if not filepath:
-            logger.warning(f"Keine Blacklist-Datei für Kategorie '{category}'")
-            return
+        filepath = get_blacklist_path(category)
 
         try:
             os.makedirs(DATA_DIR, exist_ok=True)

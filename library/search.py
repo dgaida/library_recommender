@@ -101,7 +101,11 @@ def calculate_name_similarity(name1: str, name2: str) -> float:
     # Substring-Match
     substring_score = 0.0
     if name2 in name1 or name1 in name2:
-        substring_score = 0.9
+        # Nur hohe Bewertung wenn es mehr als ein kurzes Wort ist
+        if len(name2) > 5 or " " in name2:
+            substring_score = 0.85
+        else:
+            substring_score = 0.7
 
     # Nachnamen-Match (letztes Wort)
     lastname1 = words1_list[-1] if words1_list else ""
@@ -109,7 +113,7 @@ def calculate_name_similarity(name1: str, name2: str) -> float:
 
     lastname_score = 0.0
     if lastname1 and lastname2 and lastname1 == lastname2:
-        lastname_score = 0.95
+        lastname_score = 0.7
 
     # NEUE: Abkürzungs-Erkennung
     abbreviation_score = 0.0
