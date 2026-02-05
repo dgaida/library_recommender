@@ -45,11 +45,21 @@ class TestBalancedRecommender:
                 {
                     "title": title,
                     "author": author,
-                    "zentralbibliothek_info": f"Uv *Drama* verfügbar in Zentralbibliothek - {title}",
+                    "zentralbibliothek_info": f"Person(en): {author} ; Uv *Drama* verfügbar in Zentralbibliothek - {title}",
+                    "link": f"http://test.com/{author.replace(' ', '_')}",
                 }
             ]
 
+        def mock_get_availability_details(url):
+            author = url.split("/")[-1].replace("_", " ")
+            return {
+                "Zentralbibliothek": "verfügbar",
+                "Zentralbibliothek_full": f"Person(en): {author} ; Uv verfügbar",
+            }
+
         mock.search = Mock(side_effect=mock_search)
+        mock.get_availability_details = Mock(side_effect=mock_get_availability_details)
+        mock.get_zentralbibliothek_info = Mock(return_value="verfügbar")
         return mock
 
     @pytest.fixture
@@ -244,7 +254,24 @@ class TestBalancedRecommender:
 
         # Mock mit UV-Kürzel
         mock_library_search = Mock()
-        mock_library_search.search = Mock(return_value=[{"title": "Test", "zentralbibliothek_info": "Uv verfügbar"}])
+        mock_library_search.search = Mock(
+            return_value=[
+                {
+                    "title": "Test",
+                    "author": "Director 0",
+                    "zentralbibliothek_info": "Person(en): Director 0 ; Uv verfügbar",
+                    "link": "http://test.com/exhausted",
+                }
+            ]
+        )
+
+        def mock_get_availability_details(url):
+            return {
+                "Zentralbibliothek": "verfügbar",
+                "Zentralbibliothek_full": "Person(en): Director 0 ; Uv verfügbar",
+            }
+
+        mock_library_search.get_availability_details = Mock(side_effect=mock_get_availability_details)
 
         with patch("recommender.recommender.get_blacklist", return_value=mock_blacklist):
             with patch("recommender.recommender.get_borrowed_blacklist", return_value=mock_borrowed_blacklist):

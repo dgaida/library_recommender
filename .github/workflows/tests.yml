@@ -16,7 +16,6 @@ on:
       - '**.rst'
       - '.github/workflows/tests.yml'
       - '.github/workflows/release.yml'
-      - '.github/workflows/dependency-review.yml'
       - '.github/workflows/codeql.yml'
       - '.github/workflows/lint.yml'
   pull_request:

@@ -328,6 +328,10 @@ class Recommender:
 
         # Autor-Filterung
         filtered_hits = self._filter_hits_author(item, category, hits)
+
+        if filtered_hits is None:
+            return None
+
         if len(filtered_hits) > 0:
             hits = filtered_hits
 
