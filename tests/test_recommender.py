@@ -16,7 +16,6 @@ import pytest
 from unittest.mock import Mock, patch, MagicMock
 from collections import defaultdict
 
-
 # ============================================================================
 # tests/test_recommender.py - Aktualisierungen
 # ============================================================================

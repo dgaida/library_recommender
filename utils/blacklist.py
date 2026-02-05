@@ -16,6 +16,7 @@ from utils.logging_config import get_logger
 
 logger = get_logger(__name__)
 
+
 def get_blacklist_path(category: str) -> str:
     """Gibt den Pfad zur Blacklist-Datei einer Kategorie zurück."""
     return os.path.join(DATA_DIR, f"blacklist_{category}.json")
