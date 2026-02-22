@@ -3,6 +3,7 @@
 Eine intelligente Empfehlungs-App für die **Stadtbibliothek Köln**, die verfügbare Filme, Alben und Bücher basierend auf kuratierten Listen hochwertiger Medien vorschlägt.
 
 ![Python](https://img.shields.io/badge/python-3.9+-blue.svg)
+[![Version](https://img.shields.io/github/v/tag/dgaida/library_recommender?label=version)](https://github.com/dgaida/library_recommender/tags)
 ![Gradio](https://img.shields.io/badge/gradio-4.0+-green.svg)
 ![License](https://img.shields.io/badge/license-MIT-blue.svg)
 [![Tests](https://github.com/dgaida/library_recommender/actions/workflows/tests.yml/badge.svg)](https://github.com/dgaida/library_recommender/actions/workflows/tests.yml)
