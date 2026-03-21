@@ -324,13 +324,14 @@ def remove_emoji(text: str) -> str:
         "\U0001f1e0-\U0001f1ff"
         "\U00002702-\U000027b0"
         "\U000024c2-\U0001f251"
+        "\U0001f4f1"  # 📱 Handy/Digital-Emoji
         "]+",
         flags=re.UNICODE,
     )
     return emoji_pattern.sub("", text).strip()
 
 
-def on_selection_change(selected_items: List[str], category: str) -> Tuple[gr.update, str, gr.update]:
+def on_selection_change(selected_items: List[str], category: str) -> Tuple[gr.update, str, gr.update, gr.update]:
     """
     Wird aufgerufen, wenn Items in der Liste ausgewählt werden.
 
@@ -342,13 +343,14 @@ def on_selection_change(selected_items: List[str], category: str) -> Tuple[gr.up
         category: Kategorie ('films', 'albums', 'books')
 
     Returns:
-        Tuple mit (remove_button_state, detail_text, google_button_state)
+        Tuple mit (remove_button_state, detail_text, google_button_state, media_html_update)
     """
     if not selected_items:
-        return gr.update(interactive=False), "", gr.update(interactive=False)
+        return gr.update(interactive=False), "", gr.update(interactive=False), gr.update(value="")
 
     count = len(selected_items)
     detail_text = f"{count} Element(e) ausgewählt:\n\n"
+    media_html = ""
 
     # Finde die entsprechenden Vorschläge
     suggestions = current_suggestions.get(category, [])
@@ -357,12 +359,14 @@ def on_selection_change(selected_items: List[str], category: str) -> Tuple[gr.up
         selected_item_clean = remove_emoji(selected_item)
 
         for s in suggestions:
-            display_text = f"{s['title']}"
+            # Titel in current_suggestions kann Emojis haben (z.B. 📱)
+            suggestion_title_clean = remove_emoji(s["title"])
+            display_text = f"{suggestion_title_clean}"
             if s.get("author"):
                 display_text += f" - {s['author']}"
 
             if display_text == selected_item_clean:
-                detail_text += f"• {s['title']}"
+                detail_text += f"• {suggestion_title_clean}"
                 if s.get("author"):
                     detail_text += f"\n  Autor/Künstler: {s['author']}"
                 if s.get("bib_number"):
@@ -371,11 +375,34 @@ def on_selection_change(selected_items: List[str], category: str) -> Tuple[gr.up
                     source_formatted = format_source_for_display(s["source"])
                     detail_text += f"\n  Quelle: {source_formatted}"
                 detail_text += "\n\n"
+
+                # Wenn Onleihe-Link vorhanden, Button generieren
+                if s.get("onleihe_link"):
+                    onleihe_text = s.get("onleihe_text", "Onleihe Ausleihe hier")
+                    media_html += f"""
+                        <div style="margin-top: 10px; margin-bottom: 10px; text-align: center;">
+                            <a href="{s['onleihe_link']}" target="_blank" style="
+                                display: inline-block;
+                                background-color: #004a99;
+                                color: white;
+                                padding: 10px 20px;
+                                text-decoration: none;
+                                border-radius: 5px;
+                                font-weight: bold;
+                                box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+                            ">📱 {onleihe_text}</a>
+                        </div>
+                    """
                 break
 
     google_btn_interactive = len(selected_items) == 1
 
-    return gr.update(interactive=True), detail_text.strip(), gr.update(interactive=google_btn_interactive)
+    return (
+        gr.update(interactive=True),
+        detail_text.strip(),
+        gr.update(interactive=google_btn_interactive),
+        gr.update(value=media_html),
+    )
 
 
 def create_media_html(youtube_id: Optional[str], cover_url: Optional[str], media_type: str, title: str) -> str:
@@ -528,18 +555,7 @@ def reject_selected(selected_items: List[str], category: str) -> Tuple[gr.update
     # Identifiziere alle zu entfernenden Items
     for selected_item in selected_items:
         # Entferne Emoji
-        emoji_pattern = re.compile(
-            "["
-            "\U0001f300-\U0001f9ff"
-            "\U0001f600-\U0001f64f"
-            "\U0001f680-\U0001f6ff"
-            "\U0001f1e0-\U0001f1ff"
-            "\U00002702-\U000027b0"
-            "\U000024c2-\U0001f251"
-            "]+",
-            flags=re.UNICODE,
-        )
-        selected_item_clean = emoji_pattern.sub("", selected_item).strip()
+        selected_item_clean = remove_emoji(selected_item)
 
         for i, s in enumerate(suggestions):
             display_text = f"{s['title']}"
@@ -947,8 +963,22 @@ def _handle_specific_medium(
     try:
         for result in results:
             zentralbib_info = result.get("zentralbibliothek_info", "")
+            onleihe_link = result.get("onleihe_link")
 
-            if "verfügbar" in zentralbib_info.lower():
+            if onleihe_link:
+                # Digitales Medium
+                available_items.append(
+                    {
+                        "title": f"📱 {result.get('title', title)}",
+                        "author": author,
+                        "type": media_type,
+                        "onleihe_link": onleihe_link,
+                        "onleihe_text": result.get("onleihe_text", ""),
+                        "bib_number": f"Digital verfügbar bei Onleihe: {result.get('onleihe_text', '')}",
+                        "source": "Favoriten (Individuelle Suche)",
+                    }
+                )
+            elif "verfügbar" in zentralbib_info.lower():
                 # NEU: Füge Match-Info hinzu falls vorhanden
                 match_info = ""
                 if result.get("author_match_score"):
@@ -1025,8 +1055,21 @@ def _handle_artist_search(
         for result in results[:15]:  # Max. 15 Treffer prüfen
             zentralbib_info = result.get("zentralbibliothek_info", "")
             result_title = result.get("title", "")
+            onleihe_link = result.get("onleihe_link")
 
-            if "verfügbar" in zentralbib_info.lower():
+            if onleihe_link:
+                available_items.append(
+                    {
+                        "title": f"📱 {result_title}",
+                        "author": artist,
+                        "type": media_type,
+                        "onleihe_link": onleihe_link,
+                        "onleihe_text": result.get("onleihe_text", ""),
+                        "bib_number": f"Digital verfügbar bei Onleihe: {result.get('onleihe_text', '')}",
+                        "source": "Favoriten (Künstler-Suche)",
+                    }
+                )
+            elif "verfügbar" in zentralbib_info.lower():
                 available_items.append(
                     {
                         "title": result_title,
@@ -2370,7 +2413,7 @@ with gr.Blocks(theme=create_custom_theme(), css=css, title="Bibliothek-Empfehlun
     film_checkbox.change(
         fn=lambda x: on_selection_change(x, "films"),
         inputs=[film_checkbox],
-        outputs=[film_reject_btn, film_detail, film_google_btn],
+        outputs=[film_reject_btn, film_detail, film_google_btn, film_media],
     )
 
     film_reject_btn.click(
@@ -2393,7 +2436,7 @@ with gr.Blocks(theme=create_custom_theme(), css=css, title="Bibliothek-Empfehlun
     album_checkbox.change(
         fn=lambda x: on_selection_change(x, "albums"),
         inputs=[album_checkbox],
-        outputs=[album_reject_btn, album_detail, album_google_btn],
+        outputs=[album_reject_btn, album_detail, album_google_btn, album_media],
     )
 
     album_reject_btn.click(
@@ -2416,7 +2459,7 @@ with gr.Blocks(theme=create_custom_theme(), css=css, title="Bibliothek-Empfehlun
     book_checkbox.change(
         fn=lambda x: on_selection_change(x, "books"),
         inputs=[book_checkbox],
-        outputs=[book_reject_btn, book_detail, book_google_btn],
+        outputs=[book_reject_btn, book_detail, book_google_btn, book_media],
     )
 
     book_reject_btn.click(

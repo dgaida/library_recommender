@@ -216,6 +216,8 @@ class Recommender:
         zentralbib_exists = False
         stadtbib_available_list = []  # Liste von (location, info) Tupeln
         borrowed_items = []
+        onleihe_link = None
+        onleihe_text = ""
 
         for hit in hits:
             # Hole VOLLSTÄNDIGE Verfügbarkeitsinfos von Detailseite
@@ -230,6 +232,12 @@ class Recommender:
                 continue
 
             logger.debug(f"Prüfe {len(availability_dict)} Standorte für '{item['title']}'")
+
+            # Prüfe Onleihe-Link
+            if "_onleihe_link" in availability_dict and not onleihe_link:
+                onleihe_link = availability_dict["_onleihe_link"]
+                onleihe_text = availability_dict.get("_onleihe_text", "")
+                logger.debug(f"📱 Onleihe-Link in Details gefunden: {onleihe_link}")
 
             # Iteriere über ALLE Standorte im Dictionary
             for location_key, availability_text in availability_dict.items():
@@ -280,7 +288,7 @@ class Recommender:
                 )
                 logger.debug(f"📅 Auf Borrowed-Blacklist: {borrowed_item['title']}")
 
-        return zentralbib_available, zentralbib_exists, stadtbib_available_list, borrowed_items
+        return zentralbib_available, zentralbib_exists, stadtbib_available_list, borrowed_items, onleihe_link, onleihe_text
 
     def _check_availability(self, item: Dict[str, Any], category: str) -> Optional[Dict[str, Any]]:
         """
@@ -346,9 +354,14 @@ class Recommender:
         # KERN-LOGIK: Parse Verfügbarkeit aus ALLEN Standorten
         # ===================================================================
 
-        zentralbib_available, zentralbib_exists, stadtbib_available_list, borrowed_items = self._check_all_bibs(
-            item, hits, borrowed_blacklist
-        )
+        (
+            zentralbib_available,
+            zentralbib_exists,
+            stadtbib_available_list,
+            borrowed_items,
+            onleihe_link,
+            onleihe_text,
+        ) = self._check_all_bibs(item, hits, borrowed_blacklist)
 
         # ===================================================================
         # ENTSCHEIDUNGS-LOGIK (FIXED!)
@@ -358,6 +371,17 @@ class Recommender:
         logger.info(f"  Zentralbib existiert: {zentralbib_exists}")
         logger.info(f"  Zentralbib verfügbar: {zentralbib_available}")
         logger.info(f"  Stadtbibs verfügbar: {len(stadtbib_available_list)}")
+        logger.info(f"  Onleihe verfügbar: {bool(onleihe_link)}")
+
+        # Fall 0: Onleihe verfügbar → digitale Empfehlung 📱
+        if onleihe_link:
+            logger.info("📱 Onleihe verfügbar → digitale Empfehlung")
+            result_item = item.copy()
+            result_item["title"] = f"📱 {item['title']}"
+            result_item["onleihe_link"] = onleihe_link
+            result_item["onleihe_text"] = onleihe_text
+            result_item["bib_number"] = f"Digital verfügbar bei Onleihe: {onleihe_text}"
+            return result_item
 
         # Fall 1: Zentralbib verfügbar → normale Empfehlung ✅
         if zentralbib_available:
