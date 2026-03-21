@@ -10,6 +10,7 @@ from recommender.recommender import Recommender
 from recommender.state import AppState
 from bs4 import BeautifulSoup
 
+
 class TestOnleiheSupport:
     """Tests for Onleihe link detection and display."""
 
@@ -44,11 +45,14 @@ class TestOnleiheSupport:
         mock_response.text = html_content
         mock_response.status_code = 200
 
-        with patch.object(search.session, 'get', return_value=mock_response):
+        with patch.object(search.session, "get", return_value=mock_response):
             details = search.get_availability_details("http://test.com/book")
 
             assert "_onleihe_link" in details
-            assert details["_onleihe_link"] == "https://www.onleihe.de/koeln/frontend/mediaInfo,51-0-358128555-100-0-0-0-0-0-0-0.html"
+            assert (
+                details["_onleihe_link"]
+                == "https://www.onleihe.de/koeln/frontend/mediaInfo,51-0-358128555-100-0-0-0-0-0-0-0.html"
+            )
             assert details["_onleihe_text"] == "eaudio- Ausleihe hier"
 
     def test_recommender_prioritizes_onleihe(self, mock_library_search, mock_state):
@@ -61,7 +65,7 @@ class TestOnleiheSupport:
                 "title": "Digital Book",
                 "author": "Author",
                 "link": "http://test.com/book",
-                "zentralbibliothek_info": "Metadata\nZentralbibliothek entliehen"
+                "zentralbibliothek_info": "Metadata\nZentralbibliothek entliehen",
             }
         ]
 
@@ -72,7 +76,7 @@ class TestOnleiheSupport:
             "_onleihe_link": "https://www.onleihe.de/link",
             "_onleihe_text": "Ausleihe hier",
             "_zentralbib_available": False,
-            "_stadtbib_available": {}
+            "_stadtbib_available": {},
         }
 
         item = {"title": "Digital Book", "author": "Author", "type": "Buch", "source": "Source"}
@@ -90,6 +94,7 @@ class TestOnleiheSupport:
     def test_gui_remove_emoji_handles_smartphone(self):
         """Test that remove_emoji correctly handles the 📱 symbol."""
         import re
+
         def remove_emoji(text: str) -> str:
             emoji_pattern = re.compile(
                 "["
@@ -114,6 +119,7 @@ class TestOnleiheSupport:
         """Test that on_selection_change generates the HTML button for Onleihe."""
         # Simple standalone test of the logic
         import re
+
         def remove_emoji(text: str) -> str:
             emoji_pattern = re.compile(
                 "["
@@ -148,7 +154,7 @@ class TestOnleiheSupport:
             "title": "📱 Digital Book",
             "author": "Author",
             "onleihe_link": "https://www.onleihe.de/link",
-            "onleihe_text": "Ausleihe hier"
+            "onleihe_text": "Ausleihe hier",
         }
         current_suggestions = [item]
         selected = ["📱 Digital Book - Author"]
