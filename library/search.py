@@ -790,6 +790,15 @@ class KoelnLibrarySearch:
             # Tracking für Verfügbarkeit
             zentralbib_available = False
             stadtbib_available = {}
+            onleihe_link = None
+            onleihe_text = ""
+
+            # Suche nach Onleihe-Links (Digitalmedien)
+            onleihe_tags = soup.find_all("a", href=lambda x: x and "onleihe.de" in x)
+            if onleihe_tags:
+                onleihe_link = onleihe_tags[0]["href"].strip()
+                onleihe_text = onleihe_tags[0].get_text(strip=True)
+                logger.debug(f"Onleihe-Link gefunden: {onleihe_link} ({onleihe_text})")
 
             # Methode 1: Suche nach div-Elementen mit "stock_header_" ID
             stock_headers = soup.find_all("div", id=lambda x: x and "stock_header" in x)
@@ -927,8 +936,15 @@ class KoelnLibrarySearch:
             # Speichere Verfügbarkeits-Flags
             availability_info["_zentralbib_available"] = zentralbib_available
             availability_info["_stadtbib_available"] = stadtbib_available
+            if onleihe_link:
+                availability_info["_onleihe_link"] = onleihe_link
+                availability_info["_onleihe_text"] = onleihe_text
 
-            logger.debug(f"Verfügbarkeit: Zentral={zentralbib_available}, " f"Stadtbibs={len(stadtbib_available)}")
+            logger.debug(
+                f"Verfügbarkeit: Zentral={zentralbib_available}, "
+                f"Stadtbibs={len(stadtbib_available)}, "
+                f"Onleihe={bool(onleihe_link)}"
+            )
 
             return availability_info
 
@@ -1043,21 +1059,27 @@ class KoelnLibrarySearch:
         if title:
             logger.info(f"🔗 Rufe Detailseite auf für: '{title}'")
 
-            # Hole beide Versionen:
-            # 1. Nur Bestand (für GUI-Anzeige)
-            zentralbibliothek_info = self.get_zentralbibliothek_info(link, return_full=False)
-            # 2. Full mit Metadaten (für Author-Matching)
-            zentralbibliothek_info_full = self.get_zentralbibliothek_info(link, return_full=True)
+            # Hole alle Verfügbarkeits-Details (inkl. Onleihe) in EINEM Aufruf
+            availability_details = self.get_availability_details(link)
+
+            # Extrahiere Zentralbibliothek-Info
+            zentralbibliothek_info = ""
+            zentralbibliothek_info_full = ""
+
+            for location_key, info in availability_details.items():
+                if "zentralbibliothek" in location_key.lower() and not location_key.endswith("_full"):
+                    zentralbibliothek_info = info
+                    full_key = f"{location_key}_full"
+                    zentralbibliothek_info_full = availability_details.get(full_key, info)
+                    break
 
             logger.info(f"📦 Zentralbibliothek-Info erhalten: {len(zentralbibliothek_info)} Zeichen (Bestand)")
             logger.info(f"📦 Zentralbibliothek-Info (Full): {len(zentralbibliothek_info_full)} Zeichen")
 
-            if zentralbibliothek_info:
-                logger.debug(f"   Bestand (erste 200): '{zentralbibliothek_info[:200]}'")
-            else:
+            if not zentralbibliothek_info:
                 logger.warning("   ⚠️ KEINE Bestandsinfo erhalten!")
 
-            return {
+            result = {
                 "title": title,
                 "author": author,
                 "year": year,
@@ -1067,6 +1089,14 @@ class KoelnLibrarySearch:
                 "zentralbibliothek_info": zentralbibliothek_info_full,  # Full für Author-Matching!
                 "zentralbibliothek_bestand": zentralbibliothek_info,  # Nur Bestand für Anzeige
             }
+
+            # Füge Onleihe-Info hinzu falls vorhanden
+            if "_onleihe_link" in availability_details:
+                result["onleihe_link"] = availability_details["_onleihe_link"]
+                result["onleihe_text"] = availability_details.get("_onleihe_text", "")
+                logger.info(f"📱 Onleihe-Link gefunden: {result['onleihe_link']}")
+
+            return result
 
         return None
 
