@@ -250,3 +250,128 @@ def _sort_films_by_genre(films: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
     logger.info(f"Filme sortiert in {len(films_by_genre)} Genres")
 
     return sorted_films
+
+def save_recommendations_to_pdf(
+    recommendations: Dict[str, List[Dict[str, Any]]], filename: str = "recommended.pdf"
+) -> str:
+    """
+    Speichert die aktuellen Empfehlungen in einer PDF-Datei mit Album-Covern.
+
+    Args:
+        recommendations: Dictionary mit Kategorien als Keys und Listen von Empfehlungen
+        filename: Name der Ausgabedatei
+
+    Returns:
+        Dateiname der gespeicherten Datei
+    """
+    import requests
+    from io import BytesIO
+    from fpdf import FPDF
+    from utils.text_utils import remove_emoji
+
+    timestamp: str = datetime.now().strftime("%d.%m.%Y %H:%M:%S")
+    logger.info(f"Speichere Empfehlungen in '{filename}'")
+
+    pdf = FPDF()
+    pdf.set_auto_page_break(auto=True, margin=15)
+    pdf.add_page()
+
+    # Titel
+    pdf.set_font("Helvetica", "B", 16)
+    pdf.cell(0, 10, "Empfehlungen der Stadtbibliothek Köln", ln=True, align="C")
+    pdf.set_font("Helvetica", "I", 10)
+    pdf.cell(0, 10, f"Erstellt am: {timestamp}", ln=True, align="C")
+    pdf.ln(10)
+
+    categories: Dict[str, Tuple[str, str, str]] = {
+        "films": ("Filme", "Film", "Regie"),
+        "albums": ("Musik/Alben", "Album", "Künstler"),
+        "books": ("Bücher", "Buch", "Autor"),
+    }
+
+    for category, items in recommendations.items():
+        if not items:
+            continue
+
+        category_name, item_type, author_label = categories.get(category, (category.title(), "Item", "Autor"))
+
+        pdf.set_font("Helvetica", "B", 14)
+        pdf.cell(0, 10, category_name.encode("latin-1", "replace").decode("latin-1"), ln=True)
+        pdf.ln(2)
+
+        if category == "films":
+            items_to_write = _sort_films_by_genre(items)
+        else:
+            items_to_write = items
+
+        for i, item in enumerate(items_to_write, 1):
+            # Vorab-Check für Seitenumbruch (vor allem bei Alben mit Covern)
+            needed_height = 25 if category != "albums" else 45
+            if pdf.get_y() + needed_height > 270:
+                pdf.add_page()
+
+            y_before = pdf.get_y()
+
+            clean_title = remove_emoji(item["title"])
+            pdf.set_font("Helvetica", "B", 12)
+            title_text = f"{i}. {clean_title}"
+
+            # Breite einschränken wenn Cover daneben steht
+            text_width = 140 if (category == "albums" and item.get("cover_url")) else pdf.epw
+            pdf.multi_cell(text_width, 8, title_text.encode("latin-1", "replace").decode("latin-1"))
+
+            pdf.set_font("Helvetica", "", 10)
+            if item.get("author"):
+                author_text = f"{author_label}: {item['author']}"
+                pdf.multi_cell(text_width, 6, author_text.encode("latin-1", "replace").decode("latin-1"))
+
+            # Zusätzliche Infos (Jahr, Genre) wie im Markdown
+            if item.get("year"):
+                pdf.cell(text_width, 6, f"Jahr: {item['year']}".encode("latin-1", "replace").decode("latin-1"), ln=True)
+
+            if item.get("genre"):
+                pdf.cell(text_width, 6, f"Genre: {item['genre']}".encode("latin-1", "replace").decode("latin-1"), ln=True)
+
+            if item.get("bib_number"):
+                availability = truncate_text(item["bib_number"], 300)
+                availability_text = f"Verfügbarkeit: {availability}"
+                pdf.multi_cell(text_width, 6, availability_text.encode("latin-1", "replace").decode("latin-1"))
+
+            # Album-Cover einfügen (rechtsbündig)
+            if category == "albums" and item.get("cover_url"):
+                try:
+                    response = requests.get(item["cover_url"], timeout=5)
+                    if response.status_code == 200:
+                        img_data = BytesIO(response.content)
+                        # Kleines Cover (35x35 mm) rechts vom Text
+                        pdf.image(img_data, x=160, y=y_before, w=35)
+                except Exception as e:
+                    logger.warning(f"Konnte Cover für {item['title']} nicht laden: {e}")
+
+            # Abstand zum nächsten Item
+            current_y = pdf.get_y()
+            if category == "albums" and item.get("cover_url"):
+                # Stelle sicher, dass wir unter dem Bild weitermachen
+                pdf.set_y(max(current_y, y_before + 40))
+            else:
+                pdf.ln(2)
+
+        pdf.ln(5)
+        pdf.line(10, pdf.get_y(), 200, pdf.get_y())
+        pdf.ln(5)
+
+    # Hinweise
+    pdf.add_page()
+    pdf.set_font("Helvetica", "B", 12)
+    pdf.cell(0, 10, "Hinweise", ln=True)
+    pdf.set_font("Helvetica", "", 10)
+    pdf.multi_cell(
+        0,
+        6,
+        "Die Verfügbarkeit kann sich schnell ändern. Bitte prüfen Sie die aktuelle Verfügbarkeit direkt im Katalog.\n"
+        "Diese Empfehlungen basieren auf kuratierten Listen hochwertiger Medien.\n"
+        "Katalog: https://katalog.stbib-koeln.de",
+    )
+
+    pdf.output(filename)
+    return filename

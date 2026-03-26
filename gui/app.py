@@ -299,36 +299,7 @@ def get_n_suggestions(category: str, items_per_source: int = 4) -> List[Dict[str
     return suggestions if suggestions else []
 
 
-def remove_emoji(text: str) -> str:
-    """
-    Entfernt Emojis am Anfang eines Strings.
-
-    Verwendet einen Unicode-Regex-Pattern, um gängige Emoji-Bereiche
-    zu identifizieren und zu entfernen.
-
-    Args:
-        text: String möglicherweise mit Emoji
-
-    Returns:
-        String ohne Emoji
-
-    Example:
-        >>> remove_emoji("🎬 Der Pate")
-        'Der Pate'
-    """
-    emoji_pattern = re.compile(
-        "["
-        "\U0001f300-\U0001f9ff"
-        "\U0001f600-\U0001f64f"
-        "\U0001f680-\U0001f6ff"
-        "\U0001f1e0-\U0001f1ff"
-        "\U00002702-\U000027b0"
-        "\U000024c2-\U0001f251"
-        "\U0001f4f1"  # 📱 Handy/Digital-Emoji
-        "]+",
-        flags=re.UNICODE,
-    )
-    return emoji_pattern.sub("", text).strip()
+from utils.text_utils import remove_emoji
 
 
 def on_selection_change(selected_items: List[str], category: str) -> Tuple[gr.update, str, gr.update, gr.update]:
@@ -619,10 +590,10 @@ def reject_selected(selected_items: List[str], category: str) -> Tuple[gr.update
 
 def save_current_recommendations() -> str:
     """
-    Speichert die aktuell angezeigten Empfehlungen in eine Markdown-Datei.
+    Speichert die aktuell angezeigten Empfehlungen in eine PDF-Datei.
 
     Sammelt alle aktuellen Vorschläge aus den drei Kategorien und
-    schreibt sie formatiert in 'recommended.md'.
+    schreibt sie formatiert in 'recommended.pdf'.
 
     Returns:
         Erfolgsmeldung oder Fehlermeldung
@@ -634,7 +605,8 @@ def save_current_recommendations() -> str:
             suggestions = current_suggestions.get(category, [])
             recommendations[category] = suggestions
 
-        filename = save_recommendations_to_markdown(recommendations)
+        from utils.io import save_recommendations_to_pdf
+        filename = save_recommendations_to_pdf(recommendations)
 
         total_count = sum(len(items) for items in recommendations.values())
 
@@ -653,7 +625,7 @@ def initialize_recommendations() -> Tuple[List[Dict[str, Any]], List[Dict[str, A
     Lädt initiale balancierte Vorschläge für alle Kategorien beim Start.
 
     Ruft für jede Kategorie Empfehlungen ab (4 pro Quelle, dynamisch berechnet)
-    und speichert sie automatisch in einer Markdown-Datei.
+    und speichert sie automatisch in einer PDF-Datei.
 
     Returns:
         Tuple mit (film_suggestions, album_suggestions, book_suggestions)
@@ -674,14 +646,14 @@ def initialize_recommendations() -> Tuple[List[Dict[str, Any]], List[Dict[str, A
 
     # Automatisch in Datei speichern
     try:
-        from utils.io import save_recommendations_to_markdown
+        from utils.io import save_recommendations_to_pdf
 
         recommendations = {
             "films": film_suggestions,
             "albums": album_suggestions,
             "books": book_suggestions,
         }
-        filename = save_recommendations_to_markdown(recommendations)
+        filename = save_recommendations_to_pdf(recommendations)
         total_count = len(film_suggestions) + len(album_suggestions) + len(book_suggestions)
         logger.info(f"{total_count} initiale balancierte Empfehlungen " f"in '{filename}' gespeichert")
     except Exception as e:
@@ -2205,7 +2177,7 @@ with gr.Blocks(theme=create_custom_theme(), css=css, title="Bibliothek-Empfehlun
 
     # Globaler Speichern-Button oben
     with gr.Row():
-        save_btn = gr.Button("💾 Alle Empfehlungen speichern", variant="primary", elem_classes=["save-button"], size="lg")
+        save_btn = gr.Button("💾 Alle Empfehlungen als PDF speichern", variant="primary", elem_classes=["save-button"], size="lg")
 
     save_message = gr.HTML(value="", visible=False, elem_classes=["success-message"])
 
