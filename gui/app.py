@@ -1,7 +1,6 @@
 import gradio as gr
 import os
 import json
-import re
 from typing import List, Dict, Any, Tuple, Optional
 from library.search import KoelnLibrarySearch
 from library.search import filter_results_by_author
@@ -30,8 +29,9 @@ from utils.logging_config import get_logger
 
 from utils.borrowed_blacklist import get_borrowed_blacklist
 from utils.blacklist import get_blacklist
-from utils.io import DATA_DIR, save_recommendations_to_markdown
+from utils.io import DATA_DIR
 from utils.favorites import get_favorites_manager
+from utils.text_utils import remove_emoji
 
 logger = get_logger(__name__)
 
@@ -297,9 +297,6 @@ def get_n_suggestions(category: str, items_per_source: int = 4) -> List[Dict[str
     logger.info(f"{len(suggestions)} Vorschläge für {category} geholt")
 
     return suggestions if suggestions else []
-
-
-from utils.text_utils import remove_emoji
 
 
 def on_selection_change(selected_items: List[str], category: str) -> Tuple[gr.update, str, gr.update, gr.update]:
@@ -606,6 +603,7 @@ def save_current_recommendations() -> str:
             recommendations[category] = suggestions
 
         from utils.io import save_recommendations_to_pdf
+
         filename = save_recommendations_to_pdf(recommendations)
 
         total_count = sum(len(items) for items in recommendations.values())
@@ -2177,7 +2175,9 @@ with gr.Blocks(theme=create_custom_theme(), css=css, title="Bibliothek-Empfehlun
 
     # Globaler Speichern-Button oben
     with gr.Row():
-        save_btn = gr.Button("💾 Alle Empfehlungen als PDF speichern", variant="primary", elem_classes=["save-button"], size="lg")
+        save_btn = gr.Button(
+            "💾 Alle Empfehlungen als PDF speichern", variant="primary", elem_classes=["save-button"], size="lg"
+        )
 
     save_message = gr.HTML(value="", visible=False, elem_classes=["success-message"])
 

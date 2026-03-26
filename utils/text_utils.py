@@ -1,5 +1,6 @@
 import re
 
+
 def remove_emoji(text: str) -> str:
     """
     Entfernt Emojis am Anfang eines Strings.

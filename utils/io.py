@@ -96,113 +96,50 @@ def save_results_to_markdown(all_results: Dict[str, List[Dict[str, Any]]], filen
         logger.error(f"Fehler beim Speichern in '{filename}': {e}")
 
 
-def save_recommendations_to_markdown(
-    recommendations: Dict[str, List[Dict[str, Any]]], filename: str = "recommended.md"
-) -> str:
-    """
-    Speichert die aktuellen Empfehlungen aus der GUI in eine Markdown-Datei.
+def _add_pdf_item(pdf, i, item, author_label, text_width):
+    """Hilfsfunktion zum Hinzufügen eines Items zum PDF."""
+    from utils.text_utils import remove_emoji
 
-    Features:
-    - Verfügbarkeit wird auf 300 Zeichen begrenzt
-    - Filme werden nach Genre sortiert
+    y_before = pdf.get_y()
+    clean_title = remove_emoji(item["title"])
+    pdf.set_font("Helvetica", "B", 12)
+    title_text = f"{i}. {clean_title}"
+    pdf.multi_cell(text_width, 8, title_text.encode("latin-1", "replace").decode("latin-1"))
 
-    Args:
-        recommendations: Dictionary mit Kategorien als Keys und Listen von Empfehlungen
-        filename: Name der Ausgabedatei
+    pdf.set_font("Helvetica", "", 10)
+    if item.get("author"):
+        author_text = f"{author_label}: {item['author']}"
+        pdf.multi_cell(text_width, 6, author_text.encode("latin-1", "replace").decode("latin-1"))
 
-    Returns:
-        Dateiname der gespeicherten Datei
+    # Zusätzliche Infos (Jahr, Genre) wie im Markdown
+    if item.get("year"):
+        pdf.cell(text_width, 6, f"Jahr: {item['year']}".encode("latin-1", "replace").decode("latin-1"), ln=True)
 
-    Raises:
-        IOError: Bei Schreibproblemen
-    """
-    timestamp: str = datetime.now().strftime("%d.%m.%Y %H:%M:%S")
+    if item.get("genre"):
+        pdf.cell(text_width, 6, f"Genre: {item['genre']}".encode("latin-1", "replace").decode("latin-1"), ln=True)
 
-    logger.info(f"Speichere Empfehlungen in '{filename}'")
+    if item.get("bib_number"):
+        availability = truncate_text(item["bib_number"], 300)
+        availability_text = f"Verfügbarkeit: {availability}"
+        pdf.multi_cell(text_width, 6, availability_text.encode("latin-1", "replace").decode("latin-1"))
 
-    # Kategorien mit Emojis und deutschen Namen
-    categories: Dict[str, Tuple[str, str, str]] = {
-        "films": ("🎬 Filme", "Film", "Regie"),
-        "albums": ("🎵 Musik/Alben", "Album", "Künstler"),
-        "books": ("📚 Bücher", "Buch", "Autor"),
-    }
+    return y_before
 
-    total_items: int = sum(len(items) for items in recommendations.values())
 
-    try:
-        with open(filename, "w", encoding="utf-8") as f:
-            f.write("# 🎬📀📚 Empfehlungen der Stadtbibliothek Köln\n\n")
-            f.write(f"**Erstellt am:** {timestamp}\n\n")
-            f.write("---\n\n")
+def _add_album_cover(pdf, item, y_before):
+    """Versucht ein Album-Cover in das PDF einzufügen."""
+    import requests
+    from io import BytesIO
 
-            if total_items == 0:
-                f.write("_Keine Empfehlungen vorhanden._\n\n")
-                f.write("Klicken Sie in der App auf die entsprechenden Buttons, " "um neue Empfehlungen zu erhalten.\n")
-                logger.warning("Keine Empfehlungen zum Speichern vorhanden")
-                return filename
-
-            # Übersicht
-            f.write("## 📊 Übersicht\n\n")
-            for category, items in recommendations.items():
-                if items:
-                    category_name, _, _ = categories.get(category, (category.title(), "Item", "Autor"))
-                    f.write(f"- **{category_name}:** {len(items)} Empfehlungen\n")
-            f.write(f"\n**Gesamt:** {total_items} Empfehlungen\n\n")
-            f.write("---\n\n")
-
-            # Detaillierte Empfehlungen pro Kategorie
-            for category, items in recommendations.items():
-                if not items:
-                    continue
-
-                category_name, item_type, author_label = categories.get(category, (category.title(), "Item", "Autor"))
-                f.write(f"## {category_name}\n\n")
-
-                # Spezielle Behandlung für Filme: Nach Genre sortieren
-                if category == "films":
-                    items_to_write = _sort_films_by_genre(items)
-                else:
-                    items_to_write = items
-
-                for i, item in enumerate(items_to_write, 1):
-                    f.write(f"### {i}. {item['title']}\n")
-
-                    if item.get("author"):
-                        f.write(f"- **{author_label}:** {item['author']}\n")
-
-                    if item.get("bib_number"):
-                        # Kürze Verfügbarkeit auf 300 Zeichen
-                        availability = truncate_text(item["bib_number"], 300)
-                        f.write(f"- **Verfügbarkeit:** {availability}\n")
-
-                    # Zusätzliche Informationen falls vorhanden
-                    if item.get("year"):
-                        f.write(f"- **Jahr:** {item['year']}\n")
-
-                    if item.get("genre"):
-                        f.write(f"- **Genre:** {item['genre']}\n")
-
-                    f.write("\n")
-
-                f.write("---\n\n")
-
-            # Fußzeile
-            f.write("## ℹ️ Hinweise\n\n")
-            f.write(
-                "- Die Verfügbarkeit kann sich schnell ändern. "
-                "Bitte prüfen Sie die aktuelle Verfügbarkeit direkt im Katalog.\n"
-            )
-            f.write("- Diese Empfehlungen basieren auf kuratierten Listen " "hochwertiger Medien.\n")
-            f.write("- Weitere Informationen finden Sie auf der Website der " "Stadtbibliothek Köln.\n\n")
-            f.write("**🌐 Katalog:** https://katalog.stbib-koeln.de\n\n")
-            f.write(f"_Generiert durch die Bibliothek-Empfehlungs-App am {timestamp}_\n")
-
-        logger.info(f"Empfehlungen erfolgreich gespeichert: " f"{total_items} Items in '{filename}'")
-    except IOError as e:
-        logger.error(f"Fehler beim Speichern der Empfehlungen: {e}")
-        raise
-
-    return filename
+    if item.get("cover_url"):
+        try:
+            response = requests.get(item["cover_url"], timeout=5)
+            if response.status_code == 200:
+                img_data = BytesIO(response.content)
+                # Kleines Cover (35x35 mm) rechts vom Text
+                pdf.image(img_data, x=160, y=y_before, w=35)
+        except Exception as e:
+            logger.warning(f"Konnte Cover für {item['title']} nicht laden: {e}")
 
 
 def _sort_films_by_genre(films: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
@@ -251,9 +188,8 @@ def _sort_films_by_genre(films: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
 
     return sorted_films
 
-def save_recommendations_to_pdf(
-    recommendations: Dict[str, List[Dict[str, Any]]], filename: str = "recommended.pdf"
-) -> str:
+
+def save_recommendations_to_pdf(recommendations: Dict[str, List[Dict[str, Any]]], filename: str = "recommended.pdf") -> str:
     """
     Speichert die aktuellen Empfehlungen in einer PDF-Datei mit Album-Covern.
 
@@ -264,10 +200,7 @@ def save_recommendations_to_pdf(
     Returns:
         Dateiname der gespeicherten Datei
     """
-    import requests
-    from io import BytesIO
     from fpdf import FPDF
-    from utils.text_utils import remove_emoji
 
     timestamp: str = datetime.now().strftime("%d.%m.%Y %H:%M:%S")
     logger.info(f"Speichere Empfehlungen in '{filename}'")
@@ -293,66 +226,27 @@ def save_recommendations_to_pdf(
         if not items:
             continue
 
-        category_name, item_type, author_label = categories.get(category, (category.title(), "Item", "Autor"))
+        category_name, _, author_label = categories.get(category, (category.title(), "Item", "Autor"))
 
         pdf.set_font("Helvetica", "B", 14)
         pdf.cell(0, 10, category_name.encode("latin-1", "replace").decode("latin-1"), ln=True)
         pdf.ln(2)
 
-        if category == "films":
-            items_to_write = _sort_films_by_genre(items)
-        else:
-            items_to_write = items
+        items_to_write = _sort_films_by_genre(items) if category == "films" else items
 
         for i, item in enumerate(items_to_write, 1):
-            # Vorab-Check für Seitenumbruch (vor allem bei Alben mit Covern)
-            needed_height = 25 if category != "albums" else 45
+            # Vorab-Check für Seitenumbruch
+            needed_height = 45 if category == "albums" else 25
             if pdf.get_y() + needed_height > 270:
                 pdf.add_page()
 
-            y_before = pdf.get_y()
-
-            clean_title = remove_emoji(item["title"])
-            pdf.set_font("Helvetica", "B", 12)
-            title_text = f"{i}. {clean_title}"
-
-            # Breite einschränken wenn Cover daneben steht
             text_width = 140 if (category == "albums" and item.get("cover_url")) else pdf.epw
-            pdf.multi_cell(text_width, 8, title_text.encode("latin-1", "replace").decode("latin-1"))
+            y_before = _add_pdf_item(pdf, i, item, author_label, text_width)
 
-            pdf.set_font("Helvetica", "", 10)
-            if item.get("author"):
-                author_text = f"{author_label}: {item['author']}"
-                pdf.multi_cell(text_width, 6, author_text.encode("latin-1", "replace").decode("latin-1"))
-
-            # Zusätzliche Infos (Jahr, Genre) wie im Markdown
-            if item.get("year"):
-                pdf.cell(text_width, 6, f"Jahr: {item['year']}".encode("latin-1", "replace").decode("latin-1"), ln=True)
-
-            if item.get("genre"):
-                pdf.cell(text_width, 6, f"Genre: {item['genre']}".encode("latin-1", "replace").decode("latin-1"), ln=True)
-
-            if item.get("bib_number"):
-                availability = truncate_text(item["bib_number"], 300)
-                availability_text = f"Verfügbarkeit: {availability}"
-                pdf.multi_cell(text_width, 6, availability_text.encode("latin-1", "replace").decode("latin-1"))
-
-            # Album-Cover einfügen (rechtsbündig)
-            if category == "albums" and item.get("cover_url"):
-                try:
-                    response = requests.get(item["cover_url"], timeout=5)
-                    if response.status_code == 200:
-                        img_data = BytesIO(response.content)
-                        # Kleines Cover (35x35 mm) rechts vom Text
-                        pdf.image(img_data, x=160, y=y_before, w=35)
-                except Exception as e:
-                    logger.warning(f"Konnte Cover für {item['title']} nicht laden: {e}")
-
-            # Abstand zum nächsten Item
-            current_y = pdf.get_y()
-            if category == "albums" and item.get("cover_url"):
+            if category == "albums":
+                _add_album_cover(pdf, item, y_before)
                 # Stelle sicher, dass wir unter dem Bild weitermachen
-                pdf.set_y(max(current_y, y_before + 40))
+                pdf.set_y(max(pdf.get_y(), y_before + 40))
             else:
                 pdf.ln(2)
 
