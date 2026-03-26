@@ -24,9 +24,9 @@ import tempfile
 class TestIO:
     """Tests für utils/io.py"""
 
-    def test_save_recommendations_to_markdown(self):
-        """Test save_recommendations_to_markdown"""
-        from utils.io import save_recommendations_to_markdown
+    def test_save_recommendations_to_pdf(self):
+        """Test save_recommendations_to_pdf"""
+        from utils.io import save_recommendations_to_pdf
 
         recommendations = {
             "films": [{"title": "Test Film", "author": "Director", "bib_number": "verfügbar"}],
@@ -34,21 +34,14 @@ class TestIO:
             "books": [],
         }
 
-        with tempfile.NamedTemporaryFile(mode="w", suffix=".md", delete=False) as f:
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".pdf", delete=False) as f:
             filename = f.name
 
         try:
-            result_filename = save_recommendations_to_markdown(recommendations, filename)
+            result_filename = save_recommendations_to_pdf(recommendations, filename)
 
             assert os.path.exists(result_filename)
-
-            with open(result_filename, "r", encoding="utf-8") as f:
-                content = f.read()
-
-            assert "Test Film" in content
-            assert "Test Album" in content
-            assert "🎬 Filme" in content
-            assert "🎵 Musik/Alben" in content
+            assert os.path.getsize(result_filename) > 0
 
         finally:
             if os.path.exists(filename):
