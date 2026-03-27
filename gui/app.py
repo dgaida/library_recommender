@@ -386,9 +386,6 @@ def create_media_html(youtube_id: Optional[str], cover_url: Optional[str], media
     Returns:
         HTML-String mit eingebettetem Video und/oder Cover-Image
     """
-    if not youtube_id and not cover_url:
-        return ""
-
     html_parts = [
         '<div style="margin-top: 20px; text-align: center; background: #f9f9f9; padding: 20px; border-radius: 10px;">'
     ]
@@ -412,16 +409,16 @@ def create_media_html(youtube_id: Optional[str], cover_url: Optional[str], media
         """)
 
     # Cover-Image anzeigen
-    if cover_url:
-        if media_type == "film":
-            label = "📀 DVD-Cover"
-        elif media_type == "album":
-            label = "🎵 Album-Cover"
-        elif media_type == "book":
-            label = "📚 Buch-Cover"
-        else:
-            label = "🖼️ Cover"
+    if media_type == "film":
+        label = "📀 DVD-Cover"
+    elif media_type == "album":
+        label = "🎵 Album-Cover"
+    elif media_type == "book":
+        label = "📚 Buch-Cover"
+    else:
+        label = "🖼️ Cover"
 
+    if cover_url:
         html_parts.append(f"""
             <div style="margin-bottom: 20px;">
                 <h4 style="margin-bottom: 10px; color: #333;">{label}</h4>
@@ -436,6 +433,28 @@ def create_media_html(youtube_id: Optional[str], cover_url: Optional[str], media
                 </p>
             </div>
         """)
+    else:
+        # Platzhalter für fehlendes Cover
+        html_parts.append(f"""
+            <div style="margin-bottom: 20px;">
+                <h4 style="margin-bottom: 10px; color: #333;">{label}</h4>
+                <div style="
+                    width: 200px;
+                    height: 200px;
+                    background-color: #eee;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    border-radius: 8px;
+                    margin: 0 auto;
+                    color: #999;
+                    font-style: italic;
+                    border: 2px dashed #ccc;
+                ">
+                    Kein Cover gefunden
+                </div>
+            </div>
+        """)
 
     html_parts.append("</div>")
 
@@ -445,6 +464,9 @@ def create_media_html(youtube_id: Optional[str], cover_url: Optional[str], media
 def google_search_selected(selected_items: List[str], category: str) -> Tuple[str, str]:
     """
     Googelt das ausgewählte Medium und gibt Zusammenfassung mit visuellen Medien zurück.
+
+    Speichert die gefundenen Daten auch in current_suggestions, damit sie für den PDF-Export
+    verfügbar sind.
 
     Args:
         selected_items: Liste mit genau einem ausgewählten Item
@@ -476,6 +498,22 @@ def google_search_selected(selected_items: List[str], category: str) -> Tuple[st
 
     try:
         media_data = get_media_summary(title, author, media_type)
+
+        # Speichere Daten in current_suggestions für PDF-Export
+        suggestions = current_suggestions.get(category, [])
+        for s in suggestions:
+            # Titel in current_suggestions kann Emojis haben (z.B. 📱)
+            suggestion_title_clean = remove_emoji(s["title"])
+            display_text = f"{suggestion_title_clean}"
+            if s.get("author"):
+                display_text += f" - {s['author']}"
+
+            if display_text == selected_item_clean:
+                s["cover_url"] = media_data.get("cover_url")
+                s["summary"] = media_data.get("summary")
+                s["youtube_id"] = media_data.get("youtube_id")
+                logger.info(f"Daten für '{title}' in current_suggestions aktualisiert.")
+                break
 
         text_result = f"🔍 Informationen zu: {title}"
         if author:

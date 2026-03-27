@@ -161,9 +161,13 @@ def _add_pdf_item(pdf, i, item, author_label, text_width):
 
 
 def _add_album_cover(pdf, item, y_before):
-    """Versucht ein Album-Cover in das PDF einzufügen."""
+    """Versucht ein Album-Cover in das PDF einzufügen oder zeigt einen Platzhalter."""
     import requests
     from io import BytesIO
+
+    # Position für das Cover (rechts vom Text)
+    x_pos = 160
+    w_size = 35
 
     if item.get("cover_url"):
         try:
@@ -171,9 +175,19 @@ def _add_album_cover(pdf, item, y_before):
             if response.status_code == 200:
                 img_data = BytesIO(response.content)
                 # Kleines Cover (35x35 mm) rechts vom Text
-                pdf.image(img_data, x=160, y=y_before, w=35)
+                pdf.image(img_data, x=x_pos, y=y_before, w=w_size)
+                return
         except Exception as e:
             logger.warning(f"Konnte Cover für {item['title']} nicht laden: {e}")
+
+    # Platzhalter zeichnen, falls kein Cover vorhanden oder Laden fehlgeschlagen
+    pdf.set_draw_color(200, 200, 200)
+    pdf.rect(x_pos, y_before, w_size, w_size)
+    pdf.set_font("Helvetica", "I", 8)
+    pdf.set_xy(x_pos, y_before + 15)
+    pdf.cell(w_size, 5, "Kein Cover", align="C")
+    # Cursor zurücksetzen für nachfolgende Items
+    pdf.set_font("Helvetica", "", 10)
 
 
 def _sort_films_by_genre(films: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
@@ -294,7 +308,7 @@ def save_recommendations_to_pdf(recommendations: Dict[str, List[Dict[str, Any]]]
             if pdf.get_y() + needed_height > 270:
                 pdf.add_page()
 
-            text_width = 140 if (category == "albums" and item.get("cover_url")) else pdf.epw
+            text_width = 140 if category == "albums" else pdf.epw
             y_before = _add_pdf_item(pdf, i, item, author_label, text_width)
 
             if category == "albums":

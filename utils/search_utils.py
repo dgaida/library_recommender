@@ -7,8 +7,12 @@ MIT YouTube-Trailer, Cover-Images und visueller Integration
 import os
 import re
 from typing import Optional, Dict, Any, List, Tuple
+import requests
 from ddgs import DDGS
 from groq import Groq
+from utils.logging_config import get_logger
+
+logger = get_logger(__name__)
 
 
 def search_youtube_trailer(title: str, author: Optional[str] = None) -> Optional[str]:
@@ -32,7 +36,7 @@ def search_youtube_trailer(title: str, author: Optional[str] = None) -> Optional
         if author:
             search_term += f" {author}"
 
-        print(f"DEBUG: Suche YouTube-Trailer: '{search_term}'")
+        logger.debug(f"Suche YouTube-Trailer: '{search_term}'")
 
         with DDGS() as ddgs:
             # Suche nach YouTube-Videos
@@ -53,20 +57,63 @@ def search_youtube_trailer(title: str, author: Optional[str] = None) -> Optional
                     match = re.search(pattern, url)
                     if match:
                         video_id = match.group(1)
-                        print(f"DEBUG: YouTube Video-ID gefunden: {video_id}")
+                        logger.debug(f"YouTube Video-ID gefunden: {video_id}")
                         return video_id
 
-        print("DEBUG: Kein YouTube-Trailer gefunden")
+        logger.debug("Kein YouTube-Trailer gefunden")
         return None
 
     except Exception as e:
-        print(f"DEBUG: Fehler bei YouTube-Suche: {e}")
+        logger.error(f"Fehler bei YouTube-Suche: {e}")
+        return None
+
+
+def search_itunes_cover(title: str, author: Optional[str] = None) -> Optional[str]:
+    """
+    Sucht nach einem Album-Cover mit der iTunes Search API.
+
+    Args:
+        title: Albumtitel
+        author: Künstler (optional)
+
+    Returns:
+        URL des Covers (600x600 px) oder None
+    """
+    try:
+        search_term = title
+        if author:
+            search_term += f" {author}"
+
+        url = "https://itunes.apple.com/search"
+        params = {"term": search_term, "media": "music", "entity": "album", "limit": 1}
+
+        logger.debug(f"Suche iTunes-Cover für: '{search_term}'")
+        response = requests.get(url, params=params, timeout=5)
+
+        if response.status_code == 200:
+            data = response.json()
+            if data.get("resultCount", 0) > 0:
+                # Nimm das erste Ergebnis
+                result = data["results"][0]
+                # Hole das größte verfügbare Cover (meist artworkUrl100)
+                # Ersetze 100x100 mit 600x600 für bessere Qualität
+                cover_url = result.get("artworkUrl100", "")
+                if cover_url:
+                    cover_600 = cover_url.replace("100x100bb.jpg", "600x600bb.jpg")
+                    logger.debug(f"iTunes-Cover gefunden: {cover_600[:50]}...")
+                    return cover_600
+
+        return None
+    except Exception as e:
+        logger.error(f"Fehler bei iTunes-Suche: {e}")
         return None
 
 
 def search_cover_image(title: str, author: Optional[str] = None, media_type: str = "film") -> Optional[str]:
     """
     Sucht nach einem Cover-Image für ein Medium.
+
+    Versucht bei Alben zuerst iTunes, sonst DuckDuckGo Bildsuche.
 
     Args:
         title: Titel des Mediums
@@ -80,6 +127,13 @@ def search_cover_image(title: str, author: Optional[str] = None, media_type: str
         >>> cover_url = search_cover_image("OK Computer", "Radiohead", "album")
         >>> print(f"Album-Cover: {cover_url}")
     """
+    # 1. Speziell für Alben: iTunes zuerst versuchen
+    if media_type == "album":
+        itunes_url = search_itunes_cover(title, author)
+        if itunes_url:
+            return itunes_url
+
+    # 2. Fallback: DuckDuckGo Bildsuche
     try:
         # Suchbegriff erstellen
         if media_type == "film":
@@ -94,7 +148,7 @@ def search_cover_image(title: str, author: Optional[str] = None, media_type: str
         if author:
             search_term += f" {author}"
 
-        print(f"DEBUG: Suche Cover-Image: '{search_term}'")
+        logger.debug(f"Suche DuckDuckGo-Cover: '{search_term}'")
 
         with DDGS() as ddgs:
             # Bildsuche
@@ -104,14 +158,14 @@ def search_cover_image(title: str, author: Optional[str] = None, media_type: str
                 # Nimm das erste Ergebnis
                 image_url = image_results[0].get("image")
                 if image_url:
-                    print(f"DEBUG: Cover-Image gefunden: {image_url[:50]}...")
+                    logger.debug(f"DuckDuckGo-Cover gefunden: {image_url[:50]}...")
                     return image_url
 
-        print("DEBUG: Kein Cover-Image gefunden")
+        logger.debug("Kein Cover-Image gefunden")
         return None
 
     except Exception as e:
-        print(f"DEBUG: Fehler bei Cover-Suche: {e}")
+        logger.error(f"Fehler bei Cover-Suche: {e}")
         return None
 
 
@@ -160,7 +214,7 @@ def search_media_info(title: str, author: Optional[str] = None, media_type: str 
         else:
             search_term = f"{title} {author}" if author else title
 
-        print(f"DEBUG: Suche nach: '{search_term}'")
+        logger.debug(f"Suche nach: '{search_term}'")
 
         with DDGS() as ddgs:
             results = list(ddgs.text(search_term, max_results=5))
@@ -244,7 +298,7 @@ Antwort (maximal 3 Sätze auf Deutsch):"""
         return summary
 
     except Exception as e:
-        print(f"DEBUG: Fehler bei Groq API: {e}")
+        logger.error(f"Fehler bei Groq API: {e}")
         return f"Fehler beim Erstellen der Zusammenfassung: {str(e)}"
 
 
