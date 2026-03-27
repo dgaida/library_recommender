@@ -8,6 +8,7 @@ import re
 from datetime import datetime
 from typing import Dict, List, Any, Tuple
 from collections import defaultdict
+from fpdf.enums import XPos, YPos
 from utils.logging_config import get_logger
 
 logger = get_logger(__name__)
@@ -104,24 +105,57 @@ def _add_pdf_item(pdf, i, item, author_label, text_width):
     clean_title = remove_emoji(item["title"])
     pdf.set_font("Helvetica", "B", 12)
     title_text = f"{i}. {clean_title}"
-    pdf.multi_cell(text_width, 8, title_text.encode("latin-1", "replace").decode("latin-1"))
+    pdf.multi_cell(
+        text_width, 8, title_text.encode("latin-1", "replace").decode("latin-1"), new_x=XPos.LMARGIN, new_y=YPos.NEXT
+    )
 
     pdf.set_font("Helvetica", "", 10)
+    # Einrücken für Details
+    pdf.set_x(15)
+    detail_width = text_width - 5
+
     if item.get("author"):
         author_text = f"{author_label}: {item['author']}"
-        pdf.multi_cell(text_width, 6, author_text.encode("latin-1", "replace").decode("latin-1"))
+        pdf.multi_cell(
+            detail_width,
+            6,
+            author_text.encode("latin-1", "replace").decode("latin-1"),
+            new_x=XPos.LMARGIN,
+            new_y=YPos.NEXT,
+        )
+        pdf.set_x(15)
 
     # Zusätzliche Infos (Jahr, Genre) wie im Markdown
     if item.get("year"):
-        pdf.cell(text_width, 6, f"Jahr: {item['year']}".encode("latin-1", "replace").decode("latin-1"), ln=True)
+        pdf.cell(
+            detail_width,
+            6,
+            f"Jahr: {item['year']}".encode("latin-1", "replace").decode("latin-1"),
+            new_x=XPos.LMARGIN,
+            new_y=YPos.NEXT,
+        )
+        pdf.set_x(15)
 
     if item.get("genre"):
-        pdf.cell(text_width, 6, f"Genre: {item['genre']}".encode("latin-1", "replace").decode("latin-1"), ln=True)
+        pdf.cell(
+            detail_width,
+            6,
+            f"Genre: {item['genre']}".encode("latin-1", "replace").decode("latin-1"),
+            new_x=XPos.LMARGIN,
+            new_y=YPos.NEXT,
+        )
+        pdf.set_x(15)
 
     if item.get("bib_number"):
         availability = truncate_text(item["bib_number"], 300)
         availability_text = f"Verfügbarkeit: {availability}"
-        pdf.multi_cell(text_width, 6, availability_text.encode("latin-1", "replace").decode("latin-1"))
+        pdf.multi_cell(
+            detail_width,
+            6,
+            availability_text.encode("latin-1", "replace").decode("latin-1"),
+            new_x=XPos.LMARGIN,
+            new_y=YPos.NEXT,
+        )
 
     return y_before
 
@@ -211,9 +245,23 @@ def save_recommendations_to_pdf(recommendations: Dict[str, List[Dict[str, Any]]]
 
     # Titel
     pdf.set_font("Helvetica", "B", 16)
-    pdf.cell(0, 10, "Empfehlungen der Stadtbibliothek Köln", ln=True, align="C")
+    pdf.cell(
+        0,
+        10,
+        "Empfehlungen der Stadtbibliothek Köln",
+        new_x=XPos.LMARGIN,
+        new_y=YPos.NEXT,
+        align="C",
+    )
     pdf.set_font("Helvetica", "I", 10)
-    pdf.cell(0, 10, f"Erstellt am: {timestamp}", ln=True, align="C")
+    pdf.cell(
+        0,
+        10,
+        f"Erstellt am: {timestamp}",
+        new_x=XPos.LMARGIN,
+        new_y=YPos.NEXT,
+        align="C",
+    )
     pdf.ln(10)
 
     categories: Dict[str, Tuple[str, str, str]] = {
@@ -229,7 +277,13 @@ def save_recommendations_to_pdf(recommendations: Dict[str, List[Dict[str, Any]]]
         category_name, _, author_label = categories.get(category, (category.title(), "Item", "Autor"))
 
         pdf.set_font("Helvetica", "B", 14)
-        pdf.cell(0, 10, category_name.encode("latin-1", "replace").decode("latin-1"), ln=True)
+        pdf.cell(
+            0,
+            10,
+            category_name.encode("latin-1", "replace").decode("latin-1"),
+            new_x=XPos.LMARGIN,
+            new_y=YPos.NEXT,
+        )
         pdf.ln(2)
 
         items_to_write = _sort_films_by_genre(items) if category == "films" else items
@@ -257,7 +311,7 @@ def save_recommendations_to_pdf(recommendations: Dict[str, List[Dict[str, Any]]]
     # Hinweise
     pdf.add_page()
     pdf.set_font("Helvetica", "B", 12)
-    pdf.cell(0, 10, "Hinweise", ln=True)
+    pdf.cell(0, 10, "Hinweise", new_x=XPos.LMARGIN, new_y=YPos.NEXT)
     pdf.set_font("Helvetica", "", 10)
     pdf.multi_cell(
         0,
@@ -265,6 +319,8 @@ def save_recommendations_to_pdf(recommendations: Dict[str, List[Dict[str, Any]]]
         "Die Verfügbarkeit kann sich schnell ändern. Bitte prüfen Sie die aktuelle Verfügbarkeit direkt im Katalog.\n"
         "Diese Empfehlungen basieren auf kuratierten Listen hochwertiger Medien.\n"
         "Katalog: https://katalog.stbib-koeln.de",
+        new_x=XPos.LMARGIN,
+        new_y=YPos.NEXT,
     )
 
     pdf.output(filename)
