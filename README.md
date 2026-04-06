@@ -15,6 +15,7 @@ Eine intelligente Empfehlungs-App für die **Stadtbibliothek Köln**, die verfü
 [![codecov](https://codecov.io/gh/dgaida/library_recommender/branch/main/graph/badge.svg)](https://codecov.io/gh/dgaida/library_recommender)
 [![Maintenance](https://img.shields.io/badge/Maintained%3F-yes-green.svg)](https://github.com/dgaida/library_recommender/graphs/commit-activity)
 ![Last commit](https://img.shields.io/github/last-commit/dgaida/library_recommender)
+[![Docs](https://img.shields.io/badge/docs-GitHub%20Pages-blue)](https://dgaida.github.io/library_recommender/)
 
 ## ✨ Features
 
