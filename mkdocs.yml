@@ -1,0 +1,96 @@
+site_name: Bibliothek-Empfehlungs-App
+site_url: https://dgaida.github.io/library-recommender
+site_description: Intelligente Empfehlungs-App für die Stadtbibliothek Köln
+
+theme:
+  name: material
+  language: de
+  features:
+    - navigation.tabs
+    - navigation.sections
+    - navigation.top
+    - navigation.tracking
+    - search.suggest
+    - search.highlight
+    - content.code.copy
+    - content.action.edit
+    - i18n.languages
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+
+plugins:
+  - search
+  - i18n:
+      docs_structure: folder
+      languages:
+        - build: true
+          default: true
+          locale: de
+          name: Deutsch
+        - build: true
+          locale: en
+          name: English
+  - mkdocstrings:
+      handlers:
+        python:
+          options:
+            docstring_style: google
+            show_source: true
+            show_root_heading: true
+            show_category_heading: true
+            merge_init_into_class: true
+            import:
+              - https://docs.python.org/3/objects.inv
+  - mermaid2:
+      version: '10.0.0'
+  - mike
+
+markdown_extensions:
+  - admonition
+  - pymdownx.details
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:mermaid2.fence_mermaid
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  - pymdownx.tabbed:
+      alternate_style: true
+  - toc:
+      permalink: true
+
+extra:
+  version:
+    provider: mike
+
+nav:
+  - Home: index.md
+  - Getting Started: getting-started.md
+  - Installation: installation.md
+  - Configuration: configuration.md
+  - Usage: usage/index.md
+  - Architecture: architecture/index.md
+  - API Reference:
+      - Overview: api/index.md
+      - Library Search: api/search.md
+      - Recommender: api/recommender.md
+      - Utilities: api/utils.md
+  - Development:
+      - Overview: development/index.md
+      - Docstring Guide: development/docstrings.md
+      - Metrics Dashboard: development/metrics.md
+  - Troubleshooting: troubleshooting.md
+  - Contributing: contributing.md
+  - Changelog: changelog.md

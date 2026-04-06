@@ -182,7 +182,7 @@ def search_media_info(title: str, author: Optional[str] = None, media_type: str 
 
     Returns:
         Liste von Suchergebnissen mit Schlüsseln:
-            - "title" (str): Titel des Suchergebnisses
+            - title (str): Titel des Suchergebnisses
             - "body" (str): Beschreibungstext
             - "href" (str): URL des Ergebnisses
 

@@ -46,6 +46,35 @@ dev = [
     "flake8>=6.0.0",
     "mypy>=1.0.0",
 ]
+docs = [
+    "mkdocs>=1.5.0",
+    "mkdocs-material>=9.4.0",
+    "mkdocstrings[python]>=0.23.0",
+    "mkdocs-static-i18n>=1.2.0",
+    "mkdocs-mermaid2-plugin>=0.6.0",
+    "mike>=2.0.0",
+    "interrogate>=1.5.0",
+]
+
+[tool.interrogate]
+ignore-init-method = true
+ignore-init-module = false
+ignore-magic = false
+ignore-semiprivate = false
+ignore-private = false
+ignore-property-decorators = false
+ignore-module = false
+ignore-nested-functions = false
+fail-under = 95
+exclude = ["setup.py", "docs", "build", "tests", "venv", ".tox"]
+ignore-regex = ["^get$", "^mock_.*", ".*Base$"]
+verbose = 2
+quiet = false
+whitelist-regex = []
+color = true
+omit-covered-files = false
+generate-badge = "."
+badge-format = "svg"
 
 [project.urls]
 Homepage = "https://github.com/dgaida/library-recommender"
