@@ -6,6 +6,7 @@ Speichert nur explizit abgelehnte Medien persistent
 
 import os
 import json
+from typing import Dict, List, Any, Union
 
 from utils.io import DATA_DIR
 
@@ -21,7 +22,7 @@ class AppState:
     - rejected: Explizit abgelehnte Medien (persistent gespeichert)
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         # Struktur: { "films": [ {title:..., author:...}, ...], "albums": [...], "books": [...] }
         # Nur abgelehnte Medien, persistent gespeichert
         self.rejected = self.load_rejected_state()
@@ -31,7 +32,7 @@ class AppState:
         self.suggested = {"films": [], "albums": [], "books": []}
 
     @staticmethod
-    def load_rejected_state():
+    def load_rejected_state() -> Dict[str, List[Dict[str, Any]]]:
         """Lädt nur die abgelehnten Medien aus der JSON-Datei"""
         if os.path.exists(STATE_FILE):
             try:
@@ -50,7 +51,7 @@ class AppState:
             return rejected
 
     @staticmethod
-    def save_rejected_state(rejected):
+    def save_rejected_state(rejected: Dict[str, List[Dict[str, Any]]]) -> None:
         """Speichert nur die abgelehnten Medien in die JSON-Datei"""
         try:
             with open(STATE_FILE, "w", encoding="utf-8") as f:
@@ -59,7 +60,7 @@ class AppState:
         except Exception as e:
             print(f"DEBUG: Fehler beim Speichern der state.json: {e}")
 
-    def is_already_suggested(self, category, item):
+    def is_already_suggested(self, category: str, item: Dict[str, Any]) -> bool:
         """
         Prüft, ob ein Item schon vorgeschlagen wurde (im aktuellen Lauf)
         oder explizit abgelehnt wurde (persistent)
@@ -79,7 +80,7 @@ class AppState:
 
         return already_suggested_this_run or already_rejected
 
-    def mark_suggested(self, category, item):
+    def mark_suggested(self, category: str, item: Dict[str, Any]) -> None:
         """Markiert ein Item als vorgeschlagen (nur im Arbeitsspeicher)"""
         if category not in self.suggested:
             self.suggested[category] = []
@@ -90,7 +91,7 @@ class AppState:
             self.suggested[category].append(item)
             print(f"DEBUG: '{item['title']}' als vorgeschlagen markiert")
 
-    def reject(self, category, item):
+    def reject(self, category: str, item: Dict[str, Any]) -> None:
         """
         Lehnt ein Item explizit ab - wird persistent gespeichert
         """
@@ -109,18 +110,18 @@ class AppState:
         else:
             print(f"DEBUG: '{item['title']}' war bereits als abgelehnt markiert")
 
-    def reset_rejected(self):
+    def reset_rejected(self) -> None:
         """Setzt alle abgelehnten Medien zurück (löscht state.json)"""
         self.rejected = {"films": [], "albums": [], "books": []}
         self.save_rejected_state(self.rejected)
         print("DEBUG: Alle abgelehnten Medien zurückgesetzt")
 
-    def reset_suggested(self):
+    def reset_suggested(self) -> None:
         """Setzt nur die aktuell vorgeschlagenen zurück"""
         self.suggested = {"films": [], "albums": [], "books": []}
         print("DEBUG: Aktuell vorgeschlagene Medien zurückgesetzt")
 
-    def get_stats(self):
+    def get_stats(self) -> Dict[str, Any]:
         """Gibt Statistiken über den aktuellen Zustand zurück"""
         stats = {
             "rejected_total": sum(len(items) for items in self.rejected.values()),
@@ -130,7 +131,7 @@ class AppState:
         }
         return stats
 
-    def print_stats(self):
+    def print_stats(self) -> None:
         """Druckt Statistiken über den aktuellen Zustand"""
         stats = self.get_stats()
         print("\n" + "=" * 50)
@@ -147,15 +148,15 @@ class AppState:
                 print(f"  - {category.capitalize()}: {count}")
         print("=" * 50 + "\n")
 
-    def list_rejected_items(self, category=None):
+    def list_rejected_items(self, category: str = None) -> Union[Dict[str, List[Dict[str, Any]]], List[Dict[str, Any]]]:
         """
         Listet abgelehnte Items auf
 
         Args:
-            category (str, optional): Spezifische Kategorie oder None für alle
+            category (str, optional): Spezifische Kategorie oder None für alle (default: None)
 
         Returns:
-            dict oder list: Abgelehnte Items
+            Union[Dict[str, List[Dict[str, Any]]], List[Dict[str, Any]]]: Abgelehnte Items
         """
         if category:
             return self.rejected.get(category, [])
