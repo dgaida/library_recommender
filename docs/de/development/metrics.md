@@ -6,7 +6,7 @@ Dieser Dashboard zeigt die aktuelle Qualität und Abdeckung unserer Dokumentatio
 
 Die API-Dokumentation wird automatisch auf Vollständigkeit geprüft. Wir streben eine Abdeckung von **95%** an.
 
-![Interrogate Badge](../interrogate-badge.svg)
+![Interrogate Badge](../../interrogate-badge.svg)
 
 ## 🧪 Test-Abdeckung
 

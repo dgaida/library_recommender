@@ -6,7 +6,7 @@ This dashboard displays the current quality and coverage of our documentation.
 
 API documentation is automatically checked for completeness. We aim for a coverage of **95%**.
 
-![Interrogate Badge](../interrogate-badge.svg)
+![Interrogate Badge](../../interrogate-badge.svg)
 
 ## 🧪 Test Coverage
 
