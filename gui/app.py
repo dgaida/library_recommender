@@ -204,7 +204,7 @@ def load_or_fetch_albums() -> List[Dict[str, Any]]:
 
         # Top-Interpreten-Alben hinzufügen
         logger.info("Analysiere MP3-Archiv für personalisierte Empfehlungen...")
-        add_top_artist_albums_to_collection("H:\\MP3 Archiv", top_n=10)
+        add_top_artist_albums_to_collection("H:\\MP3 Archiv", top_n=30)
 
         # Neu laden nach Updates
         with open(ALBUMS_FILE, "r", encoding="utf-8") as f:
@@ -220,7 +220,7 @@ def suggest(category: str) -> Tuple[gr.update, str, gr.update, str]:
     """
     Erstellt neue balancierte Vorschläge für eine Kategorie.
 
-    Die Anzahl wird dynamisch berechnet (4 pro Quelle).
+    Die Anzahl wird dynamisch berechnet (5 pro Quelle).
 
     Args:
         category: Kategorie ('films', 'albums', 'books')
@@ -231,7 +231,7 @@ def suggest(category: str) -> Tuple[gr.update, str, gr.update, str]:
     logger.info(f"Erstelle Vorschläge für Kategorie: {category}")
 
     # Hole Vorschläge (Anzahl wird dynamisch berechnet)
-    suggestions = get_n_suggestions(category, items_per_source=4)
+    suggestions = get_n_suggestions(category, items_per_source=5)
 
     # Aktualisiere globale Vorschläge
     current_suggestions[category] = suggestions
@@ -264,7 +264,7 @@ def suggest(category: str) -> Tuple[gr.update, str, gr.update, str]:
     return (gr.update(choices=choices, value=[]), info_text, gr.update(interactive=False), "")
 
 
-def get_n_suggestions(category: str, items_per_source: int = 4) -> List[Dict[str, Any]]:
+def get_n_suggestions(category: str, items_per_source: int = 5) -> List[Dict[str, Any]]:
     """
     Holt neue Vorschläge für eine Kategorie, balanciert nach Quelle.
 
@@ -273,14 +273,14 @@ def get_n_suggestions(category: str, items_per_source: int = 4) -> List[Dict[str
 
     Args:
         category: Kategorie ('films', 'albums', 'books')
-        items_per_source: Items pro Quelle (default: 4)
+        items_per_source: Items pro Quelle (default: 5)
 
     Returns:
         Liste von Empfehlungen, balanciert nach Quelle
 
     Example:
-        >>> suggestions = get_n_suggestions('films', items_per_source=4)
-        >>> # Bei 3 Quellen -> 12 Vorschläge
+        >>> suggestions = get_n_suggestions('films', items_per_source=5)
+        >>> # Bei 3 Quellen -> 15 Vorschläge
     """
     logger.info(f"Hole Vorschläge für {category} ({items_per_source} pro Quelle)")
 
@@ -660,7 +660,7 @@ def initialize_recommendations() -> Tuple[List[Dict[str, Any]], List[Dict[str, A
     """
     Lädt initiale balancierte Vorschläge für alle Kategorien beim Start.
 
-    Ruft für jede Kategorie Empfehlungen ab (4 pro Quelle, dynamisch berechnet)
+    Ruft für jede Kategorie Empfehlungen ab (5 pro Quelle, dynamisch berechnet)
     und speichert sie automatisch in einer PDF-Datei.
 
     Returns:
@@ -668,16 +668,16 @@ def initialize_recommendations() -> Tuple[List[Dict[str, Any]], List[Dict[str, A
     """
     logger.info("Lade initiale balancierte Vorschläge...")
 
-    # Filme laden (4 pro Quelle, dynamisch)
-    film_suggestions = get_n_suggestions("films", items_per_source=4)
+    # Filme laden (5 pro Quelle, dynamisch)
+    film_suggestions = get_n_suggestions("films", items_per_source=5)
     current_suggestions["films"] = film_suggestions
 
-    # Alben laden (4 pro Quelle, dynamisch)
-    album_suggestions = get_n_suggestions("albums", items_per_source=4)
+    # Alben laden (5 pro Quelle, dynamisch)
+    album_suggestions = get_n_suggestions("albums", items_per_source=5)
     current_suggestions["albums"] = album_suggestions
 
-    # Bücher laden (4 pro Quelle, dynamisch)
-    book_suggestions = get_n_suggestions("books", items_per_source=4)
+    # Bücher laden (5 pro Quelle, dynamisch)
+    book_suggestions = get_n_suggestions("books", items_per_source=5)
     current_suggestions["books"] = book_suggestions
 
     # Automatisch in Datei speichern
@@ -2207,7 +2207,7 @@ with gr.Blocks(theme=create_custom_theme(), css=css, title="Bibliothek-Empfehlun
 
     # Info-Karten (optional)
     with gr.Row():
-        gr.HTML(create_info_card("🎬", "Premium-Filme", "BBC, FBW & Oscar-Gewinner"))
+        gr.HTML(create_info_card("🎬", "Premium-Filme", "BBC, FBW, Oscar & IMDb"))
         gr.HTML(create_info_card("🎵", "Kuratierte Musik", "Radio Eins, Oscar & Personalisiert"))
         gr.HTML(create_info_card("📚", "Beste Bücher", "NYT Kanon & Top-Ratgeber"))
 
@@ -2222,7 +2222,7 @@ with gr.Blocks(theme=create_custom_theme(), css=css, title="Bibliothek-Empfehlun
     with gr.Tab("🎬 Filme"):
         with gr.Column(elem_classes=["suggestion-container"]):
             film_checkbox = gr.CheckboxGroup(
-                label="Empfohlene Filme (balanciert: 4 BBC, 4 FBW, 4 Oscar)",
+                label="Empfohlene Filme (balanciert: 5 BBC, 5 FBW, 5 Oscar, 5 IMDb)",
                 choices=initial_film_choices,
                 value=[],
                 interactive=True,
@@ -2259,7 +2259,7 @@ with gr.Blocks(theme=create_custom_theme(), css=css, title="Bibliothek-Empfehlun
     with gr.Tab("🎵 Musik"):
         with gr.Column(elem_classes=["suggestion-container"]):
             album_checkbox = gr.CheckboxGroup(
-                label="Empfohlene Alben (balanciert: 4 Radio Eins, 4 Oscar, 4 Personalisiert)",
+                label="Empfohlene Alben (balanciert: 5 Radio Eins, 5 Oscar, 5 Personalisiert)",
                 choices=initial_album_choices,
                 value=[],
                 interactive=True,
@@ -2298,7 +2298,7 @@ with gr.Blocks(theme=create_custom_theme(), css=css, title="Bibliothek-Empfehlun
             book_checkbox = gr.CheckboxGroup(
                 # TODO: diese Anzahl und die Inhalte sollten dynamisch sein und sich anpassen an die Zahl an Quellen
                 #  und dem eingestellten Parameter. gilt auch für CDs und DVDs
-                label="Empfohlene Bücher (balanciert: 4 NYT Kanon, 4 Ratgeber)",
+                label="Empfohlene Bücher (balanciert: 5 NYT Kanon, 5 Ratgeber)",
                 choices=initial_book_choices,
                 value=[],
                 interactive=True,

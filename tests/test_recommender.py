@@ -136,7 +136,7 @@ class TestRecommender:
 
                 films = [{"title": "Test Film", "author": "Test Director", "type": "DVD", "source": "Test Source"}]
 
-                results = recommender.suggest_films(films, items_per_source=4)
+                results = recommender.suggest_films(films, items_per_source=5)
 
                 # Sollte 1 Film zurückgeben (hat UV-Kürzel)
                 assert len(results) == 1
@@ -174,7 +174,7 @@ class TestRecommender:
 
                 films = [{"title": "Not a Film", "author": "Author", "type": "DVD", "source": "Test Source"}]
 
-                results = recommender.suggest_films(films, items_per_source=4)
+                results = recommender.suggest_films(films, items_per_source=5)
 
                 # Sollte leer sein (kein UV-Kürzel)
                 assert len(results) == 0
@@ -194,7 +194,7 @@ class TestRecommender:
 
                 films = [{"title": "Blacklisted Film", "author": "Director", "type": "DVD", "source": "Test Source"}]
 
-                results = recommender.suggest_films(films, items_per_source=4)
+                results = recommender.suggest_films(films, items_per_source=5)
 
                 # Sollte leer sein, da geblacklistet
                 assert len(results) == 0
@@ -212,7 +212,7 @@ class TestRecommender:
 
                 films = [{"title": "Unknown Film", "author": "Unknown", "type": "DVD", "source": "Test Source"}]
 
-                results = recommender.suggest_films(films, items_per_source=4)
+                results = recommender.suggest_films(films, items_per_source=5)
 
                 # Sollte zur Blacklist hinzugefügt worden sein
                 mock_blacklist.add_to_blacklist.assert_called_once()
@@ -249,7 +249,7 @@ class TestRecommender:
 
                 films = [{"title": "Borrowed Film", "author": "Director", "type": "DVD", "source": "Test Source"}]
 
-                results = recommender.suggest_films(films, items_per_source=4)
+                results = recommender.suggest_films(films, items_per_source=5)
 
                 # Sollte leer sein (entliehen)
                 assert len(results) == 0
@@ -266,7 +266,7 @@ class TestRecommender:
 
                 albums = [{"title": "Test Album", "author": "Test Artist", "type": "CD", "source": "Test Source"}]
 
-                results = recommender.suggest_albums(albums, items_per_source=4)
+                results = recommender.suggest_albums(albums, items_per_source=5)
 
                 # Sollte 1 Album zurückgeben
                 assert len(results) == 1
@@ -282,7 +282,7 @@ class TestRecommender:
 
                 books = [{"title": "Test Book", "author": "Test Author", "type": "Buch", "source": "Test Source"}]
 
-                results = recommender.suggest_books(books, items_per_source=4)
+                results = recommender.suggest_books(books, items_per_source=5)
 
                 # Sollte 1 Buch zurückgeben
                 assert len(results) == 1
