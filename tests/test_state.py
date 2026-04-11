@@ -127,6 +127,19 @@ class TestAppState:
                 assert stats["suggested_by_category"]["films"] == 1
                 assert stats["rejected_by_category"]["albums"] == 1
 
+    def test_load_save_rejected_state(self, tmp_path):
+        """Test persistence of rejected items."""
+        from recommender.state import AppState
+        state_file = tmp_path / "state.json"
+
+        with patch("recommender.state.STATE_FILE", str(state_file)):
+            state = AppState()
+            state.reject("films", {"title": "Rejected"})
+
+            # New instance should load the rejected item
+            state2 = AppState()
+            assert state2.rejected["films"][0]["title"] == "Rejected"
+
 
 # ============================================================================
 # Pytest Configuration
