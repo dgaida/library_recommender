@@ -111,7 +111,7 @@ def search_artist_albums_in_library(artist_name: str, max_results: int = 15) -> 
         return []
 
 
-def find_new_albums_for_top_artists(archive_path: str, top_n: int = 10, use_blacklist: bool = True) -> List[Dict[str, Any]]:
+def find_new_albums_for_top_artists(archive_path: str, top_n: int = 30, use_blacklist: bool = True) -> List[Dict[str, Any]]:
     """
     Findet neue Alben für deine Top-Interpreten in der Bibliothek.
 
@@ -119,7 +119,7 @@ def find_new_albums_for_top_artists(archive_path: str, top_n: int = 10, use_blac
 
     Args:
         archive_path: Pfad zum MP3-Archiv
-        top_n: Anzahl der Top-Interpreten
+        top_n: Anzahl der Top-Interpreten (default: 30)
         use_blacklist: Ob Artist-Blacklist verwendet werden soll
 
     Returns:
@@ -220,7 +220,7 @@ def _is_duplicate(album, artist, existing_albums):
 
 
 def add_top_artist_albums_to_collection(
-    archive_path: str = "H:\\MP3 Archiv", top_n: int = 10, use_blacklist: bool = True
+    archive_path: str = "H:\\MP3 Archiv", top_n: int = 30, use_blacklist: bool = True
 ) -> None:
     """
     Findet neue Alben für Top-Interpreten und fügt sie zu albums.json hinzu.
@@ -229,7 +229,7 @@ def add_top_artist_albums_to_collection(
 
     Args:
         archive_path: Pfad zum MP3-Archiv
-        top_n: Anzahl der Top-Interpreten
+        top_n: Anzahl der Top-Interpreten (default: 30)
         use_blacklist: Ob Artist-Blacklist verwendet werden soll
     """
     logger.info("=" * 60)
@@ -326,4 +326,4 @@ if __name__ == "__main__":
     perform_artist_blacklist_maintenance()
 
     # Alben-Empfehlungen erstellen
-    add_top_artist_albums_to_collection(archive_path="H:\\MP3 Archiv", top_n=10, use_blacklist=True)
+    add_top_artist_albums_to_collection(archive_path="H:\\MP3 Archiv", top_n=30, use_blacklist=True)

@@ -3,7 +3,7 @@
 Recommender-System für Bibliotheksmedien mit ausgewogener Quellenverteilung
 
 Dieses Modul stellt sicher, dass Empfehlungen gleichmäßig aus allen verfügbaren
-Datenquellen stammen (z.B. 4 Filme von BBC, 4 von FBW, 4 von Oscar).
+Datenquellen stammen (z.B. 5 Filme von BBC, 5 von FBW, 5 von Oscar).
 """
 
 import re
@@ -28,7 +28,7 @@ class Recommender:
     Items werden in AppState gespeichert, um Mehrfachvorschläge zu verhindern.
 
     Die Empfehlungen werden so verteilt, dass aus jeder Datenquelle gleichmäßig
-    Medien vorgeschlagen werden (z.B. 4 pro Quelle).
+    Medien vorgeschlagen werden (z.B. 5 pro Quelle).
     """
 
     def __init__(self, library_search: Any, state: AppState) -> None:
@@ -82,7 +82,7 @@ class Recommender:
         return items_by_source
 
     def _pick_balanced_items(
-        self, items: List[Dict[str, Any]], category: str, n: int = 12, items_per_source: int = 4
+        self, items: List[Dict[str, Any]], category: str, n: int = 25, items_per_source: int = 5
     ) -> List[Dict[str, Any]]:
         """
         Wählt Items aus, wobei aus jeder Quelle gleichmäßig gewählt wird.
@@ -90,8 +90,8 @@ class Recommender:
         Args:
             items: Liste aller verfügbaren Items
             category: Kategorie ('films', 'albums', 'books')
-            n: Gesamtanzahl gewünschter Items
-            items_per_source: Items pro Quelle (default: 4)
+            n: Gesamtanzahl gewünschter Items (default: 25)
+            items_per_source: Items pro Quelle (default: 5)
 
         Returns:
             Liste der ausgewählten Items, balanciert nach Quelle
@@ -402,17 +402,17 @@ class Recommender:
 
         return text[: max_length - 3].strip() + "..."
 
-    def suggest_films(self, films: List[Dict[str, Any]], n: int = 12, items_per_source: int = 4) -> List[Dict[str, Any]]:
+    def suggest_films(self, films: List[Dict[str, Any]], n: int = 25, items_per_source: int = 5) -> List[Dict[str, Any]]:
         """
         Wählt verfügbare Filme aus, balanciert nach Quellen.
 
-        Stellt sicher, dass aus jeder Quelle (BBC, FBW, Oscar) gleichmäßig
+        Stellt sicher, dass aus jeder Quelle (BBC, FBW, Oscar, IMDb) gleichmäßig
         Filme vorgeschlagen werden.
 
         Args:
             films: Liste von Filmen mit Titeln, Autoren und Typ
-            n: Gesamtanzahl gewünschter Vorschläge (default: 12)
-            items_per_source: Items pro Quelle (default: 4)
+            n: Gesamtanzahl gewünschter Vorschläge (default: 25)
+            items_per_source: Items pro Quelle (default: 5)
 
         Returns:
             Liste der vorgeschlagenen Filme, balanciert nach Quelle
@@ -420,7 +420,7 @@ class Recommender:
         logger.info(f"Erstelle {n} balancierte Filmvorschläge " f"({items_per_source} pro Quelle)")
         return self._pick_balanced_items(films, "films", n, items_per_source)
 
-    def suggest_albums(self, albums: List[Dict[str, Any]], n: int = 12, items_per_source: int = 4) -> List[Dict[str, Any]]:
+    def suggest_albums(self, albums: List[Dict[str, Any]], n: int = 25, items_per_source: int = 5) -> List[Dict[str, Any]]:
         """
         Wählt verfügbare Musikalben aus, balanciert nach Quellen.
 
@@ -429,8 +429,8 @@ class Recommender:
 
         Args:
             albums: Liste von Alben mit Titel, Künstler und Typ
-            n: Gesamtanzahl gewünschter Vorschläge (default: 12)
-            items_per_source: Items pro Quelle (default: 4)
+            n: Gesamtanzahl gewünschter Vorschläge (default: 25)
+            items_per_source: Items pro Quelle (default: 5)
 
         Returns:
             Liste der vorgeschlagenen Alben, balanciert nach Quelle
@@ -438,7 +438,7 @@ class Recommender:
         logger.info(f"Erstelle {n} balancierte Albumvorschläge " f"({items_per_source} pro Quelle)")
         return self._pick_balanced_items(albums, "albums", n, items_per_source)
 
-    def suggest_books(self, books: List[Dict[str, Any]], n: int = 12, items_per_source: int = 4) -> List[Dict[str, Any]]:
+    def suggest_books(self, books: List[Dict[str, Any]], n: int = 25, items_per_source: int = 5) -> List[Dict[str, Any]]:
         """
         Wählt verfügbare Bücher aus, balanciert nach Quellen.
 
@@ -447,8 +447,8 @@ class Recommender:
 
         Args:
             books: Liste von Büchern mit Titel, Autor und Typ
-            n: Gesamtanzahl gewünschter Vorschläge (default: 12)
-            items_per_source: Items pro Quelle (default: 4)
+            n: Gesamtanzahl gewünschter Vorschläge (default: 25)
+            items_per_source: Items pro Quelle (default: 5)
 
         Returns:
             Liste der vorgeschlagenen Bücher, balanciert nach Quelle

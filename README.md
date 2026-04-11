@@ -29,7 +29,7 @@ Eine intelligente Empfehlungs-App für die **Stadtbibliothek Köln**, die verfü
 #### 🎵 **Musik** - Vielfältige Quellen
 - **Radio Eins**: Top 100 Alben 2019
 - **Oscar**: Beste Filmmusik aller Zeiten
-- **💎 Personalisiert**: Basierend auf deinem MP3-Archiv (analysiert deine Top-10-Interpreten)
+- **💎 Personalisiert**: Basierend auf deinem MP3-Archiv (analysiert deine Top-30-Interpreten)
 
 #### 📚 **Bücher & Ratgeber** - Hochwertige Literatur
 - **New York Times**: Kanon des 21. Jahrhunderts
@@ -42,7 +42,7 @@ Eine intelligente Empfehlungs-App für die **Stadtbibliothek Köln**, die verfü
 
 ### 💎 **Personalisierte Empfehlungen**
 - **MP3-Archiv-Analyse**: Erkennt automatisch deine Lieblingskünstler
-- **Top-10-Tracking**: Identifiziert deine meist gehörten Interpreten
+- **Top-30-Tracking**: Identifiziert deine meist gehörten Interpreten
 - **Neue Alben**: Sucht gezielt nach weiteren Werken deiner Favoriten
 
 ### 🎮 **Moderne Benutzeroberfläche**
@@ -96,7 +96,7 @@ GROQ_API_KEY=gsk_...
 ### 4. MP3-Archiv Pfad anpassen (optional)
 Für personalisierte Musikempfehlungen bearbeite `data_sources/mp3_analysis.py`:
 ```python
-add_top_artist_albums_to_collection("PFAD/ZU/DEINEM/MP3/ARCHIV", top_n=10)
+add_top_artist_albums_to_collection("PFAD/ZU/DEINEM/MP3/ARCHIV", top_n=30)
 ```
 
 Und in `data_sources/albums.py`:
@@ -114,7 +114,7 @@ python main.py
 Die App öffnet sich automatisch im Browser unter `http://localhost:7860`
 
 ### Workflow
-1. **Automatische Vorschläge** beim Start mit Quellen-Emojis (dynamisch 4 pro Quelle)
+1. **Automatische Vorschläge** beim Start mit Quellen-Emojis (dynamisch 5 pro Quelle)
 2. **Medium auswählen** → Google-Button wird aktiv
 3. **🔍 Google-Suche** →
    - KI-generierte Kurzzusammenfassung (1-2 Sätze)
@@ -179,13 +179,13 @@ library_recommender/
 In `data_sources/albums.py` und `data_sources/mp3_analysis.py` ändern:
 ```python
 albums = filter_existing_albums(albums, "/path/to/your/mp3/archive")
-add_top_artist_albums_to_collection("/path/to/your/mp3/archive", top_n=10)
+add_top_artist_albums_to_collection("/path/to/your/mp3/archive", top_n=30)
 ```
 
 ### Anzahl Top-Interpreten
 In `data_sources/mp3_analysis.py`:
 ```python
-add_top_artist_albums_to_collection("H:\\MP3 Archiv", top_n=20)  # Standard: 10
+add_top_artist_albums_to_collection("H:\\MP3 Archiv", top_n=40)  # Standard: 30
 ```
 
 ## 🔧 Technische Details
@@ -200,7 +200,7 @@ add_top_artist_albums_to_collection("H:\\MP3 Archiv", top_n=20)  # Standard: 10
 - **Fuzzy Matching**: Intelligente Textnormalisierung für MP3-Archiv-Abgleich
 - **Blacklist-System**: Permanente Speicherung von Nicht-Treffern
 - **Top-Interpreten-Analyse**: Zählt Songs pro Künstler im MP3-Archiv
-- **Balancierte Empfehlungen**: Gleichmäßige Verteilung aus allen Quellen (z.B. 4 pro Quelle)
+- **Balancierte Empfehlungen**: Gleichmäßige Verteilung aus allen Quellen (z.B. 5 pro Quelle)
 
 ### APIs & Libraries
 - **DuckDuckGo Search**: Kostenlose Websuche

@@ -182,13 +182,13 @@ def search_media_info(title: str, author: Optional[str] = None, media_type: str 
 
     Returns:
         Liste von Suchergebnissen mit Schlüsseln:
-            - title (str): Titel des Suchergebnisses
+            - "title" (str): Titel des Suchergebnisses
             - "body" (str): Beschreibungstext
             - "href" (str): URL des Ergebnisses
 
     Example:
         >>> results = search_media_info("Der Pate", "Francis Ford Coppola", "film")
-        >>> print(results[0]['title'])
+        >>> print(results[0].get("title"))
         'Der Pate – Wikipedia'
     """
     try:

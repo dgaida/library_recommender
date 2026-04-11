@@ -187,17 +187,17 @@ class TestBalancedRecommender:
     def test_balanced_film_recommendations(
         self, mock_library_search, mock_state, mock_blacklist, mock_borrowed_blacklist, sample_films
     ):
-        """Test: Balancierte Filmempfehlungen (4 pro Quelle) mit UV-Kürzel."""
+        """Test: Balancierte Filmempfehlungen (5 pro Quelle) mit UV-Kürzel."""
         with patch("recommender.recommender.get_blacklist", return_value=mock_blacklist):
             with patch("recommender.recommender.get_borrowed_blacklist", return_value=mock_borrowed_blacklist):
                 from recommender.recommender import Recommender
 
                 recommender = Recommender(mock_library_search, mock_state)
 
-                results = recommender.suggest_films(sample_films, items_per_source=4)
+                results = recommender.suggest_films(sample_films, items_per_source=5)
 
-                # Sollte 12 Filme zurückgeben
-                assert len(results) == 12
+                # Sollte 15 Filme zurückgeben
+                assert len(results) == 15
 
                 # Zähle Filme pro Quelle
                 source_counts = defaultdict(int)
@@ -205,25 +205,25 @@ class TestBalancedRecommender:
                     source = film.get("source", "Unbekannt")
                     source_counts[source] += 1
 
-                # Jede Quelle sollte 4 Filme beigetragen haben
-                assert source_counts["BBC 100 Greatest Films of the 21st Century"] == 4
-                assert source_counts["FBW Prädikat besonders wertvoll"] == 4
-                assert source_counts["Oscar (Bester Film)"] == 4
+                # Jede Quelle sollte 5 Filme beigetragen haben
+                assert source_counts["BBC 100 Greatest Films of the 21st Century"] == 5
+                assert source_counts["FBW Prädikat besonders wertvoll"] == 5
+                assert source_counts["Oscar (Bester Film)"] == 5
 
     def test_balanced_album_recommendations(
         self, mock_library_search, mock_state, mock_blacklist, mock_borrowed_blacklist, sample_albums
     ):
-        """Test: Balancierte Album-Empfehlungen (4 pro Quelle)."""
+        """Test: Balancierte Album-Empfehlungen (5 pro Quelle)."""
         with patch("recommender.recommender.get_blacklist", return_value=mock_blacklist):
             with patch("recommender.recommender.get_borrowed_blacklist", return_value=mock_borrowed_blacklist):
                 from recommender.recommender import Recommender
 
                 recommender = Recommender(mock_library_search, mock_state)
 
-                results = recommender.suggest_albums(sample_albums, items_per_source=4)
+                results = recommender.suggest_albums(sample_albums, items_per_source=5)
 
-                # Sollte 12 Alben zurückgeben
-                assert len(results) == 12
+                # Sollte 15 Alben zurückgeben
+                assert len(results) == 15
 
                 # Zähle Alben pro Quelle (mit Normalisierung für personalisierte)
                 source_counts = defaultdict(int)
@@ -234,10 +234,10 @@ class TestBalancedRecommender:
                         source = "Personalisiert"
                     source_counts[source] += 1
 
-                # Jede Quelle sollte 4 Alben beigetragen haben
-                assert source_counts["Radio Eins Top 100 Alben 2019"] == 4
-                assert source_counts["Oscar (Beste Filmmusik)"] == 4
-                assert source_counts["Personalisiert"] == 4
+                # Jede Quelle sollte 5 Alben beigetragen haben
+                assert source_counts["Radio Eins Top 100 Alben 2019"] == 5
+                assert source_counts["Oscar (Beste Filmmusik)"] == 5
+                assert source_counts["Personalisiert"] == 5
 
     def test_exhausted_sources(self, mock_state, mock_blacklist, mock_borrowed_blacklist):
         """Test: Verhalten wenn Quellen erschöpft sind."""
@@ -279,8 +279,8 @@ class TestBalancedRecommender:
 
                 recommender = Recommender(mock_library_search, mock_state)
 
-                # Frage 12 Filme an, aber nur 2 verfügbar
-                results = recommender.suggest_films(limited_films, items_per_source=4)
+                # Frage 15 Filme an, aber nur 2 verfügbar
+                results = recommender.suggest_films(limited_films, items_per_source=5)
 
                 # Sollte maximal 2 zurückgeben
                 assert len(results) <= 2
@@ -314,7 +314,7 @@ class TestBalancedRecommender:
             # Markiere ersten Film als bereits vorgeschlagen
             mock_state.mark_suggested("films", sample_films[0])
 
-            results = recommender.suggest_films(sample_films, n=12, items_per_source=4)
+            results = recommender.suggest_films(sample_films, n=15, items_per_source=5)
 
             # Erster Film sollte nicht in Ergebnissen sein
             result_titles = [film["title"] for film in results]
