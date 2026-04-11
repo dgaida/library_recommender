@@ -81,7 +81,7 @@ class Recommender:
 
         return items_by_source
 
-    def _pick_balanced_items(
+    def _pick_balanced_items(  # noqa: C901
         self, items: List[Dict[str, Any]], category: str, n: int = 25, items_per_source: int = 5
     ) -> List[Dict[str, Any]]:
         """

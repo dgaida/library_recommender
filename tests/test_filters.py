@@ -81,6 +81,38 @@ class TestFilters:
             assert result[0]["custom_field"] == "custom_value"
             assert result[0]["source"] == "Test Source"
 
+    def test_normalize_album_title(self):
+        """Test album title normalization."""
+        from preprocessing.filters import normalize_album_title
+
+        assert normalize_album_title("OK Computer [CD]", "Radiohead") == "radiohead ok computer"
+        assert normalize_album_title("Abbey Road (2019 Mix)", "The Beatles") == "the beatles abbey road"
+
+    def test_albums_are_similar(self):
+        """Test similarity check between albums."""
+        from preprocessing.filters import albums_are_similar
+
+        album1 = {"title": "OK Computer", "author": "Radiohead"}
+        album2 = {"title": "OK Computer [Tonträger]", "author": "Radiohead"}
+        assert albums_are_similar(album1, album2) is True
+
+        album3 = {"title": "Kid A", "author": "Radiohead"}
+        assert albums_are_similar(album1, album3) is False
+
+    def test_get_album_statistics(self, mocker):
+        """Test album statistics generation."""
+        from preprocessing.filters import get_album_statistics
+
+        mocker.patch("os.path.exists", return_value=True)
+        mocker.patch("preprocessing.filters._get_existing_folders", return_value={"radiohead - ok computer"})
+
+        albums = [{"title": "OK Computer", "author": "Radiohead"}, {"title": "Kid A", "author": "Radiohead"}]
+
+        stats = get_album_statistics(albums, "/archive")
+        assert stats["original_count"] == 2
+        assert stats["found_count"] == 1
+        assert stats["missing_count"] == 1
+
 
 # ============================================================================
 # Pytest Configuration

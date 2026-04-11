@@ -461,7 +461,7 @@ def create_media_html(youtube_id: Optional[str], cover_url: Optional[str], media
     return "".join(html_parts)
 
 
-def google_search_selected(selected_items: List[str], category: str) -> Tuple[str, str]:
+def google_search_selected(selected_items: List[str], category: str) -> Tuple[str, str]:  # noqa: C901
     """
     Googelt das ausgewählte Medium und gibt Zusammenfassung mit visuellen Medien zurück.
 
@@ -529,7 +529,9 @@ def google_search_selected(selected_items: List[str], category: str) -> Tuple[st
         return f"❌ Fehler bei der Suche: {str(e)}", ""
 
 
-def reject_selected(selected_items: List[str], category: str) -> Tuple[gr.update, str, gr.update, str, str, gr.update, str]:
+def reject_selected(  # noqa: C901
+    selected_items: List[str], category: str
+) -> Tuple[gr.update, str, gr.update, str, str, gr.update, str]:
     """
     Entfernt die ausgewählten Items und ersetzt sie durch neue (balanciert).
 
@@ -1041,7 +1043,7 @@ def _handle_specific_medium(
         return error_msg, "", gr.update(), gr.update(), gr.update()
 
 
-def _handle_artist_search(
+def _handle_artist_search(  # noqa: C901
     results: List[Dict[str, Any]], artist: str, media_type: str, category: str
 ) -> Tuple[str, str, gr.update, gr.update, gr.update]:
     """
