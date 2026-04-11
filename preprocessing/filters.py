@@ -87,7 +87,7 @@ def extract_year_from_title(title):
     return None
 
 
-def albums_are_similar(album1, album2, threshold=0.8):
+def albums_are_similar(album1, album2, threshold=0.8):  # noqa: C901
     """
     Prüft ob zwei Alben ähnlich genug sind, um als Duplikat zu gelten.
 
@@ -158,7 +158,7 @@ def albums_are_similar(album1, album2, threshold=0.8):
     return False
 
 
-def filter_existing_albums(albums, base_path="H:\\MP3 Archiv", verbose=False):
+def filter_existing_albums(albums, base_path="H:\\MP3 Archiv", verbose=False):  # noqa: C901
     """
     Filtert bereits existierende Alben aus einer Liste von dict-Objekten.
     Verwendet erweiterte Normalisierung um Füllwörter wie "the" zu ignorieren.

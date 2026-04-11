@@ -22,7 +22,7 @@ ALBUMS_FILE = os.path.join(DATA_DIR, "albums.json")
 WIKI_URL = "https://de.wikipedia.org/wiki/Oscar/Beste_Filmmusik"
 
 
-def fetch_oscar_music_winners() -> List[Dict[str, Any]]:
+def fetch_oscar_music_winners() -> List[Dict[str, Any]]:  # noqa: C901
     """
     Ruft alle Gewinner des Oscars für "Beste Filmmusik" von Wikipedia ab.
 

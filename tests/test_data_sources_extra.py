@@ -1,10 +1,12 @@
 #!/usr/bin/env python3
 """Unit tests for guides, imdb_films, and oscar_music data sources."""
+
 import pytest
 import json
 from data_sources.guides import fetch_guides_from_site
 from data_sources.imdb_films import fetch_imdb_top250
 from data_sources.oscar_music import fetch_oscar_music_winners
+
 
 def test_fetch_guides_from_site(requests_mock):
     """Test fetching guides from site."""
@@ -25,6 +27,7 @@ def test_fetch_guides_from_site(requests_mock):
     assert guides[0]["author"] == "Daniel Kahneman"
     assert "kognitive Verzerrungen" in guides[0]["description"]
 
+
 def test_fetch_imdb_top250(requests_mock):
     """Test fetching IMDb Top 250 from JSON-LD."""
     mock_json = {
@@ -37,7 +40,7 @@ def test_fetch_imdb_top250(requests_mock):
                     "genre": "Drama",
                     "duration": "PT2H22M",
                     "url": "https://www.imdb.com/title/tt0111161/",
-                    "image": "poster.jpg"
+                    "image": "poster.jpg",
                 }
             }
         ]
@@ -49,6 +52,7 @@ def test_fetch_imdb_top250(requests_mock):
     assert len(films) == 1
     assert films[0]["title"] == "The Shawshank Redemption"
     assert films[0]["rating"] == 9.3
+
 
 def test_fetch_oscar_music_winners(requests_mock):
     """Test fetching Oscar Music winners from Wikipedia."""

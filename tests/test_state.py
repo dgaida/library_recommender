@@ -130,6 +130,7 @@ class TestAppState:
     def test_load_save_rejected_state(self, tmp_path):
         """Test persistence of rejected items."""
         from recommender.state import AppState
+
         state_file = tmp_path / "state.json"
 
         with patch("recommender.state.STATE_FILE", str(state_file)):

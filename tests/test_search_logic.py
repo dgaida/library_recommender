@@ -1,9 +1,17 @@
 #!/usr/bin/env python3
 """Unit tests for search logic and KoelnLibrarySearch."""
+
 import pytest
 from datetime import datetime, timedelta
-from library.search import KoelnLibrarySearch, calculate_name_similarity, extract_person_field, normalize_name, filter_results_by_author
+from library.search import (
+    KoelnLibrarySearch,
+    calculate_name_similarity,
+    extract_person_field,
+    normalize_name,
+    filter_results_by_author,
+)
 from utils.borrowed_blacklist import BorrowedBlacklist
+
 
 def test_normalize_name():
     """Test name normalization."""
@@ -12,6 +20,7 @@ def test_normalize_name():
     assert normalize_name("Müller, Hans-Peter") == "hans peter müller"
     assert normalize_name("") == ""
 
+
 def test_calculate_name_similarity():
     """Test name similarity scoring."""
     assert calculate_name_similarity("stephen king", "stephen king") == 1.0
@@ -19,6 +28,7 @@ def test_calculate_name_similarity():
     assert calculate_name_similarity("stephen king", "s. king") == 0.6
     assert calculate_name_similarity("stephen king", "john smith") < 0.3
     assert calculate_name_similarity("", "name") == 0.0
+
 
 def test_extract_person_field():
     """Test extracting persons from library availability text."""
@@ -31,11 +41,12 @@ def test_extract_person_field():
     persons = extract_person_field(text)
     assert persons == ["King, Stephen"]
 
+
 def test_filter_results_by_author():
     """Test filtering results by author and title."""
     results = [
         {"title": "The Godfather", "zentralbibliothek_info": "Person(en): Coppola, Francis Ford Regisseur"},
-        {"title": "Not The Godfather", "zentralbibliothek_info": "Person(en): Other Author"}
+        {"title": "Not The Godfather", "zentralbibliothek_info": "Person(en): Other Author"},
     ]
     filtered = filter_results_by_author(results, "Francis Ford Coppola")
     assert len(filtered) == 1
@@ -47,13 +58,17 @@ def test_filter_results_by_author():
     assert filtered[0]["title"] == "The Godfather"
     assert "combined_score" in filtered[0]
 
+
 def test_search_advanced_search(requests_mock, mocker):
     """Test advanced search in KoelnLibrarySearch."""
     search_engine = KoelnLibrarySearch()
 
     # Mock safe_get for the form page
     form_html = '<form name="AdvancedSearch" action="search_action"></form>'
-    requests_mock.get("https://katalog.stbib-koeln.de/alswww2.dll/APS_ZONES?fn=AdvancedSearch&Style=Portal3&SubStyle=&Lang=GER&ResponseEncoding=utf-8", text=form_html)
+    requests_mock.get(
+        "https://katalog.stbib-koeln.de/alswww2.dll/APS_ZONES?fn=AdvancedSearch&Style=Portal3&SubStyle=&Lang=GER&ResponseEncoding=utf-8",
+        text=form_html,
+    )
 
     # Mock post for the search results
     results_html = '<html><td class="SummaryDataCell"><a class="SummaryFieldLink" href="detail">Title</a></td></html>'
@@ -66,15 +81,17 @@ def test_search_advanced_search(requests_mock, mocker):
     assert len(results) == 1
     assert results[0]["title"] == "Title"
 
+
 def test_extract_item_data(mocker):
     """Test extraction of item data from BeautifulSoup element."""
     from bs4 import BeautifulSoup
 
     search_engine = KoelnLibrarySearch()
-    mocker.patch.object(search_engine, "get_availability_details", return_value={
-        "Zentralbibliothek": "Verfügbar",
-        "Zentralbibliothek_full": "Metadaten + Verfügbar"
-    })
+    mocker.patch.object(
+        search_engine,
+        "get_availability_details",
+        return_value={"Zentralbibliothek": "Verfügbar", "Zentralbibliothek_full": "Metadaten + Verfügbar"},
+    )
 
     html = """
     <td class="SummaryDataCell">
@@ -93,6 +110,7 @@ def test_extract_item_data(mocker):
     assert data["author"] == "Author Name,"
     assert data["year"] == "2023"
     assert data["material_type"] == "DVD"
+
 
 def test_get_availability_details_fallbacks(requests_mock):
     """Test various fallbacks in get_availability_details."""
@@ -120,6 +138,7 @@ def test_get_availability_details_fallbacks(requests_mock):
     details = search_engine.get_availability_details("http://detail-table")
     assert "Zentralbibliothek" in details
     assert "verfügbar" in details["Zentralbibliothek"].lower()
+
 
 class TestBorrowedBlacklist:
     """Tests for BorrowedBlacklist."""

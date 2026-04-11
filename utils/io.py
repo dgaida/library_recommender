@@ -55,7 +55,7 @@ def truncate_text(text: str, max_length: int = 300) -> str:
     return text[: max_length - 3].strip() + "..."
 
 
-def save_results_to_markdown(all_results: Dict[str, List[Dict[str, Any]]], filename: str = "results.md") -> None:
+def save_results_to_markdown(all_results: Dict[str, List[Dict[str, Any]]], filename: str = "results.md") -> None:  # noqa: C901
     """
     Speichert alle Suchergebnisse in einer Markdown-Datei.
 

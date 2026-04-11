@@ -1,8 +1,10 @@
 #!/usr/bin/env python3
 """Unit tests for film data sources."""
+
 import pytest
 from data_sources.fbw_films import fetch_fbw_films, fetch_oscar_best_picture_winners
 from data_sources.films import fetch_wikipedia_titles
+
 
 def test_fetch_fbw_films(requests_mock):
     """Test fetching FBW films."""
@@ -26,6 +28,7 @@ def test_fetch_fbw_films(requests_mock):
     assert films[0]["author"] == "Florian Henckel von Donnersmarck"
     assert films[0]["description"] == "Ein DDR-Drama."
 
+
 def test_fetch_oscar_best_picture_winners(requests_mock):
     """Test fetching Oscar Best Picture winners from Wikipedia."""
     mock_html = """
@@ -46,6 +49,7 @@ def test_fetch_oscar_best_picture_winners(requests_mock):
     assert winners[0]["title"] == "Oppenheimer (Film)"
     assert winners[0]["year"] == "2024"
 
+
 def test_fetch_wikipedia_titles(requests_mock):
     """Test fetching BBC 100 Greatest Films from Wikipedia."""
     mock_html = """
@@ -55,7 +59,9 @@ def test_fetch_wikipedia_titles(requests_mock):
         <tr><td>1</td><td>Mulholland Dr.</td><td>Mulholland Drive</td><td>David Lynch</td></tr>
     </table>
     """
-    requests_mock.get("https://de.wikipedia.org/wiki/BBC_Culture%E2%80%99s_100_Greatest_Films_of_the_21st_Century", text=mock_html)
+    requests_mock.get(
+        "https://de.wikipedia.org/wiki/BBC_Culture%E2%80%99s_100_Greatest_Films_of_the_21st_Century", text=mock_html
+    )
 
     titles = fetch_wikipedia_titles()
     assert len(titles) == 1

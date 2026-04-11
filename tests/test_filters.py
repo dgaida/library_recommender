@@ -84,12 +84,14 @@ class TestFilters:
     def test_normalize_album_title(self):
         """Test album title normalization."""
         from preprocessing.filters import normalize_album_title
+
         assert normalize_album_title("OK Computer [CD]", "Radiohead") == "radiohead ok computer"
         assert normalize_album_title("Abbey Road (2019 Mix)", "The Beatles") == "the beatles abbey road"
 
     def test_albums_are_similar(self):
         """Test similarity check between albums."""
         from preprocessing.filters import albums_are_similar
+
         album1 = {"title": "OK Computer", "author": "Radiohead"}
         album2 = {"title": "OK Computer [Tonträger]", "author": "Radiohead"}
         assert albums_are_similar(album1, album2) is True
@@ -100,13 +102,11 @@ class TestFilters:
     def test_get_album_statistics(self, mocker):
         """Test album statistics generation."""
         from preprocessing.filters import get_album_statistics
+
         mocker.patch("os.path.exists", return_value=True)
         mocker.patch("preprocessing.filters._get_existing_folders", return_value={"radiohead - ok computer"})
 
-        albums = [
-            {"title": "OK Computer", "author": "Radiohead"},
-            {"title": "Kid A", "author": "Radiohead"}
-        ]
+        albums = [{"title": "OK Computer", "author": "Radiohead"}, {"title": "Kid A", "author": "Radiohead"}]
 
         stats = get_album_statistics(albums, "/archive")
         assert stats["original_count"] == 2

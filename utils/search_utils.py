@@ -109,7 +109,7 @@ def search_itunes_cover(title: str, author: Optional[str] = None) -> Optional[st
         return None
 
 
-def search_cover_image(title: str, author: Optional[str] = None, media_type: str = "film") -> Optional[str]:
+def search_cover_image(title: str, author: Optional[str] = None, media_type: str = "film") -> Optional[str]:  # noqa: C901
     """
     Sucht nach einem Cover-Image für ein Medium.
 
