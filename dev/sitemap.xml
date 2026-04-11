@@ -1,0 +1,227 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">
+    <url>
+        <loc>https://dgaida.github.io/library-recommender/dev/</loc>
+        <lastmod>2026-04-11</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="de" href="https://dgaida.github.io/library-recommender/dev/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://dgaida.github.io/library-recommender/deven/"/>
+    </url>
+    <url>
+        <loc>https://dgaida.github.io/library-recommender/dev/changelog/</loc>
+        <lastmod>2026-04-11</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="de" href="https://dgaida.github.io/library-recommender/dev/changelog/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://dgaida.github.io/library-recommender/deven/changelog/"/>
+    </url>
+    <url>
+        <loc>https://dgaida.github.io/library-recommender/dev/configuration/</loc>
+        <lastmod>2026-04-11</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="de" href="https://dgaida.github.io/library-recommender/dev/configuration/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://dgaida.github.io/library-recommender/deven/configuration/"/>
+    </url>
+    <url>
+        <loc>https://dgaida.github.io/library-recommender/dev/contributing/</loc>
+        <lastmod>2026-04-11</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="de" href="https://dgaida.github.io/library-recommender/dev/contributing/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://dgaida.github.io/library-recommender/deven/contributing/"/>
+    </url>
+    <url>
+        <loc>https://dgaida.github.io/library-recommender/dev/getting-started/</loc>
+        <lastmod>2026-04-11</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="de" href="https://dgaida.github.io/library-recommender/dev/getting-started/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://dgaida.github.io/library-recommender/deven/getting-started/"/>
+    </url>
+    <url>
+        <loc>https://dgaida.github.io/library-recommender/dev/installation/</loc>
+        <lastmod>2026-04-11</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="de" href="https://dgaida.github.io/library-recommender/dev/installation/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://dgaida.github.io/library-recommender/deven/installation/"/>
+    </url>
+    <url>
+        <loc>https://dgaida.github.io/library-recommender/dev/troubleshooting/</loc>
+        <lastmod>2026-04-11</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="de" href="https://dgaida.github.io/library-recommender/dev/troubleshooting/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://dgaida.github.io/library-recommender/deven/troubleshooting/"/>
+    </url>
+    <url>
+        <loc>https://dgaida.github.io/library-recommender/dev/api/</loc>
+        <lastmod>2026-04-11</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="de" href="https://dgaida.github.io/library-recommender/dev/api/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://dgaida.github.io/library-recommender/deven/api/"/>
+    </url>
+    <url>
+        <loc>https://dgaida.github.io/library-recommender/dev/api/recommender/</loc>
+        <lastmod>2026-04-11</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="de" href="https://dgaida.github.io/library-recommender/dev/api/recommender/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://dgaida.github.io/library-recommender/deven/api/recommender/"/>
+    </url>
+    <url>
+        <loc>https://dgaida.github.io/library-recommender/dev/api/search/</loc>
+        <lastmod>2026-04-11</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="de" href="https://dgaida.github.io/library-recommender/dev/api/search/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://dgaida.github.io/library-recommender/deven/api/search/"/>
+    </url>
+    <url>
+        <loc>https://dgaida.github.io/library-recommender/dev/api/utils/</loc>
+        <lastmod>2026-04-11</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="de" href="https://dgaida.github.io/library-recommender/dev/api/utils/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://dgaida.github.io/library-recommender/deven/api/utils/"/>
+    </url>
+    <url>
+        <loc>https://dgaida.github.io/library-recommender/dev/architecture/</loc>
+        <lastmod>2026-04-11</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="de" href="https://dgaida.github.io/library-recommender/dev/architecture/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://dgaida.github.io/library-recommender/deven/architecture/"/>
+    </url>
+    <url>
+        <loc>https://dgaida.github.io/library-recommender/dev/development/</loc>
+        <lastmod>2026-04-11</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="de" href="https://dgaida.github.io/library-recommender/dev/development/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://dgaida.github.io/library-recommender/deven/development/"/>
+    </url>
+    <url>
+        <loc>https://dgaida.github.io/library-recommender/dev/development/docstrings/</loc>
+        <lastmod>2026-04-11</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="de" href="https://dgaida.github.io/library-recommender/dev/development/docstrings/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://dgaida.github.io/library-recommender/deven/development/docstrings/"/>
+    </url>
+    <url>
+        <loc>https://dgaida.github.io/library-recommender/dev/development/metrics/</loc>
+        <lastmod>2026-04-11</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="de" href="https://dgaida.github.io/library-recommender/dev/development/metrics/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://dgaida.github.io/library-recommender/deven/development/metrics/"/>
+    </url>
+    <url>
+        <loc>https://dgaida.github.io/library-recommender/dev/usage/</loc>
+        <lastmod>2026-04-11</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="de" href="https://dgaida.github.io/library-recommender/dev/usage/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://dgaida.github.io/library-recommender/deven/usage/"/>
+    </url>
+    <url>
+        <loc>https://dgaida.github.io/library-recommender/dev/en/</loc>
+        <lastmod>2026-04-11</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="https://dgaida.github.io/library-recommender/dev/en/"/>
+        <xhtml:link rel="alternate" hreflang="de" href="https://dgaida.github.io/library-recommender/dev"/>
+    </url>
+    <url>
+        <loc>https://dgaida.github.io/library-recommender/dev/en/changelog/</loc>
+        <lastmod>2026-04-11</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="https://dgaida.github.io/library-recommender/dev/en/changelog/"/>
+        <xhtml:link rel="alternate" hreflang="de" href="https://dgaida.github.io/library-recommender/devchangelog/"/>
+    </url>
+    <url>
+        <loc>https://dgaida.github.io/library-recommender/dev/en/configuration/</loc>
+        <lastmod>2026-04-11</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="https://dgaida.github.io/library-recommender/dev/en/configuration/"/>
+        <xhtml:link rel="alternate" hreflang="de" href="https://dgaida.github.io/library-recommender/devconfiguration/"/>
+    </url>
+    <url>
+        <loc>https://dgaida.github.io/library-recommender/dev/en/contributing/</loc>
+        <lastmod>2026-04-11</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="https://dgaida.github.io/library-recommender/dev/en/contributing/"/>
+        <xhtml:link rel="alternate" hreflang="de" href="https://dgaida.github.io/library-recommender/devcontributing/"/>
+    </url>
+    <url>
+        <loc>https://dgaida.github.io/library-recommender/dev/en/getting-started/</loc>
+        <lastmod>2026-04-11</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="https://dgaida.github.io/library-recommender/dev/en/getting-started/"/>
+        <xhtml:link rel="alternate" hreflang="de" href="https://dgaida.github.io/library-recommender/devgetting-started/"/>
+    </url>
+    <url>
+        <loc>https://dgaida.github.io/library-recommender/dev/en/installation/</loc>
+        <lastmod>2026-04-11</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="https://dgaida.github.io/library-recommender/dev/en/installation/"/>
+        <xhtml:link rel="alternate" hreflang="de" href="https://dgaida.github.io/library-recommender/devinstallation/"/>
+    </url>
+    <url>
+        <loc>https://dgaida.github.io/library-recommender/dev/en/troubleshooting/</loc>
+        <lastmod>2026-04-11</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="https://dgaida.github.io/library-recommender/dev/en/troubleshooting/"/>
+        <xhtml:link rel="alternate" hreflang="de" href="https://dgaida.github.io/library-recommender/devtroubleshooting/"/>
+    </url>
+    <url>
+        <loc>https://dgaida.github.io/library-recommender/dev/en/api/</loc>
+        <lastmod>2026-04-11</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="https://dgaida.github.io/library-recommender/dev/en/api/"/>
+        <xhtml:link rel="alternate" hreflang="de" href="https://dgaida.github.io/library-recommender/devapi/"/>
+    </url>
+    <url>
+        <loc>https://dgaida.github.io/library-recommender/dev/en/api/recommender/</loc>
+        <lastmod>2026-04-11</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="https://dgaida.github.io/library-recommender/dev/en/api/recommender/"/>
+        <xhtml:link rel="alternate" hreflang="de" href="https://dgaida.github.io/library-recommender/devapi/recommender/"/>
+    </url>
+    <url>
+        <loc>https://dgaida.github.io/library-recommender/dev/en/api/search/</loc>
+        <lastmod>2026-04-11</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="https://dgaida.github.io/library-recommender/dev/en/api/search/"/>
+        <xhtml:link rel="alternate" hreflang="de" href="https://dgaida.github.io/library-recommender/devapi/search/"/>
+    </url>
+    <url>
+        <loc>https://dgaida.github.io/library-recommender/dev/en/api/utils/</loc>
+        <lastmod>2026-04-11</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="https://dgaida.github.io/library-recommender/dev/en/api/utils/"/>
+        <xhtml:link rel="alternate" hreflang="de" href="https://dgaida.github.io/library-recommender/devapi/utils/"/>
+    </url>
+    <url>
+        <loc>https://dgaida.github.io/library-recommender/dev/en/architecture/</loc>
+        <lastmod>2026-04-11</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="https://dgaida.github.io/library-recommender/dev/en/architecture/"/>
+        <xhtml:link rel="alternate" hreflang="de" href="https://dgaida.github.io/library-recommender/devarchitecture/"/>
+    </url>
+    <url>
+        <loc>https://dgaida.github.io/library-recommender/dev/en/development/</loc>
+        <lastmod>2026-04-11</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="https://dgaida.github.io/library-recommender/dev/en/development/"/>
+        <xhtml:link rel="alternate" hreflang="de" href="https://dgaida.github.io/library-recommender/devdevelopment/"/>
+    </url>
+    <url>
+        <loc>https://dgaida.github.io/library-recommender/dev/en/development/docstrings/</loc>
+        <lastmod>2026-04-11</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="https://dgaida.github.io/library-recommender/dev/en/development/docstrings/"/>
+        <xhtml:link rel="alternate" hreflang="de" href="https://dgaida.github.io/library-recommender/devdevelopment/docstrings/"/>
+    </url>
+    <url>
+        <loc>https://dgaida.github.io/library-recommender/dev/en/development/metrics/</loc>
+        <lastmod>2026-04-11</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="https://dgaida.github.io/library-recommender/dev/en/development/metrics/"/>
+        <xhtml:link rel="alternate" hreflang="de" href="https://dgaida.github.io/library-recommender/devdevelopment/metrics/"/>
+    </url>
+    <url>
+        <loc>https://dgaida.github.io/library-recommender/dev/en/usage/</loc>
+        <lastmod>2026-04-11</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="https://dgaida.github.io/library-recommender/dev/en/usage/"/>
+        <xhtml:link rel="alternate" hreflang="de" href="https://dgaida.github.io/library-recommender/devusage/"/>
+    </url>
+</urlset>
