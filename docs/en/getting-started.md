@@ -4,9 +4,9 @@ This guide will show you how to quickly get up and running.
 
 ## 1. Prerequisites
 
-- Python 3.9+
-- Internet connection (for library search)
-- Optional: Groq API Key for AI-powered summaries
+- Python 3.9+  
+- Internet connection (for library search)  
+- Optional: Groq API Key for AI-powered summaries  
 
 ## 2. Installation
 

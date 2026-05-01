@@ -4,8 +4,8 @@ Dieser Abschnitt beschreibt die Installation der **Bibliothek-Empfehlungs-App**.
 
 ## 1. Voraussetzungen
 
-- **Python 3.9 oder höher**: Stellen Sie sicher, dass Python installiert ist.
-- **Git**: Zum Klonen des Repositories.
+- **Python 3.9 oder höher**: Stellen Sie sicher, dass Python installiert ist.  
+- **Git**: Zum Klonen des Repositories.  
 
 ## 2. Klonen des Repositories
 
@@ -35,8 +35,8 @@ pip install -r requirements.txt
 
 ### Groq API (für KI-Zusammenfassungen)
 
-1. Holen Sie sich einen API-Key von [Groq](https://groq.com).
-2. Erstellen Sie eine `secrets.env` Datei im Hauptverzeichnis:
+1. Holen Sie sich einen API-Key von [Groq](https://groq.com).  
+2. Erstellen Sie eine `secrets.env` Datei im Hauptverzeichnis:  
 
 ```env
 GROQ_API_KEY=gsk_...

@@ -6,10 +6,10 @@ Das Artist-Blacklist System verhindert wiederholte erfolglose Suchanfragen für 
 
 ### Kernfunktionalität
 
-- **Automatische Blacklistung**: Künstler ohne verfügbare CDs werden geblacklistet
-- **Jährlicher Re-Check**: Nach 365 Tagen erfolgt automatisch eine erneute Überprüfung
-- **Top-10-Nachrücken**: Geblacklistete Künstler werden übersprungen, weitere rücken nach
-- **Persistente Speicherung**: Alle Daten werden in `data/blacklist_artists.json` gespeichert
+- **Automatische Blacklistung**: Künstler ohne verfügbare CDs werden geblacklistet  
+- **Jährlicher Re-Check**: Nach 365 Tagen erfolgt automatisch eine erneute Überprüfung  
+- **Top-10-Nachrücken**: Geblacklistete Künstler werden übersprungen, weitere rücken nach  
+- **Persistente Speicherung**: Alle Daten werden in `data/blacklist_artists.json` gespeichert  
 
 ---
 
@@ -72,9 +72,9 @@ if blacklist.is_blacklisted("Radiohead"):
 
 Prüft, ob ein Künstler auf der Blacklist steht **und** der letzte Check < 365 Tage zurückliegt.
 
-**Returns:**
-- `True`: Künstler ist geblacklistet, Re-Check noch nicht fällig
-- `False`: Künstler nicht geblacklistet oder Re-Check fällig
+**Returns:**  
+- `True`: Künstler ist geblacklistet, Re-Check noch nicht fällig  
+- `False`: Künstler nicht geblacklistet oder Re-Check fällig  
 
 #### `add_to_blacklist(artist_name: str, song_count: int, reason: str)`
 
@@ -88,10 +88,10 @@ blacklist.add_to_blacklist(
 
 Fügt einen Künstler zur Blacklist hinzu oder aktualisiert existierenden Eintrag.
 
-**Args:**
-- `artist_name`: Name des Künstlers
-- `song_count`: Anzahl Songs im MP3-Archiv
-- `reason`: Grund für die Blacklistung
+**Args:**  
+- `artist_name`: Name des Künstlers  
+- `song_count`: Anzahl Songs im MP3-Archiv  
+- `reason`: Grund für die Blacklistung  
 
 #### `remove_from_blacklist(artist_name: str) -> bool`
 
@@ -130,11 +130,11 @@ print(f"Neue (30 Tage): {stats['recent_additions']}")
 
 Gibt Statistiken über die Blacklist zurück.
 
-**Returns:** Dictionary mit:
-- `total_artists`: Gesamtzahl geblacklisteter Künstler
-- `due_for_recheck`: Anzahl Künstler fällig für Re-Check
-- `recent_additions`: Neue Einträge der letzten 30 Tage
-- `most_checked`: Top 5 am häufigsten geprüfte Künstler
+**Returns:** Dictionary mit:  
+- `total_artists`: Gesamtzahl geblacklisteter Künstler  
+- `due_for_recheck`: Anzahl Künstler fällig für Re-Check  
+- `recent_additions`: Neue Einträge der letzten 30 Tage  
+- `most_checked`: Top 5 am häufigsten geprüfte Künstler  
 
 #### `clear_old_entries(days: int = 730) -> int`
 
@@ -145,8 +145,8 @@ print(f"{removed_count} alte Einträge entfernt")
 
 Entfernt Einträge älter als die angegebenen Tage.
 
-**Args:**
-- `days`: Maximales Alter in Tagen (default: 730 = 2 Jahre)
+**Args:**  
+- `days`: Maximales Alter in Tagen (default: 730 = 2 Jahre)  
 
 **Returns:** Anzahl entfernter Einträge
 
@@ -181,11 +181,11 @@ top_artists = get_filtered_top_artists(
 
 Gibt die Top N Künstler zurück, **ohne** geblacklistete Künstler.
 
-**Args:**
-- `artist_counter`: Counter mit Anzahl Songs pro Künstler
-- `artist_blacklist`: ArtistBlacklist-Instanz
-- `top_n`: Gewünschte Anzahl Top-Künstler
-- `max_total`: Maximale Anzahl zu prüfender Künstler
+**Args:**  
+- `artist_counter`: Counter mit Anzahl Songs pro Künstler  
+- `artist_blacklist`: ArtistBlacklist-Instanz  
+- `top_n`: Gewünschte Anzahl Top-Künstler  
+- `max_total`: Maximale Anzahl zu prüfender Künstler  
 
 **Returns:** Liste von (Künstler, Anzahl) Tupeln
 
@@ -211,11 +211,11 @@ update_artist_blacklist_from_search_results(
 
 Aktualisiert die Blacklist basierend auf Suchergebnissen.
 
-**Args:**
-- `artist_name`: Name des Künstlers
-- `song_count`: Anzahl Songs im MP3-Archiv
-- `found_new_albums`: True wenn neue Alben gefunden wurden
-- `artist_blacklist`: ArtistBlacklist-Instanz
+**Args:**  
+- `artist_name`: Name des Künstlers  
+- `song_count`: Anzahl Songs im MP3-Archiv  
+- `found_new_albums`: True wenn neue Alben gefunden wurden  
+- `artist_blacklist`: ArtistBlacklist-Instanz  
 
 #### `get_artist_blacklist()` (Singleton)
 
@@ -400,10 +400,10 @@ for artist in due_artists:
 
 ### Szenario 1: Erster Durchlauf (keine Blacklist)
 
-**Ausgangssituation:**
-- MP3-Archiv mit 15 Künstlern analysiert
-- Keine Artist-Blacklist vorhanden
-- Top 3: Radiohead (42 Songs), Pink Floyd (38), Beatles (50)
+**Ausgangssituation:**  
+- MP3-Archiv mit 15 Künstlern analysiert  
+- Keine Artist-Blacklist vorhanden  
+- Top 3: Radiohead (42 Songs), Pink Floyd (38), Beatles (50)  
 
 **Ablauf:**
 
@@ -446,9 +446,9 @@ top_artists = get_filtered_top_artists(artist_counter, blacklist, top_n=10)
 
 ### Szenario 2: Zweiter Durchlauf (mit Blacklist)
 
-**Ausgangssituation:**
-- Radiohead ist auf Blacklist (seit 100 Tagen)
-- Neue Top-Künstler: U2 (25 Songs), Queen (35 Songs)
+**Ausgangssituation:**  
+- Radiohead ist auf Blacklist (seit 100 Tagen)  
+- Neue Top-Künstler: U2 (25 Songs), Queen (35 Songs)  
 
 **Ablauf:**
 
@@ -481,9 +481,9 @@ INFO: Gefilterte Top 4: 5 geprüft, 1 übersprungen
 
 ### Szenario 3: Re-Check nach 1 Jahr
 
-**Ausgangssituation:**
-- Radiohead seit 400 Tagen auf Blacklist
-- Re-Check ist fällig
+**Ausgangssituation:**  
+- Radiohead seit 400 Tagen auf Blacklist  
+- Re-Check ist fällig  
 
 **Ablauf:**
 
@@ -630,9 +630,9 @@ print(blacklist.is_blacklisted("Artist Name"))
 print(blacklist.blacklist)
 ```
 
-**Lösung:**
-- Prüfen ob `update_artist_blacklist_from_search_results()` aufgerufen wird
-- Prüfen ob `found_new_albums=False` korrekt übergeben wird
+**Lösung:**  
+- Prüfen ob `update_artist_blacklist_from_search_results()` aufgerufen wird  
+- Prüfen ob `found_new_albums=False` korrekt übergeben wird  
 
 ### Problem 2: Re-Check erfolgt nicht
 
@@ -649,9 +649,9 @@ days_since = (datetime.now() - last_check).days
 print(f"Days since check: {days_since}")
 ```
 
-**Lösung:**
-- `is_blacklisted()` gibt `False` zurück wenn > 365 Tage
-- Künstler sollte automatisch in gefilterte Top-10 aufgenommen werden
+**Lösung:**  
+- `is_blacklisted()` gibt `False` zurück wenn > 365 Tage  
+- Künstler sollte automatisch in gefilterte Top-10 aufgenommen werden  
 
 ### Problem 3: Zu viele API-Anfragen
 
@@ -786,14 +786,14 @@ def test_full_workflow():
 
 ### Verwandte Module
 
-- `utils/blacklist.py` - Allgemeines Blacklist-System für Medien
-- `data_sources/mp3_analysis.py` - MP3-Archiv Analyse
-- `preprocessing/filters.py` - Album-Filterung
+- `utils/blacklist.py` - Allgemeines Blacklist-System für Medien  
+- `data_sources/mp3_analysis.py` - MP3-Archiv Analyse  
+- `preprocessing/filters.py` - Album-Filterung  
 
 ### Externe Referenzen
 
-- [Python datetime Dokumentation](https://docs.python.org/3/library/datetime.html)
-- [collections.Counter](https://docs.python.org/3/library/collections.html#collections.Counter)
+- [Python datetime Dokumentation](https://docs.python.org/3/library/datetime.html)  
+- [collections.Counter](https://docs.python.org/3/library/collections.html#collections.Counter)  
 
 ---
 

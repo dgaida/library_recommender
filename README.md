@@ -21,38 +21,38 @@ Eine intelligente Empfehlungs-App für die **Stadtbibliothek Köln**, die verfü
 
 ### 🎯 **Intelligente Empfehlungen**
 
-#### 🎬 **Filme** - Premium-Quellen kombiniert
-- **BBC Culture**: *100 Greatest Films of the 21st Century*
-- **FBW**: Deutsche Filme mit Prädikat „besonders wertvoll"
-- **Oscar**: Alle Gewinner „Bester Film"
+#### 🎬 **Filme** - Premium-Quellen kombiniert  
+- **BBC Culture**: *100 Greatest Films of the 21st Century*  
+- **FBW**: Deutsche Filme mit Prädikat „besonders wertvoll"  
+- **Oscar**: Alle Gewinner „Bester Film"  
 
-#### 🎵 **Musik** - Vielfältige Quellen
-- **Radio Eins**: Top 100 Alben 2019
-- **Oscar**: Beste Filmmusik aller Zeiten
-- **💎 Personalisiert**: Basierend auf deinem MP3-Archiv (analysiert deine Top-30-Interpreten)
+#### 🎵 **Musik** - Vielfältige Quellen  
+- **Radio Eins**: Top 100 Alben 2019  
+- **Oscar**: Beste Filmmusik aller Zeiten  
+- **💎 Personalisiert**: Basierend auf deinem MP3-Archiv (analysiert deine Top-30-Interpreten)  
 
-#### 📚 **Bücher & Ratgeber** - Hochwertige Literatur
-- **New York Times**: Kanon des 21. Jahrhunderts
-- **📖 Die besten Ratgeber**: Sachbücher des 21. Jahrhunderts
+#### 📚 **Bücher & Ratgeber** - Hochwertige Literatur  
+- **New York Times**: Kanon des 21. Jahrhunderts  
+- **📖 Die besten Ratgeber**: Sachbücher des 21. Jahrhunderts  
 
-### 🔍 **Live-Verfügbarkeitsprüfung**
-- Automatische Suche im Online-Katalog der Stadtbibliothek Köln
-- Echtzeit-Status der Zentralbibliothek
-- **Intelligente Blacklist**: Medien ohne Treffer werden gespeichert
+### 🔍 **Live-Verfügbarkeitsprüfung**  
+- Automatische Suche im Online-Katalog der Stadtbibliothek Köln  
+- Echtzeit-Status der Zentralbibliothek  
+- **Intelligente Blacklist**: Medien ohne Treffer werden gespeichert  
 
-### 💎 **Personalisierte Empfehlungen**
-- **MP3-Archiv-Analyse**: Erkennt automatisch deine Lieblingskünstler
-- **Top-30-Tracking**: Identifiziert deine meist gehörten Interpreten
-- **Neue Alben**: Sucht gezielt nach weiteren Werken deiner Favoriten
+### 💎 **Personalisierte Empfehlungen**  
+- **MP3-Archiv-Analyse**: Erkennt automatisch deine Lieblingskünstler  
+- **Top-30-Tracking**: Identifiziert deine meist gehörten Interpreten  
+- **Neue Alben**: Sucht gezielt nach weiteren Werken deiner Favoriten  
 
-### 🎮 **Moderne Benutzeroberfläche**
-- **Mehrfachauswahl**: Mehrere Titel gleichzeitig verwalten
-- **🏷️ Quellen-Emojis**: Zeigen Herkunft jeder Empfehlung (🏆 Oscar, ⭐ FBW, 📻 Radio, 💎 Personalisiert, 📖 Ratgeber)
-- **🔍 KI-Google-Suche**:
-  - 1-2 Sätze Zusammenfassung zu jedem Medium
-  - 🎬 YouTube-Trailer für Filme
-  - 🖼️ Cover-Images für alle Medien
-- **Persistente Ablehnungen**: Abgelehnte Titel nie wieder angezeigt
+### 🎮 **Moderne Benutzeroberfläche**  
+- **Mehrfachauswahl**: Mehrere Titel gleichzeitig verwalten  
+- **🏷️ Quellen-Emojis**: Zeigen Herkunft jeder Empfehlung (🏆 Oscar, ⭐ FBW, 📻 Radio, 💎 Personalisiert, 📖 Ratgeber)  
+- **🔍 KI-Google-Suche**:  
+  - 1-2 Sätze Zusammenfassung zu jedem Medium  
+  - 🎬 YouTube-Trailer für Filme  
+  - 🖼️ Cover-Images für alle Medien  
+- **Persistente Ablehnungen**: Abgelehnte Titel nie wieder angezeigt  
 
 <p align="center">
    <img src="images/GUI%20Bibliothek%20Filme.png"
@@ -60,16 +60,16 @@ Eine intelligente Empfehlungs-App für die **Stadtbibliothek Köln**, die verfü
        width="800">
    </p>
 
-### 💾 **Export & Caching**
-- Empfehlungen als übersichtliche Markdown-Datei
-- Automatisches Speichern beim App-Start
-- Intelligentes Caching aller Datenquellen
+### 💾 **Export & Caching**  
+- Empfehlungen als übersichtliche Markdown-Datei  
+- Automatisches Speichern beim App-Start  
+- Intelligentes Caching aller Datenquellen  
 
 ## 🚀 Installation
 
-### Voraussetzungen
-- Python 3.9 oder höher
-- Internetverbindung
+### Voraussetzungen  
+- Python 3.9 oder höher  
+- Internetverbindung  
 
 ### 1. Repository klonen
 ```bash
@@ -113,16 +113,16 @@ python main.py
 
 Die App öffnet sich automatisch im Browser unter `http://localhost:7860`
 
-### Workflow
-1. **Automatische Vorschläge** beim Start mit Quellen-Emojis (dynamisch 5 pro Quelle)
-2. **Medium auswählen** → Google-Button wird aktiv
-3. **🔍 Google-Suche** →
-   - KI-generierte Kurzzusammenfassung (1-2 Sätze)
-   - 🎬 YouTube-Trailer (nur Filme)
-   - 🖼️ Cover-Image (alle Medien)
-4. **Mehrere auswählen** → "Entfernen" → Neue Vorschläge automatisch nachgeladen
-5. **"Alle Empfehlungen speichern"** → Erstellt `recommended.md`
-   - Filme werden nach Genre sortiert
+### Workflow  
+1. **Automatische Vorschläge** beim Start mit Quellen-Emojis (dynamisch 5 pro Quelle)  
+2. **Medium auswählen** → Google-Button wird aktiv  
+3. **🔍 Google-Suche** →  
+   - KI-generierte Kurzzusammenfassung (1-2 Sätze)  
+   - 🎬 YouTube-Trailer (nur Filme)  
+   - 🖼️ Cover-Image (alle Medien)  
+4. **Mehrere auswählen** → "Entfernen" → Neue Vorschläge automatisch nachgeladen  
+5. **"Alle Empfehlungen speichern"** → Erstellt `recommended.md`  
+   - Filme werden nach Genre sortiert  
 
 ## 📁 Projektstruktur
 
@@ -190,49 +190,49 @@ add_top_artist_albums_to_collection("H:\\MP3 Archiv", top_n=40)  # Standard: 30
 
 ## 🔧 Technische Details
 
-### Datenquellen
-- **Filme**: [BBC Culture](https://de.wikipedia.org/wiki/BBC_Culture%E2%80%99s_100_Greatest_Films_of_the_21st_Century), [FBW](https://www.fbw-filmbewertung.com/filme), [Oscar](https://de.wikipedia.org/wiki/Oscar/Bester_Film)
-- **Musik**: [Radio Eins](https://www.radioeins.de/musik/top_100/die-100-besten-2019/alben/), [Oscar Filmmusik](https://de.wikipedia.org/wiki/Oscar/Beste_Filmmusik)
-- **Bücher**: [NYT Kanon](https://www.die-besten-aller-zeiten.de/buecher/kanon/new-york-times-21-jahrhundert.html), [Ratgeber](https://www.die-besten-aller-zeiten.de/buecher/kanon/buecher-des-21-jahrhunderts.html)
-- **Katalog**: [Stadtbibliothek Köln](https://katalog.stbib-koeln.de)
+### Datenquellen  
+- **Filme**: [BBC Culture](https://de.wikipedia.org/wiki/BBC_Culture%E2%80%99s_100_Greatest_Films_of_the_21st_Century), [FBW](https://www.fbw-filmbewertung.com/filme), [Oscar](https://de.wikipedia.org/wiki/Oscar/Bester_Film)  
+- **Musik**: [Radio Eins](https://www.radioeins.de/musik/top_100/die-100-besten-2019/alben/), [Oscar Filmmusik](https://de.wikipedia.org/wiki/Oscar/Beste_Filmmusik)  
+- **Bücher**: [NYT Kanon](https://www.die-besten-aller-zeiten.de/buecher/kanon/new-york-times-21-jahrhundert.html), [Ratgeber](https://www.die-besten-aller-zeiten.de/buecher/kanon/buecher-des-21-jahrhunderts.html)  
+- **Katalog**: [Stadtbibliothek Köln](https://katalog.stbib-koeln.de)  
 
-### Algorithmen
-- **Fuzzy Matching**: Intelligente Textnormalisierung für MP3-Archiv-Abgleich
-- **Blacklist-System**: Permanente Speicherung von Nicht-Treffern
-- **Top-Interpreten-Analyse**: Zählt Songs pro Künstler im MP3-Archiv
-- **Balancierte Empfehlungen**: Gleichmäßige Verteilung aus allen Quellen (z.B. 5 pro Quelle)
+### Algorithmen  
+- **Fuzzy Matching**: Intelligente Textnormalisierung für MP3-Archiv-Abgleich  
+- **Blacklist-System**: Permanente Speicherung von Nicht-Treffern  
+- **Top-Interpreten-Analyse**: Zählt Songs pro Künstler im MP3-Archiv  
+- **Balancierte Empfehlungen**: Gleichmäßige Verteilung aus allen Quellen (z.B. 5 pro Quelle)  
 
-### APIs & Libraries
-- **DuckDuckGo Search**: Kostenlose Websuche
-- **Groq API**: Schnelle LLM-Zusammenfassungen
-- **BeautifulSoup**: HTML-Parsing für Web Scraping
-- **Gradio**: Moderne Web-UI
+### APIs & Libraries  
+- **DuckDuckGo Search**: Kostenlose Websuche  
+- **Groq API**: Schnelle LLM-Zusammenfassungen  
+- **BeautifulSoup**: HTML-Parsing für Web Scraping  
+- **Gradio**: Moderne Web-UI  
 
 ## 🤝 Beitragen
 
 Beiträge sind willkommen! Bitte lies [CONTRIBUTING.md](CONTRIBUTING.md) für Details.
 
-### Neue Datenquellen hinzufügen
-1. Neue Datei in `data_sources/` erstellen
-2. Quellen-Konstante in `utils/sources.py` definieren (inkl. Emoji)
-3. In `gui/app.py` integrieren
+### Neue Datenquellen hinzufügen  
+1. Neue Datei in `data_sources/` erstellen  
+2. Quellen-Konstante in `utils/sources.py` definieren (inkl. Emoji)  
+3. In `gui/app.py` integrieren  
 
 ## 🐛 Debugging
 
 ### Häufige Probleme
 
-**Keine Empfehlungen gefunden**
-- Internet-Verbindung prüfen
-- Cache löschen: `rm data/*.json`
-- Blacklist zurücksetzen: `rm data/blacklist_*.json`
+**Keine Empfehlungen gefunden**  
+- Internet-Verbindung prüfen  
+- Cache löschen: `rm data/*.json`  
+- Blacklist zurücksetzen: `rm data/blacklist_*.json`  
 
-**Google-Suche funktioniert nicht**
-- Groq API Key gesetzt? `secrets.env` vorhanden?
-- DuckDuckGo erreichbar?
+**Google-Suche funktioniert nicht**  
+- Groq API Key gesetzt? `secrets.env` vorhanden?  
+- DuckDuckGo erreichbar?  
 
-**MP3-Archiv wird nicht gefunden**
-- Pfad korrekt in `data_sources/albums.py` und `data_sources/mp3_analysis.py`?
-- Windows-Pfade mit doppelten Backslashes: `H:\\MP3 Archiv`
+**MP3-Archiv wird nicht gefunden**  
+- Pfad korrekt in `data_sources/albums.py` und `data_sources/mp3_analysis.py`?  
+- Windows-Pfade mit doppelten Backslashes: `H:\\MP3 Archiv`  
 
 ## 🧪 Tests
 
@@ -255,12 +255,12 @@ MIT License - Siehe [LICENSE](LICENSE) für Details.
 
 ## 🙏 Danksagungen
 
-- **BBC Culture, FBW, Oscar** für exzellente Film-Listen
-- **Radio Eins** für Musikempfehlungen
-- **New York Times** für Literatur-Kanon
-- **die-besten-aller-zeiten.de** für Ratgeber-Listen
-- **Stadtbibliothek Köln** für öffentlichen Katalog-Zugang
-- **Gradio, Groq, DuckDuckGo** für fantastische Tools
+- **BBC Culture, FBW, Oscar** für exzellente Film-Listen  
+- **Radio Eins** für Musikempfehlungen  
+- **New York Times** für Literatur-Kanon  
+- **die-besten-aller-zeiten.de** für Ratgeber-Listen  
+- **Stadtbibliothek Köln** für öffentlichen Katalog-Zugang  
+- **Gradio, Groq, DuckDuckGo** für fantastische Tools  
 
 ---
 
@@ -270,12 +270,12 @@ MIT License - Siehe [LICENSE](LICENSE) für Details.
 
 **Aktuelle Version:** 2.0.0 - *Personalized Recommendations* (20.01.2025)
 
-### Highlights
-- 💎 Personalisierte Musikempfehlungen aus MP3-Archiv
-- 🎵 Oscar-Filmmusik Integration
-- 📖 Ratgeber-Kategorie
-- ⚫ Intelligente Blacklist-Systeme
-- 🏷️ Quellen-Tracking mit Emojis
-- 🔍 KI-Powered Google-Suche
+### Highlights  
+- 💎 Personalisierte Musikempfehlungen aus MP3-Archiv  
+- 🎵 Oscar-Filmmusik Integration  
+- 📖 Ratgeber-Kategorie  
+- ⚫ Intelligente Blacklist-Systeme  
+- 🏷️ Quellen-Tracking mit Emojis  
+- 🔍 KI-Powered Google-Suche  
 
 Details: [CHANGELOG.md](CHANGELOG.md)

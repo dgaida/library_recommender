@@ -28,6 +28,6 @@ def funktion(param1: str, param2: int = 10) -> bool:
 
 ## Warum dieser Standard?
 
-- **Lesbarkeit**: Einheitliche Struktur für alle Entwickler.
-- **Automatisierung**: Ermöglicht die automatische Generierung der API-Dokumentation mit `mkdocstrings`.
-- **Klarheit**: Explizite Angabe von Typen und Standardwerten.
+- **Lesbarkeit**: Einheitliche Struktur für alle Entwickler.  
+- **Automatisierung**: Ermöglicht die automatische Generierung der API-Dokumentation mit `mkdocstrings`.  
+- **Klarheit**: Explizite Angabe von Typen und Standardwerten.  

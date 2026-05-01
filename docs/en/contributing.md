@@ -4,11 +4,11 @@ Thank you for your interest in the **Library Recommender App**! We appreciate ev
 
 ## 📋 Table of Contents
 
-- [Code of Conduct](#code-of-conduct)
-- [Bug Reports](#bug-reports)
-- [Feature Requests](#feature-requests)
-- [Code Contributions](#code-contributions)
-- [Testing](#testing)
+- [Code of Conduct](#code-of-conduct)  
+- [Bug Reports](#bug-reports)  
+- [Feature Requests](#feature-requests)  
+- [Code Contributions](#code-contributions)  
+- [Testing](#testing)  
 
 ## 🤝 Code of Conduct
 
@@ -26,10 +26,10 @@ We love new ideas! Create an issue and describe your desired feature.
 
 ### 💻 Code Contributions
 
-1. Fork the repository.
-2. Create a feature branch.
-3. Run tests.
-4. Create a pull request.
+1. Fork the repository.  
+2. Create a feature branch.  
+3. Run tests.  
+4. Create a pull request.  
 
 ## 🛠️ Development Setup
 
@@ -40,9 +40,9 @@ pip install -r requirements-dev.txt
 
 ## 📐 Coding Guidelines
 
-- Use Black for code formatting.
-- Write docstrings in Google style.
-- Use type hints.
+- Use Black for code formatting.  
+- Write docstrings in Google style.  
+- Use type hints.  
 
 ## 🧪 Testing
 
