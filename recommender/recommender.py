@@ -7,6 +7,7 @@ Datenquellen stammen (z.B. 5 Filme von BBC, 5 von FBW, 5 von Oscar).
 """
 
 import re
+import random
 from typing import List, Dict, Any, Optional
 from collections import defaultdict
 from .state import AppState
@@ -122,6 +123,7 @@ class Recommender:
             # Wähle nächste Quelle
             current_source = sources[source_index % len(sources)]
             source_items = items_by_source[current_source]
+            random.shuffle(source_items)
 
             # Prüfe, ob diese Quelle schon genug Items beigetragen hat
             if current_counts[current_source] >= items_per_source:
@@ -173,6 +175,18 @@ class Recommender:
 
         return selected_items
 
+    """
+    Filtert Filmergebnisse nach dem "Uv" Kürzel der Stadtbibliothek Köln.
+
+    Args:
+        item: Das gesuchte Film-Item
+        category: Die Kategorie (sollte "films" sein)
+        hits: Die Liste der Suchergebnisse
+
+    Returns:
+        Liste der gefilterten Film-Hits oder None
+    """
+
     def _filter_film_uv(self, item: Dict[str, Any], category: str, hits):
         logger.debug("Filtere Filme nach 'Uv' Kürzel")
         film_hits = []
@@ -190,6 +204,18 @@ class Recommender:
             return None
 
         return film_hits
+
+    """
+    Filtert Suchergebnisse nach Autor und Titel mit einem Ähnlichkeits-Threshold.
+
+    Args:
+        item: Das Ziel-Item mit erwartetem Autor/Titel
+        category: Die Medienkategorie
+        hits: Die Liste der Suchergebnisse
+
+    Returns:
+        Liste der gefilterten Hits oder None
+    """
 
     def _filter_hits_author(self, item: Dict[str, Any], category: str, hits):
         expected_author = item.get("author", "")
@@ -209,6 +235,18 @@ class Recommender:
                 return None
 
         return filtered_hits
+
+    """
+    Prüft die Verfügbarkeit in allen Bibliotheksstandorten für eine Liste von Hits.
+
+    Args:
+        item: Das gesuchte Medium
+        hits: Liste der Suchergebnisse aus der Bibliothek
+        borrowed_blacklist: Instanz der BorrowedBlacklist
+
+    Returns:
+        Tupel mit Verfügbarkeits-Flags und Details
+    """
 
     def _check_all_bibs(self, item: Dict[str, Any], hits, borrowed_blacklist):
         # Tracking
@@ -287,7 +325,19 @@ class Recommender:
                     logger.debug(f"✅ {stadtbib} verfügbar")
                 break
 
+    """
+    Interne Methode zur Prüfung der Verfügbarkeit eines Items.
+
+    Args:
+        item: Das zu prüfende Item-Dictionary
+        category: Die Medienkategorie
+
+    Returns:
+        Angereichertes Item-Dictionary bei Verfügbarkeit, sonst None
+    """
+
     def _check_availability(self, item: Dict[str, Any], category: str) -> Optional[Dict[str, Any]]:
+        logger.info(f"Prüfe Verfügbarkeit für: '{item['title']}' von '{item.get('author', 'Unbekannt')}'")
         """Prüft Verfügbarkeit eines Mediums in der Bibliothek."""
         # Prüfe Entleih-Blacklist
         borrowed_blacklist = get_borrowed_blacklist()

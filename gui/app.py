@@ -1776,6 +1776,18 @@ initial_film_choices = get_initial_choices(current_suggestions["films"])
 initial_album_choices = get_initial_choices(current_suggestions["albums"])
 initial_book_choices = get_initial_choices(current_suggestions["books"])
 
+# Extrahiere Lieblingsinterpreten aus personalisierten Alben
+personal_artists = sorted(
+    list(
+        set(
+            a["author"]
+            for a in albums
+            if "Interessant für dich" in a.get("source", "") or "Personalisiert" in a.get("source", "")
+        )
+    )
+)
+artists_list_str = ", ".join(personal_artists) if personal_artists else "Keine personalisierten Interpreten gefunden."
+
 
 def create_custom_theme() -> gr.Theme:
     """
@@ -2294,6 +2306,9 @@ with gr.Blocks(theme=create_custom_theme(), css=css, title="Bibliothek-Empfehlun
             album_media = gr.HTML(value="", label="Visuelle Medien")
 
             album_message = gr.HTML(value="", visible=False, elem_classes=["success-message"])
+
+            with gr.Accordion("⭐ Deine Lieblingsinterpreten (MP3-Archiv)", open=False):
+                gr.Markdown(f"Für diese Künstler aus deinem MP3-Archiv wird nach CDs gesucht:\n\n{artists_list_str}")
 
     with gr.Tab("📚 Bücher"):
         with gr.Column(elem_classes=["suggestion-container"]):

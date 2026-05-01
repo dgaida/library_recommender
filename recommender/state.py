@@ -9,6 +9,9 @@ import json
 from typing import Dict, List, Any, Union
 
 from utils.io import DATA_DIR
+from utils.logging_config import get_logger
+
+logger = get_logger(__name__)
 
 STATE_FILE = os.path.join(DATA_DIR, "state.json")
 
@@ -38,16 +41,16 @@ class AppState:
             try:
                 with open(STATE_FILE, "r", encoding="utf-8") as f:
                     rejected = json.load(f)
-                print(f"DEBUG: {sum(len(items) for items in rejected.values())} abgelehnte Medien aus state.json geladen.")
+                logger.info(f"{sum(len(items) for items in rejected.values())} abgelehnte Medien aus state.json geladen.")
                 return rejected
             except (json.JSONDecodeError, KeyError) as e:
-                print(f"DEBUG: Fehler beim Laden der state.json: {e}")
-                print("DEBUG: Erstelle neue state.json")
+                logger.error(f"Fehler beim Laden der state.json: {e}")
+                logger.info("Erstelle neue state.json")
                 return {"films": [], "albums": [], "books": []}
         else:
             rejected = {"films": [], "albums": [], "books": []}
             AppState.save_rejected_state(rejected)
-            print("DEBUG: Neue state.json erstellt.")
+            logger.info("Neue state.json erstellt.")
             return rejected
 
     @staticmethod
@@ -56,9 +59,9 @@ class AppState:
         try:
             with open(STATE_FILE, "w", encoding="utf-8") as f:
                 json.dump(rejected, f, ensure_ascii=False, indent=2)
-            print(f"DEBUG: {sum(len(items) for items in rejected.values())} abgelehnte Medien in state.json gespeichert.")
+            logger.info(f"{sum(len(items) for items in rejected.values())} abgelehnte Medien in state.json gespeichert.")
         except Exception as e:
-            print(f"DEBUG: Fehler beim Speichern der state.json: {e}")
+            logger.error(f"Fehler beim Speichern der state.json: {e}")
 
     def is_already_suggested(self, category: str, item: Dict[str, Any]) -> bool:
         """
@@ -74,9 +77,9 @@ class AppState:
         already_rejected = any(x["title"].lower() == title_lower for x in self.rejected.get(category, []))
 
         if already_suggested_this_run:
-            print(f"DEBUG: '{item['title']}' bereits in diesem Lauf vorgeschlagen")
+            logger.debug(f"'{item['title']}' bereits in diesem Lauf vorgeschlagen")
         if already_rejected:
-            print(f"DEBUG: '{item['title']}' wurde früher abgelehnt")
+            logger.debug(f"'{item['title']}' wurde früher abgelehnt")
 
         return already_suggested_this_run or already_rejected
 
@@ -89,7 +92,7 @@ class AppState:
         title_lower = item["title"].lower()
         if not any(x["title"].lower() == title_lower for x in self.suggested[category]):
             self.suggested[category].append(item)
-            print(f"DEBUG: '{item['title']}' als vorgeschlagen markiert")
+            logger.debug(f"'{item['title']}' als vorgeschlagen markiert")
 
     def reject(self, category: str, item: Dict[str, Any]) -> None:
         """
@@ -103,23 +106,23 @@ class AppState:
         # Prüfe ob schon in abgelehnten Items
         if not any(x["title"].lower() == title_lower for x in self.rejected[category]):
             self.rejected[category].append(item)
-            print(f"DEBUG: '{item['title']}' als abgelehnt markiert")
+            logger.info(f"'{item['title']}' als abgelehnt markiert")
 
             # Speichere sofort persistent
             self.save_rejected_state(self.rejected)
         else:
-            print(f"DEBUG: '{item['title']}' war bereits als abgelehnt markiert")
+            logger.debug(f"'{item['title']}' war bereits als abgelehnt markiert")
 
     def reset_rejected(self) -> None:
         """Setzt alle abgelehnten Medien zurück (löscht state.json)"""
         self.rejected = {"films": [], "albums": [], "books": []}
         self.save_rejected_state(self.rejected)
-        print("DEBUG: Alle abgelehnten Medien zurückgesetzt")
+        logger.info("Alle abgelehnten Medien zurückgesetzt")
 
     def reset_suggested(self) -> None:
         """Setzt nur die aktuell vorgeschlagenen zurück"""
         self.suggested = {"films": [], "albums": [], "books": []}
-        print("DEBUG: Aktuell vorgeschlagene Medien zurückgesetzt")
+        logger.info("Aktuell vorgeschlagene Medien zurückgesetzt")
 
     def get_stats(self) -> Dict[str, Any]:
         """Gibt Statistiken über den aktuellen Zustand zurück"""
