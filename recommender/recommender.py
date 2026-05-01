@@ -7,6 +7,7 @@ Datenquellen stammen (z.B. 5 Filme von BBC, 5 von FBW, 5 von Oscar).
 """
 
 import re
+import random
 from typing import List, Dict, Any, Optional
 from collections import defaultdict
 from .state import AppState
@@ -122,6 +123,7 @@ class Recommender:
             # Wähle nächste Quelle
             current_source = sources[source_index % len(sources)]
             source_items = items_by_source[current_source]
+            random.shuffle(source_items)
 
             # Prüfe, ob diese Quelle schon genug Items beigetragen hat
             if current_counts[current_source] >= items_per_source:
@@ -288,6 +290,7 @@ class Recommender:
                 break
 
     def _check_availability(self, item: Dict[str, Any], category: str) -> Optional[Dict[str, Any]]:
+        logger.info(f"Prüfe Verfügbarkeit für: '{item['title']}' von '{item.get('author', 'Unbekannt')}'")
         """Prüft Verfügbarkeit eines Mediums in der Bibliothek."""
         # Prüfe Entleih-Blacklist
         borrowed_blacklist = get_borrowed_blacklist()

@@ -8,7 +8,7 @@ import os
 import re
 from typing import Optional, Dict, Any, List, Tuple
 import requests
-from ddgs import DDGS
+from duckduckgo_search import DDGS
 from groq import Groq
 from utils.logging_config import get_logger
 
