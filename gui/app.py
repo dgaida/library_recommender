@@ -18,7 +18,7 @@ from utils.sources import (
     SOURCE_NYT_CANON,
     SOURCE_BEST_GUIDES,
 )
-from data_sources.mp3_analysis import add_top_artist_albums_to_collection
+from data_sources.mp3_analysis import add_top_artist_albums_to_collection, get_top_artists_from_archive
 
 from data_sources.albums import fetch_radioeins_albums
 from data_sources.books import fetch_books_from_site
@@ -1776,16 +1776,8 @@ initial_film_choices = get_initial_choices(current_suggestions["films"])
 initial_album_choices = get_initial_choices(current_suggestions["albums"])
 initial_book_choices = get_initial_choices(current_suggestions["books"])
 
-# Extrahiere Lieblingsinterpreten aus personalisierten Alben
-personal_artists = sorted(
-    list(
-        set(
-            a["author"]
-            for a in albums
-            if "Interessant für dich" in a.get("source", "") or "Personalisiert" in a.get("source", "")
-        )
-    )
-)
+# Extrahiere Lieblingsinterpreten aus dem MP3-Archiv (Top 30)
+personal_artists = sorted(get_top_artists_from_archive("H:\\MP3 Archiv", top_n=30))
 artists_list_str = ", ".join(personal_artists) if personal_artists else "Keine personalisierten Interpreten gefunden."
 
 
