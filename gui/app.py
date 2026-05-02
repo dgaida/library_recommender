@@ -243,7 +243,7 @@ def suggest(category: str) -> Tuple[gr.update, str, gr.update, str]:
     # Erstelle Auswahloptionen für die CheckboxGroup
     choices = []
     for s in suggestions:
-        display_text = f"{s['title']}"
+        display_text = remove_emoji(f"{s['title']}").strip()
         if s.get("author"):
             display_text += f" - {s['author']}"
         # Emoji hinzufügen
@@ -324,11 +324,11 @@ def on_selection_change(selected_items: List[str], category: str) -> Tuple[gr.up
     suggestions = current_suggestions.get(category, [])
 
     for selected_item in selected_items:
-        selected_item_clean = remove_emoji(selected_item)
+        selected_item_clean = remove_emoji(selected_item).strip()
 
         for s in suggestions:
             # Titel in current_suggestions kann Emojis haben (z.B. 📱)
-            suggestion_title_clean = remove_emoji(s["title"])
+            suggestion_title_clean = remove_emoji(s["title"]).strip()
             display_text = f"{suggestion_title_clean}"
             if s.get("author"):
                 display_text += f" - {s['author']}"
@@ -479,7 +479,7 @@ def google_search_selected(selected_items: List[str], category: str) -> Tuple[st
         return "Bitte wählen Sie genau ein Medium aus.", ""
 
     selected_item = selected_items[0]
-    selected_item_clean = remove_emoji(selected_item)
+    selected_item_clean = remove_emoji(selected_item).strip()
 
     # Extrahiere Titel und Autor
     title, author = extract_title_and_author(selected_item_clean)
@@ -503,7 +503,7 @@ def google_search_selected(selected_items: List[str], category: str) -> Tuple[st
         suggestions = current_suggestions.get(category, [])
         for s in suggestions:
             # Titel in current_suggestions kann Emojis haben (z.B. 📱)
-            suggestion_title_clean = remove_emoji(s["title"])
+            suggestion_title_clean = remove_emoji(s["title"]).strip()
             display_text = f"{suggestion_title_clean}"
             if s.get("author"):
                 display_text += f" - {s['author']}"
@@ -563,10 +563,10 @@ def reject_selected(  # noqa: C901
     # Identifiziere alle zu entfernenden Items
     for selected_item in selected_items:
         # Entferne Emoji
-        selected_item_clean = remove_emoji(selected_item)
+        selected_item_clean = remove_emoji(selected_item).strip()
 
         for i, s in enumerate(suggestions):
-            display_text = f"{s['title']}"
+            display_text = remove_emoji(f"{s['title']}").strip()
             if s.get("author"):
                 display_text += f" - {s['author']}"
 
@@ -592,7 +592,7 @@ def reject_selected(  # noqa: C901
     # Aktualisiere die Auswahloptionen
     choices = []
     for s in current_suggestions[category]:
-        display_text = f"{s['title']}"
+        display_text = remove_emoji(f"{s['title']}").strip()
         if s.get("author"):
             display_text += f" - {s['author']}"
         if s.get("source"):
@@ -803,7 +803,7 @@ def get_initial_choices(suggestions: List[Dict[str, Any]]) -> List[str]:
 
     choices = []
     for s in suggestions:
-        display_text = f"{s['title']}"
+        display_text = remove_emoji(f"{s['title']}").strip()
         if s.get("author"):
             display_text += f" - {s['author']}"
         if s.get("source"):
@@ -1198,7 +1198,7 @@ def _create_tab_updates(category: str) -> Tuple[gr.update, gr.update, gr.update]
             # Update diesen Tab
             choices = []
             for s in current_suggestions[cat]:
-                display_text = f"{s['title']}"
+                display_text = remove_emoji(f"{s['title']}").strip()
                 if s.get("author"):
                     display_text += f" - {s['author']}"
                 if s.get("source"):
