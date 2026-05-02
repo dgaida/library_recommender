@@ -18,3 +18,9 @@
 
 ## Performance  
 - Avoid heavy initialization in utility modules. `gui/app.py` triggers data fetching on import.  
+
+## MP3 Analysis & Top Artists
+- Top artists are determined by the number of MP3 files found in the archive.
+- The folder structure is expected to be either `Artist/Album/Title.mp3` or `A/Artist/Album/Title.mp3` (where "A" is a single-letter grouping folder).
+- Single-character folder names (A-Z) and the "#" folder are treated as grouping folders and skipped when identifying the artist name, provided there is a subfolder level below them.
+- If no subfolders exist, the filename format `Artist - Title.mp3` is used as a fallback.

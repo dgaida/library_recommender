@@ -46,11 +46,16 @@ def analyze_mp3_archive(archive_path: str) -> Counter:
                 # Extrahiere Interpret
                 relative_path = os.path.relpath(root, archive_path)
                 path_parts = relative_path.split(os.sep)
+                path_parts = [p for p in path_parts if p and p != "."]
 
                 artist = ""
-                if path_parts and path_parts[0] != ".":
+                if path_parts:
                     # Fall: Archiv/Artist/Album/Title.mp3
-                    artist = path_parts[0].strip()
+                    # Überspringe Gruppierungsordner wie "A", "B" oder "#"
+                    if (len(path_parts[0]) == 1 or path_parts[0] == "#") and len(path_parts) > 1:
+                        artist = path_parts[1].strip()
+                    else:
+                        artist = path_parts[0].strip()
                 elif " - " in file:
                     # Fall: Archiv/Artist - Title.mp3
                     artist = file.split(" - ")[0].strip()
