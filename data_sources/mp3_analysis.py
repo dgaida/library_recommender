@@ -1,8 +1,8 @@
 import os
 import json
 import time
-import re
-from typing import List, Dict, Any, Set, Tuple
+
+from typing import List, Dict, Any, Set
 from collections import Counter
 from library.search import KoelnLibrarySearch
 from utils.logging_config import get_logger
