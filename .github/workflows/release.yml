@@ -28,25 +28,25 @@ jobs:
     - name: Create Release Archive
       run: |
         # Erstelle Release-Verzeichnis
-        mkdir -p release/library-recommender-${{ steps.get_version.outputs.VERSION }}
+        mkdir -p release/library_recommender-${{ steps.get_version.outputs.VERSION }}
 
         # Kopiere alle notwendigen Dateien
-        cp -r data_sources gui library preprocessing recommender utils release/library-recommender-${{ steps.get_version.outputs.VERSION }}/
-        cp main.py requirements.txt environment.yaml README.md LICENSE .gitignore release/library-recommender-${{ steps.get_version.outputs.VERSION }}/
+        cp -r data_sources gui library preprocessing recommender utils release/library_recommender-${{ steps.get_version.outputs.VERSION }}/
+        cp main.py requirements.txt environment.yaml README.md LICENSE .gitignore release/library_recommender-${{ steps.get_version.outputs.VERSION }}/
 
         # Erstelle data-Verzeichnis (leer, wird von App erstellt)
-        mkdir -p release/library-recommender-${{ steps.get_version.outputs.VERSION }}/data
-        echo "Dieses Verzeichnis wird automatisch von der App gefüllt." > release/library-recommender-${{ steps.get_version.outputs.VERSION }}/data/README.txt
+        mkdir -p release/library_recommender-${{ steps.get_version.outputs.VERSION }}/data
+        echo "Dieses Verzeichnis wird automatisch von der App gefüllt." > release/library_recommender-${{ steps.get_version.outputs.VERSION }}/data/README.txt
 
         # Erstelle secrets.env Template
-        echo "# Groq API Key für Google-Suche (optional)" > release/library-recommender-${{ steps.get_version.outputs.VERSION }}/secrets.env.template
-        echo "# Erstellen Sie einen kostenlosen Account auf https://groq.com" >> release/library-recommender-${{ steps.get_version.outputs.VERSION }}/secrets.env.template
-        echo "GROQ_API_KEY=gsk_your_api_key_here" >> release/library-recommender-${{ steps.get_version.outputs.VERSION }}/secrets.env.template
+        echo "# Groq API Key für Google-Suche (optional)" > release/library_recommender-${{ steps.get_version.outputs.VERSION }}/secrets.env.template
+        echo "# Erstellen Sie einen kostenlosen Account auf https://groq.com" >> release/library_recommender-${{ steps.get_version.outputs.VERSION }}/secrets.env.template
+        echo "GROQ_API_KEY=gsk_your_api_key_here" >> release/library_recommender-${{ steps.get_version.outputs.VERSION }}/secrets.env.template
 
         # Erstelle ZIP-Archive
         cd release
-        zip -r library-recommender-${{ steps.get_version.outputs.VERSION }}.zip library-recommender-${{ steps.get_version.outputs.VERSION }}
-        tar -czf library-recommender-${{ steps.get_version.outputs.VERSION }}.tar.gz library-recommender-${{ steps.get_version.outputs.VERSION }}
+        zip -r library_recommender-${{ steps.get_version.outputs.VERSION }}.zip library_recommender-${{ steps.get_version.outputs.VERSION }}
+        tar -czf library_recommender-${{ steps.get_version.outputs.VERSION }}.tar.gz library_recommender-${{ steps.get_version.outputs.VERSION }}
 
     - name: Extract Changelog
       id: changelog
@@ -92,8 +92,8 @@ jobs:
         name: Release v${{ steps.get_version.outputs.VERSION }}
         body_path: RELEASE_NOTES.md
         files: |
-          release/library-recommender-${{ steps.get_version.outputs.VERSION }}.zip
-          release/library-recommender-${{ steps.get_version.outputs.VERSION }}.tar.gz
+          release/library_recommender-${{ steps.get_version.outputs.VERSION }}.zip
+          release/library_recommender-${{ steps.get_version.outputs.VERSION }}.tar.gz
         draft: false
         prerelease: false
       env:

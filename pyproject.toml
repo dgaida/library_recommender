@@ -3,7 +3,7 @@ requires = ["setuptools>=61.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "library-recommender"
+name = "library_recommender"
 version = "2.2.0"
 description = "Intelligente Empfehlungs-App für die Stadtbibliothek Köln"
 readme = "README.md"
@@ -77,14 +77,14 @@ generate-badge = "."
 badge-format = "svg"
 
 [project.urls]
-Homepage = "https://github.com/dgaida/library-recommender"
-Documentation = "https://github.com/dgaida/library-recommender#readme"
-Repository = "https://github.com/dgaida/library-recommender"
-"Bug Tracker" = "https://github.com/dgaida/library-recommender/issues"
-Changelog = "https://github.com/dgaida/library-recommender/blob/main/CHANGELOG.md"
+Homepage = "https://github.com/dgaida/library_recommender"
+Documentation = "https://github.com/dgaida/library_recommender#readme"
+Repository = "https://github.com/dgaida/library_recommender"
+"Bug Tracker" = "https://github.com/dgaida/library_recommender/issues"
+Changelog = "https://github.com/dgaida/library_recommender/blob/main/CHANGELOG.md"
 
 [project.scripts]
-library-recommender = "main:main"
+library_recommender = "main:main"
 
 [tool.setuptools]
 packages = ["data_sources", "gui", "library", "preprocessing", "recommender", "utils"]

@@ -1,74 +1,64 @@
-#!/usr/bin/env python3
-"""
-MP3-Archiv Analyse mit Artist-Blacklist Integration
-
-Analysiert MP3-Archiv und sucht nach neuen Alben deiner Top-Interpreten,
-unter Berücksichtigung der Artist-Blacklist.
-"""
-
 import os
 import json
 import time
+import re
+from typing import List, Dict, Any, Set, Tuple
 from collections import Counter
-from typing import List, Dict, Any, Set
 from library.search import KoelnLibrarySearch
-from utils.io import DATA_DIR
 from utils.logging_config import get_logger
 from utils.artist_blacklist import (
-    ArtistBlacklist,
     get_artist_blacklist,
+    ArtistBlacklist,
     get_filtered_top_artists,
     update_artist_blacklist_from_search_results,
 )
+from utils.io import DATA_DIR
 
 logger = get_logger(__name__)
 
-ALBUMS_FILE: str = os.path.join(DATA_DIR, "albums.json")
+ALBUMS_FILE = os.path.join(DATA_DIR, "albums.json")
 
 
 def analyze_mp3_archive(archive_path: str) -> Counter:
     """
-    Analysiert das MP3-Archiv und zählt Songs pro Interpret.
+    Analysiert das MP3-Archiv und zählt Titel pro Interpret.
 
     Args:
         archive_path: Pfad zum MP3-Archiv
 
     Returns:
-        Counter mit Anzahl Songs pro Interpret
+        Counter-Objekt mit Artist-Counts
     """
-    if not os.path.exists(archive_path):
-        logger.warning(f"MP3-Archiv nicht gefunden: {archive_path}")
-        return Counter()
-
-    logger.info(f"Analysiere MP3-Archiv (Songs): {archive_path}")
-
     artist_counter: Counter = Counter()
 
-    try:
-        for root, _, files in os.walk(archive_path):
-            for file_name in files:
-                if not file_name.lower().endswith(".mp3"):
-                    continue
+    if not os.path.exists(archive_path):
+        logger.error(f"Archiv-Pfad nicht gefunden: {archive_path}")
+        return artist_counter
 
-                # Format: "Artist - Titel.mp3"
-                if " - " in file_name:
-                    artist: str = file_name.split(" - ")[0].strip()
-                else:
-                    continue
+    logger.info(f"Analysiere MP3-Archiv: {archive_path}")
 
-                # Ignoriere systemische oder unklare Künstlernamen
-                if artist.startswith(".") or artist.lower() in ["various", "compilations", "soundtracks"]:
-                    continue
+    # Rekursive Suche nach MP3/Flac/M4a Dateien
+    extensions = {".mp3", ".flac", ".m4a", ".wav"}
 
-                artist_counter[artist] += 1
+    for root, _, files in os.walk(archive_path):
+        for file in files:
+            if any(file.lower().endswith(ext) for ext in extensions):
+                # Extrahiere Interpret
+                relative_path = os.path.relpath(root, archive_path)
+                path_parts = relative_path.split(os.sep)
 
-        logger.info(
-            f"{len(artist_counter)} verschiedene Interpreten gefunden, " f"{sum(artist_counter.values())} Songs gesamt"
-        )
+                artist = ""
+                if path_parts and path_parts[0] != ".":
+                    # Fall: Archiv/Artist/Album/Title.mp3
+                    artist = path_parts[0].strip()
+                elif " - " in file:
+                    # Fall: Archiv/Artist - Title.mp3
+                    artist = file.split(" - ")[0].strip()
 
-    except Exception as e:
-        logger.error(f"Fehler beim Durchsuchen des Archivs: {e}", exc_info=True)
+                if artist:
+                    artist_counter[artist] += 1
 
+    logger.info(f"Analyse abgeschlossen. {len(artist_counter)} Interpreten gefunden.")
     return artist_counter
 
 
@@ -152,10 +142,38 @@ def find_new_albums_for_top_artists(archive_path: str, top_n: int = 30, use_blac
         logger.warning("Keine Interpreten im Archiv gefunden")
         return []
 
-    top_artists = _get_filtered_artists(artist_counter, top_n, use_blacklist)
     existing_albums = _get_existing_albums(archive_path)
 
-    return _search_library_for_artists(top_artists, existing_albums, use_blacklist)
+    # Suche in Stufen: erst top_n (default 30), dann 40, dann 50 falls nichts gefunden wurde
+    all_new_albums = []
+    searched_artists = set()
+
+    for n in [top_n, 40, 50]:
+        if n < top_n and n != top_n:
+            continue
+
+        top_artists = _get_filtered_artists(artist_counter, n, use_blacklist)
+
+        # Nur neue Künstler suchen, die wir noch nicht geprüft haben
+        new_candidates = [a for a in top_artists if a[0] not in searched_artists]
+
+        if new_candidates:
+            logger.info(f"Suche nach Alben für {len(new_candidates)} neue Interpreten (Stufe bis Top {n})...")
+            new_albums = _search_library_for_artists(new_candidates, existing_albums, use_blacklist)
+            all_new_albums.extend(new_albums)
+
+            for artist, _ in new_candidates:
+                searched_artists.add(artist)
+
+        if all_new_albums:
+            return all_new_albums
+
+        if n >= 50:
+            break
+
+        logger.info(f"Keine Alben in den Top {n} gefunden, erweitere Suche...")
+
+    return []
 
 
 def _get_filtered_artists(counter, top_n, use_blacklist):
@@ -245,8 +263,6 @@ def add_top_artist_albums_to_collection(
     """
     Findet neue Alben für Top-Interpreten und fügt sie zu albums.json hinzu.
 
-    Integriert Artist-Blacklist für effiziente Suche.
-
     Args:
         archive_path: Pfad zum MP3-Archiv
         top_n: Anzahl der Top-Interpreten (default: 30)
@@ -303,20 +319,14 @@ def add_top_artist_albums_to_collection(
         logger.info(f"Datei: '{ALBUMS_FILE}'")
         logger.info(f"  - {len(existing_albums)} bestehende Alben")
         logger.info(f"  - {len(new_albums)} neue 'Interessant für dich' Empfehlungen")
-        logger.info(f"  - {len(sorted_albums)} finale Alben " f"(nach Bereinigung und Sortierung)")
+        logger.info(f"  - {len(sorted_albums)} finale Alben (nach Bereinigung und Sortierung)")
 
     except IOError as e:
         logger.error(f"Fehler beim Speichern: {e}", exc_info=True)
 
 
 def perform_artist_blacklist_maintenance() -> None:
-    """
-    Führt Wartungsarbeiten an der Artist-Blacklist durch.
-
-    - Entfernt alte Einträge (> 2 Jahre)
-    - Zeigt Statistiken
-    - Listet Künstler für Re-Check auf
-    """
+    """Führt Wartungsarbeiten an der Artist-Blacklist durch."""
     logger.info("🔧 Starte Artist-Blacklist Wartung...")
 
     artist_blacklist: ArtistBlacklist = get_artist_blacklist()
@@ -336,7 +346,7 @@ def perform_artist_blacklist_maintenance() -> None:
     if due_artists:
         logger.info("\n📅 Künstler fällig für Re-Check:")
         for artist_info in due_artists:
-            logger.info(f"  - {artist_info['artist_name']}: " f"{artist_info['days_since_check']} Tage seit letztem Check")
+            logger.info(f"  - {artist_info['artist_name']}: {artist_info['days_since_check']} Tage seit letztem Check")
     else:
         logger.info("ℹ️  Keine Künstler fällig für Re-Check")
 

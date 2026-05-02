@@ -1,5 +1,5 @@
 site_name: Bibliothek-Empfehlungs-App
-site_url: https://dgaida.github.io/library-recommender
+site_url: https://dgaida.github.io/library_recommender
 site_description: Intelligente Empfehlungs-App für die Stadtbibliothek Köln
 
 theme:
