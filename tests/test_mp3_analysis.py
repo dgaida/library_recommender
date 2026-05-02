@@ -9,6 +9,7 @@ from data_sources.mp3_analysis import (
     search_artist_albums_in_library,
     find_new_albums_for_top_artists,
     perform_artist_blacklist_maintenance,
+    get_top_artists_from_archive,
 )
 
 
@@ -69,3 +70,16 @@ def test_perform_artist_blacklist_maintenance(mocker):
     perform_artist_blacklist_maintenance()
 
     mock_blacklist.clear_old_entries.assert_called_once()
+
+
+def test_get_top_artists_from_archive(mocker):
+    """Test identifying top artists from archive."""
+    mocker.patch("data_sources.mp3_analysis.analyze_mp3_archive", return_value=Counter({"Artist A": 10, "Artist B": 5}))
+    # Mock _get_filtered_artists to avoid dealing with blacklist complexity in this simple test
+    mocker.patch("data_sources.mp3_analysis._get_filtered_artists", return_value=[("Artist A", 10), ("Artist B", 5)])
+
+    artists = get_top_artists_from_archive("/archive", top_n=2, use_blacklist=False)
+
+    assert len(artists) == 2
+    assert "Artist A" in artists
+    assert "Artist B" in artists
