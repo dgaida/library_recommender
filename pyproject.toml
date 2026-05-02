@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "library_recommender"
-version = "2.2.1"
+version = "2.2.2"
 description = "Intelligente Empfehlungs-App für die Stadtbibliothek Köln"
 readme = "README.md"
 requires-python = ">=3.9"
