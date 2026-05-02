@@ -21,19 +21,19 @@ with open("requirements.txt", "r", encoding="utf-8") as f:
     requirements = [line.strip() for line in f if line.strip() and not line.startswith("#")]
 
 setup(
-    name="library-recommender",
+    name="library_recommender",
     version=version_data["__version__"],
     author=version_data["__author__"],
     author_email="daniel.gaida@th-koeln.de",
     description=version_data["__description__"],
     long_description=long_description,
     long_description_content_type="text/markdown",
-    url="https://github.com/dgaida/library-recommender",
+    url="https://github.com/dgaida/library_recommender",
     project_urls={
-        "Bug Tracker": "https://github.com/dgaida/library-recommender/issues",
-        "Documentation": "https://github.com/dgaida/library-recommender#readme",
-        "Source Code": "https://github.com/dgaida/library-recommender",
-        "Changelog": "https://github.com/dgaida/library-recommender/blob/main/CHANGELOG.md",
+        "Bug Tracker": "https://github.com/dgaida/library_recommender/issues",
+        "Documentation": "https://github.com/dgaida/library_recommender#readme",
+        "Source Code": "https://github.com/dgaida/library_recommender",
+        "Changelog": "https://github.com/dgaida/library_recommender/blob/main/CHANGELOG.md",
     },
     packages=find_packages(exclude=["tests", "tests.*"]),
     classifiers=[
@@ -61,7 +61,7 @@ setup(
     },
     entry_points={
         "console_scripts": [
-            "library-recommender=main:main",
+            "library_recommender=main:main",
         ],
     },
     include_package_data=True,

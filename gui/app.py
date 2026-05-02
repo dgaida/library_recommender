@@ -1778,7 +1778,19 @@ initial_book_choices = get_initial_choices(current_suggestions["books"])
 
 # Extrahiere Lieblingsinterpreten aus dem MP3-Archiv (Top 30)
 personal_artists = sorted(get_top_artists_from_archive("H:\\MP3 Archiv", top_n=30))
-artists_list_str = ", ".join(personal_artists) if personal_artists else "Keine personalisierten Interpreten gefunden."
+# Markiere Künstler fett, für die CDs in der Bibliothek gefunden wurden (verfügbar oder entliehen)
+found_artists = {
+    album["author"]
+    for album in albums
+    if any(
+        word in album.get("bib_availability", "").lower()
+        for word in ["verfügbar", "ausleihbar", "entliehen", "rückgabe", "vorbestellt"]
+    )
+}
+formatted_personal_artists = [f"**{artist}**" if artist in found_artists else artist for artist in personal_artists]
+artists_list_str = (
+    ", ".join(formatted_personal_artists) if formatted_personal_artists else "Keine personalisierten Interpreten gefunden."
+)
 
 
 def create_custom_theme() -> gr.Theme:
