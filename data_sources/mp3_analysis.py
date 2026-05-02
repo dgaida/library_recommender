@@ -49,16 +49,26 @@ def analyze_mp3_archive(archive_path: str) -> Counter:
                 path_parts = [p for p in path_parts if p and p != "."]
 
                 artist = ""
-                if path_parts:
-                    # Fall: Archiv/Artist/Album/Title.mp3
-                    # Überspringe Gruppierungsordner wie "A", "B" oder "#"
-                    if (len(path_parts[0]) == 1 or path_parts[0] == "#") and len(path_parts) > 1:
+                name_without_ext = os.path.splitext(file)[0]
+
+                # Strategie 1: Extraktion aus dem Dateinamen (z.B. "Artist-Title.mp3")
+                if " - " in name_without_ext:
+                    parts = [p.strip() for p in name_without_ext.split(" - ")]
+                    artist = parts[1] if parts[0].isdigit() and len(parts) > 1 else parts[0]
+                elif "-" in name_without_ext:
+                    parts = [p.strip() for p in name_without_ext.split("-")]
+                    artist = parts[1] if parts[0].isdigit() and len(parts) > 1 else parts[0]
+
+                # Strategie 2: Fallback auf Verzeichnisstruktur
+                if not artist and path_parts:
+                    if (len(path_parts[0]) == 1 or path_parts[0] == "#") and len(path_parts) > 2:
                         artist = path_parts[1].strip()
-                    else:
+                    elif len(path_parts[0]) > 1 and path_parts[0] != "#":
                         artist = path_parts[0].strip()
-                elif " - " in file:
-                    # Fall: Archiv/Artist - Title.mp3
-                    artist = file.split(" - ")[0].strip()
+
+                # Ignoriere Platzhalter-Interpreten
+                if artist and artist.lower() in ["various", "unknown", "unbekannt", "various artists"]:
+                    artist = ""
 
                 if artist:
                     artist_counter[artist] += 1

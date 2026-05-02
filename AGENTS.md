@@ -21,6 +21,12 @@
 
 ## MP3 Analysis & Top Artists
 - Top artists are determined by the number of MP3 files found in the archive.
-- The folder structure is expected to be either `Artist/Album/Title.mp3` or `A/Artist/Album/Title.mp3` (where "A" is a single-letter grouping folder).
-- Single-character folder names (A-Z) and the "#" folder are treated as grouping folders and skipped when identifying the artist name, provided there is a subfolder level below them.
-- If no subfolders exist, the filename format `Artist - Title.mp3` is used as a fallback.
+- The identification follows a two-tier strategy:
+  1. **Filename Strategy**: The filename is checked for separators like " - " or "-". If a separator is found, the artist is extracted (handling optional track numbers like "01-Artist-Title.mp3").
+  2. **Directory Fallback**: If no artist is found in the filename, the directory structure is used.
+- Expected folder structures include:
+  - `Grouping/Album/Artist-Title.mp3` (Primary)
+  - `Artist/Album/Title.mp3` (Fallback)
+  - `Grouping/Artist/Album/Title.mp3` (Fallback)
+- Single-character folder names (A-Z) and the "#" folder are skipped as grouping folders.
+- Generic names like "Various", "Unknown", or "Unbekannt" are ignored.
