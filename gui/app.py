@@ -264,32 +264,29 @@ def suggest(category: str) -> Tuple[gr.update, str, gr.update, str]:
     return (gr.update(choices=choices, value=[]), info_text, gr.update(interactive=False), "")
 
 
-def get_n_suggestions(category: str, items_per_source: int = 5) -> List[Dict[str, Any]]:
+def get_n_suggestions(category: str, n: Optional[int] = None, items_per_source: int = 5) -> List[Dict[str, Any]]:
     """
     Holt neue Vorschläge für eine Kategorie, balanciert nach Quelle.
 
-    Die Gesamtanzahl wird dynamisch berechnet:
-    n = Anzahl Quellen * items_per_source
-
     Args:
         category: Kategorie ('films', 'albums', 'books')
+        n: Gesamtanzahl (Optional, falls None wird n = Quellen * items_per_source verwendet)
         items_per_source: Items pro Quelle (default: 5)
 
     Returns:
         Liste von Empfehlungen, balanciert nach Quelle
-
-    Example:
-        >>> suggestions = get_n_suggestions('films', items_per_source=5)
-        >>> # Bei 3 Quellen -> 15 Vorschläge
     """
-    logger.info(f"Hole Vorschläge für {category} ({items_per_source} pro Quelle)")
+    # Wenn n nicht angegeben ist, nutzen wir einen hohen Standardwert (25),
+    # der Recommender wird durch items_per_source ohnehin begrenzt
+    target_n = n if n is not None else 25
+    logger.info(f"Hole Vorschläge für {category} (n={target_n}, items_per_source={items_per_source})")
 
     if category == "films":
-        suggestions = recommender.suggest_films(films, items_per_source=items_per_source)
+        suggestions = recommender.suggest_films(films, n=target_n, items_per_source=items_per_source)
     elif category == "albums":
-        suggestions = recommender.suggest_albums(albums, items_per_source=items_per_source)
+        suggestions = recommender.suggest_albums(albums, n=target_n, items_per_source=items_per_source)
     elif category == "books":
-        suggestions = recommender.suggest_books(books, items_per_source=items_per_source)
+        suggestions = recommender.suggest_books(books, n=target_n, items_per_source=items_per_source)
     else:
         logger.warning(f"Unbekannte Kategorie: {category}")
         suggestions = []
@@ -582,9 +579,12 @@ def reject_selected(  # noqa: C901
     for i in sorted(indices_to_remove, reverse=True):
         current_suggestions[category].pop(i)
 
-    # Versuche neue Vorschläge zu holen (balanciert, 1 pro Quelle)
+    # Versuche neue Vorschläge zu holen (balanciert, n = needed_count)
     needed_count = len(rejected_titles)
-    new_suggestions = get_n_suggestions(category, items_per_source=1)
+    # Wir setzen items_per_source=needed_count, damit wir im Zweifelsfall
+    # alle neuen Items aus einer Quelle beziehen können, falls andere erschöpft sind.
+    # get_n_suggestions wird n=needed_count an den Recommender weitergeben.
+    new_suggestions = get_n_suggestions(category, n=needed_count, items_per_source=needed_count)
 
     # Füge neue Vorschläge hinzu
     current_suggestions[category].extend(new_suggestions)
