@@ -91,10 +91,11 @@ def search_artist_albums_in_library(artist_name: str, max_results: int = 15) -> 
     search_engine: KoelnLibrarySearch = KoelnLibrarySearch()
 
     query: str = f"{artist_name} CD"
-    logger.info(f"Suche nach Alben von '{artist_name}'...")
+    logger.debug(f"Suche nach Alben von '{artist_name}'...")
 
     try:
         results: List[Dict[str, Any]] = search_engine.search(query)
+        logger.info(f"  - habe {len(results)} CDs für '{artist_name}' in der Bibliothek gefunden")
 
         albums: List[Dict[str, Any]] = []
         for result in results[:max_results]:
@@ -225,11 +226,13 @@ def _search_library_for_artists(top_artists, existing_albums, use_blacklist):
     """Sucht neue Alben in Bibliothek."""
     all_new_albums: List[Dict[str, Any]] = []
     blacklist = get_artist_blacklist() if use_blacklist else None
+    total_to_search = len(top_artists)
 
-    for artist, song_count in top_artists:
-        logger.info(f"\n🔍 Suche neue Alben von '{artist}'...")
+    for idx, (artist, song_count) in enumerate(top_artists, 1):
+        logger.info(f"\n🔍 Suche nach Top Interpret Nr. {idx}/{total_to_search}: '{artist}'...")
 
         new_albums = _search_artist(artist, existing_albums)
+        logger.info(f"  -> {len(new_albums)} neue CDs für '{artist}' vorgeschlagen")
         all_new_albums.extend(new_albums)
 
         if blacklist:
