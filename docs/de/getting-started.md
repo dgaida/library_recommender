@@ -4,9 +4,9 @@ Dieser Guide zeigt Ihnen, wie Sie die App schnell zum Laufen bringen.
 
 ## 1. Voraussetzungen
 
-- Python 3.9+  
-- Internetverbindung (für Bibliotheks-Suche)  
-- Optional: Groq API Key für KI-Zusammenfassungen  
+- Python 3.9+
+- Internetverbindung (für Bibliotheks-Suche)
+- Optional: Groq API Key für KI-Zusammenfassungen
 
 ## 2. Installation
 

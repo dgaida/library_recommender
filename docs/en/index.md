@@ -6,11 +6,11 @@ This is an intelligent recommendation system for the **Cologne City Library (Sta
 
 ## ✨ Core Features
 
-- **Intelligent Recommendations**: Films (BBC, FBW, Oscar), Music (Radio Eins, Oscar, Personalized), and Books (NYT, Guides).  
-- **Real-time Availability**: Direct queries to the Cologne City Library online catalog.  
-- **Personalization**: Analyzes your MP3 archive to identify your favorite artists.  
-- **Modern Interface**: User-friendly Gradio interface.  
-- **Visual Media**: YouTube trailers for films and cover images for all media types.  
+- **Intelligent Recommendations**: Films (BBC, FBW, Oscar), Music (Radio Eins, Oscar, Personalized), and Books (NYT, Guides).
+- **Real-time Availability**: Direct queries to the Cologne City Library online catalog.
+- **Personalization**: Analyzes your MP3 archive to identify your favorite artists.
+- **Modern Interface**: User-friendly Gradio interface.
+- **Visual Media**: YouTube trailers for films and cover images for all media types.
 
 ## 🚀 Get Started
 

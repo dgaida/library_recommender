@@ -12,11 +12,11 @@ Die API-Dokumentation wird automatisch auf Vollständigkeit geprüft. Wir strebe
 
 Die Tests werden bei jedem Push ausgeführt.
 
-- **Status**: [![Tests](https://github.com/dgaida/library_recommender/actions/workflows/tests.yml/badge.svg)](https://github.com/dgaida/library_recommender/actions/workflows/tests.yml)  
-- **Coverage**: [![codecov](https://codecov.io/gh/dgaida/library_recommender/branch/main/graph/badge.svg)](https://codecov.io/gh/dgaida/library_recommender)  
+- **Status**: [![Tests](https://github.com/dgaida/library_recommender/actions/workflows/tests.yml/badge.svg)](https://github.com/dgaida/library_recommender/actions/workflows/tests.yml)
+- **Coverage**: [![codecov](https://codecov.io/gh/dgaida/library_recommender/branch/main/graph/badge.svg)](https://codecov.io/gh/dgaida/library_recommender)
 
 ## 🏗️ Build-Status
 
 Die Dokumentation wird automatisch via GitHub Actions gebaut und veröffentlicht.
 
-- **Docs Build**: [![Docs](https://github.com/dgaida/library_recommender/actions/workflows/docs.yml/badge.svg)](https://github.com/dgaida/library_recommender/actions/workflows/docs.yml)  
+- **Docs Build**: [![Docs](https://github.com/dgaida/library_recommender/actions/workflows/docs.yml/badge.svg)](https://github.com/dgaida/library_recommender/actions/workflows/docs.yml)

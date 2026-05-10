@@ -4,22 +4,22 @@ Vielen Dank für dein Interesse, zur **Bibliothek-Empfehlungs-App** beizutragen!
 
 ## 📋 Inhaltsverzeichnis
 
-- [Code of Conduct](#code-of-conduct)  
-- [Wie kann ich beitragen?](#wie-kann-ich-beitragen)  
-- [Development Setup](#development-setup)  
-- [Coding Guidelines](#coding-guidelines)  
-- [Pull Request Process](#pull-request-process)  
-- [Neue Features hinzufügen](#neue-features-hinzufügen)  
-- [Testing](#testing)  
+- [Code of Conduct](#code-of-conduct)
+- [Wie kann ich beitragen?](#wie-kann-ich-beitragen)
+- [Development Setup](#development-setup)
+- [Coding Guidelines](#coding-guidelines)
+- [Pull Request Process](#pull-request-process)
+- [Neue Features hinzufügen](#neue-features-hinzufügen)
+- [Testing](#testing)
 
 ## 🤝 Code of Conduct
 
 Dieses Projekt folgt einem **Code of Conduct** basierend auf dem [Contributor Covenant](https://www.contributor-covenant.org/):
 
-- Sei respektvoll und inklusiv  
-- Akzeptiere konstruktive Kritik  
-- Konzentriere dich auf das Beste für die Community  
-- Zeige Empathie gegenüber anderen  
+- Sei respektvoll und inklusiv
+- Akzeptiere konstruktive Kritik
+- Konzentriere dich auf das Beste für die Community
+- Zeige Empathie gegenüber anderen
 
 ## 🚀 Wie kann ich beitragen?
 
@@ -27,12 +27,12 @@ Dieses Projekt folgt einem **Code of Conduct** basierend auf dem [Contributor Co
 
 Wenn du einen Bug findest, erstelle bitte ein [Issue](https://github.com/dgaida/library_recommender/issues) mit:
 
-- **Klarer Titel**: Beschreibe das Problem kurz und prägnant  
-- **Schritte zur Reproduktion**: Wie kann der Bug nachgestellt werden?  
-- **Erwartetes Verhalten**: Was sollte passieren?  
-- **Aktuelles Verhalten**: Was passiert stattdessen?  
-- **Environment**: Python-Version, OS, relevante Logs  
-- **Screenshots**: Falls hilfreich  
+- **Klarer Titel**: Beschreibe das Problem kurz und prägnant
+- **Schritte zur Reproduktion**: Wie kann der Bug nachgestellt werden?
+- **Erwartetes Verhalten**: Was sollte passieren?
+- **Aktuelles Verhalten**: Was passiert stattdessen?
+- **Environment**: Python-Version, OS, relevante Logs
+- **Screenshots**: Falls hilfreich
 
 **Template:**
 ```markdown
@@ -61,30 +61,30 @@ App stürzt ab mit Error: ...
 
 Hast du eine Idee für ein neues Feature? Erstelle ein Issue mit:
 
-- **Beschreibung**: Was soll das Feature tun?  
-- **Motivation**: Warum ist es nützlich?  
-- **Alternativen**: Gibt es andere Ansätze?  
-- **Zusätzlicher Kontext**: Screenshots, Mockups, Links  
+- **Beschreibung**: Was soll das Feature tun?
+- **Motivation**: Warum ist es nützlich?
+- **Alternativen**: Gibt es andere Ansätze?
+- **Zusätzlicher Kontext**: Screenshots, Mockups, Links
 
 ### 📝 Dokumentations-Verbesserungen
 
 Dokumentation ist genauso wichtig wie Code! Du kannst helfen durch:
 
-- Tippfehler korrigieren  
-- Unklare Abschnitte verbessern  
-- Beispiele hinzufügen  
-- Übersetzungen beisteuern  
+- Tippfehler korrigieren
+- Unklare Abschnitte verbessern
+- Beispiele hinzufügen
+- Übersetzungen beisteuern
 
 ### 💻 Code-Beiträge
 
-1. **Fork** das Repository  
-2. **Clone** deinen Fork: `git clone https://github.com/DEIN_USERNAME/library_recommender.git`  
-3. **Branch erstellen**: `git checkout -b feature/mein-neues-feature`  
-4. **Änderungen vornehmen** (siehe [Coding Guidelines](#coding-guidelines))  
-5. **Tests schreiben** (siehe [Testing](#testing))  
-6. **Commit**: `git commit -am 'Add: Mein neues Feature'`  
-7. **Push**: `git push origin feature/mein-neues-feature`  
-8. **Pull Request erstellen**  
+1. **Fork** das Repository
+2. **Clone** deinen Fork: `git clone https://github.com/DEIN_USERNAME/library_recommender.git`
+3. **Branch erstellen**: `git checkout -b feature/mein-neues-feature`
+4. **Änderungen vornehmen** (siehe [Coding Guidelines](#coding-guidelines))
+5. **Tests schreiben** (siehe [Testing](#testing))
+6. **Commit**: `git commit -am 'Add: Mein neues Feature'`
+7. **Push**: `git push origin feature/mein-neues-feature`
+8. **Pull Request erstellen**
 
 ## 🛠️ Development Setup
 
@@ -113,11 +113,11 @@ pip install pre-commit
 pre-commit install
 ```
 
-Dies führt automatisch vor jedem Commit folgende Checks durch:  
-- Code-Formatierung mit Black  
-- Linting mit Flake8  
-- YAML-Syntax-Check  
-- Trailing Whitespace entfernen  
+Dies führt automatisch vor jedem Commit folgende Checks durch:
+- Code-Formatierung mit Black
+- Linting mit Flake8
+- YAML-Syntax-Check
+- Trailing Whitespace entfernen
 
 ### 3. Secrets konfigurieren (optional)
 
@@ -154,10 +154,10 @@ Wir folgen [PEP 8](https://peps.python.org/pep-0008/) mit einigen Anpassungen:
 
 #### Formatierung
 
-- **Line Length**: 127 Zeichen (nicht 80)  
-- **Formatter**: Black (automatisch via pre-commit)  
-- **Linter**: Flake8 mit angepasster `.flake8` Config  
-- **Type Hints**: Verwende Type Hints für alle Funktionen  
+- **Line Length**: 127 Zeichen (nicht 80)
+- **Formatter**: Black (automatisch via pre-commit)
+- **Linter**: Flake8 mit angepasster `.flake8` Config
+- **Type Hints**: Verwende Type Hints für alle Funktionen
 
 **Beispiel:**
 
@@ -261,19 +261,19 @@ logger.warning("Potentielles Problem erkannt")
 logger.error(f"Fehler aufgetreten: {error}", exc_info=True)
 ```
 
-**Logging-Levels:**  
-- `DEBUG`: Detaillierte Informationen für Debugging  
-- `INFO`: Allgemeine Informationsmeldungen  
-- `WARNING`: Warnung über unerwartete Ereignisse  
-- `ERROR`: Fehler, die behandelt werden können  
-- `CRITICAL`: Schwere Fehler, App kann nicht fortfahren  
+**Logging-Levels:**
+- `DEBUG`: Detaillierte Informationen für Debugging
+- `INFO`: Allgemeine Informationsmeldungen
+- `WARNING`: Warnung über unerwartete Ereignisse
+- `ERROR`: Fehler, die behandelt werden können
+- `CRITICAL`: Schwere Fehler, App kann nicht fortfahren
 
 #### Naming Conventions
 
-- **Variablen & Funktionen**: `snake_case`  
-- **Klassen**: `PascalCase`  
-- **Konstanten**: `UPPER_SNAKE_CASE`  
-- **Private**: `_leading_underscore`  
+- **Variablen & Funktionen**: `snake_case`
+- **Klassen**: `PascalCase`
+- **Konstanten**: `UPPER_SNAKE_CASE`
+- **Private**: `_leading_underscore`
 
 ```python
 # Variablen
@@ -411,13 +411,13 @@ class TestMyFunction:
 
 ### 1. Vor dem PR
 
-- [ ] Code folgt [Coding Guidelines](#coding-guidelines)  
-- [ ] Alle Tests bestehen: `pytest tests/ -v`  
-- [ ] Type Hints vorhanden  
-- [ ] Docstrings geschrieben  
-- [ ] Logging statt Print  
-- [ ] Neue Features haben Tests  
-- [ ] README/Docs aktualisiert (falls nötig)  
+- [ ] Code folgt [Coding Guidelines](#coding-guidelines)
+- [ ] Alle Tests bestehen: `pytest tests/ -v`
+- [ ] Type Hints vorhanden
+- [ ] Docstrings geschrieben
+- [ ] Logging statt Print
+- [ ] Neue Features haben Tests
+- [ ] README/Docs aktualisiert (falls nötig)
 
 ### 2. PR erstellen
 
@@ -466,16 +466,16 @@ Warum ist diese Änderung notwendig?
 
 ### 3. Review-Prozess
 
-1. **Automatische Checks**: GitHub Actions führt Tests & Linting durch  
-2. **Code Review**: Maintainer prüfen den Code  
-3. **Feedback**: Änderungen können angefordert werden  
-4. **Approval**: Nach erfolgreicher Review wird der PR gemergt  
+1. **Automatische Checks**: GitHub Actions führt Tests & Linting durch
+2. **Code Review**: Maintainer prüfen den Code
+3. **Feedback**: Änderungen können angefordert werden
+4. **Approval**: Nach erfolgreicher Review wird der PR gemergt
 
 ### 4. Nach dem Merge
 
-- Branch kann gelöscht werden  
-- Feature erscheint im nächsten Release  
-- Dein Name wird in CHANGELOG.md erwähnt! 🎉  
+- Branch kann gelöscht werden
+- Feature erscheint im nächsten Release
+- Dein Name wird in CHANGELOG.md erwähnt! 🎉
 
 ## ✨ Neue Features hinzufügen
 
@@ -563,10 +563,10 @@ def test_fetch_imdb_top_250():
 
 Um andere Bibliotheken als Köln zu unterstützen:
 
-1. **Neue Search-Klasse**: `library/search_bibliothek.py`  
-2. **HTML-Parser anpassen**: Für die spezifische Bibliotheks-Website  
-3. **Konfiguration**: ENV-Variable für Bibliotheks-Auswahl  
-4. **Tests**: Mock-Tests für neue Bibliothek  
+1. **Neue Search-Klasse**: `library/search_bibliothek.py`
+2. **HTML-Parser anpassen**: Für die spezifische Bibliotheks-Website
+3. **Konfiguration**: ENV-Variable für Bibliotheks-Auswahl
+4. **Tests**: Mock-Tests für neue Bibliothek
 
 ## 🧪 Testing
 
@@ -630,16 +630,16 @@ pytest tests/ --cov=. --cov-report=html
 
 ## 📚 Weitere Ressourcen
 
-- [Python Style Guide (PEP 8)](https://peps.python.org/pep-0008/)  
-- [Google Python Style Guide](https://google.github.io/styleguide/pyguide.html)  
-- [Conventional Commits](https://www.conventionalcommits.org/)  
-- [Pytest Documentation](https://docs.pytest.org/)  
-- [Type Hints (PEP 484)](https://peps.python.org/pep-0484/)  
+- [Python Style Guide (PEP 8)](https://peps.python.org/pep-0008/)
+- [Google Python Style Guide](https://google.github.io/styleguide/pyguide.html)
+- [Conventional Commits](https://www.conventionalcommits.org/)
+- [Pytest Documentation](https://docs.pytest.org/)
+- [Type Hints (PEP 484)](https://peps.python.org/pep-0484/)
 
 ## 💬 Fragen?
 
-- **Issues**: [GitHub Issues](https://github.com/dgaida/library_recommender/issues)  
-- **Email**: daniel.gaida@th-koeln.de  
+- **Issues**: [GitHub Issues](https://github.com/dgaida/library_recommender/issues)
+- **Email**: daniel.gaida@th-koeln.de
 
 ---
 

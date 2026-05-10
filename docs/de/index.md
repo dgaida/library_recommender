@@ -6,11 +6,11 @@ Dies ist ein intelligentes Empfehlungs-System für die **Stadtbibliothek Köln**
 
 ## ✨ Kernfunktionen
 
-- **Intelligente Empfehlungen**: Filme (BBC, FBW, Oscar), Musik (Radio Eins, Oscar, Personalisiert) und Bücher (NYT, Ratgeber).  
-- **Echtzeit-Verfügbarkeit**: Direkte Abfrage des Online-Katalogs der Stadtbibliothek Köln.  
-- **Personalisierung**: Analyse Ihres MP3-Archivs zur Identifizierung Ihrer Lieblingskünstler.  
-- **Modernes Interface**: Benutzerfreundliche Oberfläche mit Gradio.  
-- **Visuelle Medien**: YouTube-Trailer für Filme und Cover-Bilder für alle Medien.  
+- **Intelligente Empfehlungen**: Filme (BBC, FBW, Oscar), Musik (Radio Eins, Oscar, Personalisiert) und Bücher (NYT, Ratgeber).
+- **Echtzeit-Verfügbarkeit**: Direkte Abfrage des Online-Katalogs der Stadtbibliothek Köln.
+- **Personalisierung**: Analyse Ihres MP3-Archivs zur Identifizierung Ihrer Lieblingskünstler.
+- **Modernes Interface**: Benutzerfreundliche Oberfläche mit Gradio.
+- **Visuelle Medien**: YouTube-Trailer für Filme und Cover-Bilder für alle Medien.
 
 ## 🚀 Erste Schritte
 
