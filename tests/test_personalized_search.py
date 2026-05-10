@@ -2,6 +2,7 @@ import pytest
 from unittest.mock import MagicMock, patch
 from recommender.recommender import Recommender
 
+
 class TestPersonalizedSearch:
     @pytest.fixture
     def mock_lib_search(self):
@@ -19,21 +20,24 @@ class TestPersonalizedSearch:
 
     def test_suggest_albums_triggers_active_search(self, recommender):
         # Setup: Empty cache for "Personalisiert"
-        albums = [
-            {"title": "Radio 1 Album", "author": "Artist A", "type": "CD", "source": "Radio Eins Top 100 Alben 2019"}
-        ]
+        albums = [{"title": "Radio 1 Album", "author": "Artist A", "type": "CD", "source": "Radio Eins Top 100 Alben 2019"}]
         top_artists = ["Madonna"]
 
-        with patch("recommender.recommender.search_artist_albums_in_library") as mock_search_lib, \
-             patch("recommender.recommender.get_artist_blacklist") as mock_get_blacklist, \
-             patch("recommender.recommender.update_artist_blacklist_from_search_results") as mock_update_blacklist:
+        with patch("recommender.recommender.search_artist_albums_in_library") as mock_search_lib, patch(
+            "recommender.recommender.get_artist_blacklist"
+        ) as mock_get_blacklist, patch("recommender.recommender.update_artist_blacklist_from_search_results") as _:
 
             mock_blacklist = MagicMock()
             mock_blacklist.is_blacklisted.return_value = False
             mock_get_blacklist.return_value = mock_blacklist
 
             mock_search_lib.return_value = [
-                {"title": "Ray of Light", "author": "Madonna", "type": "CD", "source": "Interessant für dich (Top-Interpret: Madonna)"}
+                {
+                    "title": "Ray of Light",
+                    "author": "Madonna",
+                    "type": "CD",
+                    "source": "Interessant für dich (Top-Interpret: Madonna)",
+                }
             ]
 
             recommender._check_availability = MagicMock(side_effect=lambda item, cat: item)
@@ -48,9 +52,9 @@ class TestPersonalizedSearch:
         albums = []
         top_artists = ["Artist 1", "Artist 2", "Artist 3"]
 
-        with patch("recommender.recommender.search_artist_albums_in_library") as mock_search_lib, \
-             patch("recommender.recommender.get_artist_blacklist") as mock_get_blacklist, \
-             patch("recommender.recommender.update_artist_blacklist_from_search_results") as mock_update_blacklist:
+        with patch("recommender.recommender.search_artist_albums_in_library") as mock_search_lib, patch(
+            "recommender.recommender.get_artist_blacklist"
+        ) as mock_get_blacklist, patch("recommender.recommender.update_artist_blacklist_from_search_results") as _:
 
             mock_blacklist = MagicMock()
             mock_blacklist.is_blacklisted.return_value = False
@@ -61,8 +65,22 @@ class TestPersonalizedSearch:
             # Artist 3 has 1 album
             mock_search_lib.side_effect = [
                 [],
-                [{"title": "Album 2", "author": "Artist 2", "type": "CD", "source": "Interessant für dich (Top-Interpret: Artist 2)"}],
-                [{"title": "Album 3", "author": "Artist 3", "type": "CD", "source": "Interessant für dich (Top-Interpret: Artist 3)"}]
+                [
+                    {
+                        "title": "Album 2",
+                        "author": "Artist 2",
+                        "type": "CD",
+                        "source": "Interessant für dich (Top-Interpret: Artist 2)",
+                    }
+                ],
+                [
+                    {
+                        "title": "Album 3",
+                        "author": "Artist 3",
+                        "type": "CD",
+                        "source": "Interessant für dich (Top-Interpret: Artist 3)",
+                    }
+                ],
             ]
 
             recommender._check_availability = MagicMock(side_effect=lambda item, cat: item)
@@ -78,16 +96,21 @@ class TestPersonalizedSearch:
         albums = []
         top_artists = ["Artist 1", "Artist 2"]
 
-        with patch("recommender.recommender.search_artist_albums_in_library") as mock_search_lib, \
-             patch("recommender.recommender.get_artist_blacklist") as mock_get_blacklist, \
-             patch("recommender.recommender.update_artist_blacklist_from_search_results") as mock_update_blacklist:
+        with patch("recommender.recommender.search_artist_albums_in_library") as mock_search_lib, patch(
+            "recommender.recommender.get_artist_blacklist"
+        ) as mock_get_blacklist, patch("recommender.recommender.update_artist_blacklist_from_search_results") as _:
 
             mock_blacklist = MagicMock()
             mock_blacklist.is_blacklisted.return_value = False
             mock_get_blacklist.return_value = mock_blacklist
 
             mock_search_lib.return_value = [
-                {"title": "Album 1", "author": "Artist 1", "type": "CD", "source": "Interessant für dich (Top-Interpret: Artist 1)"}
+                {
+                    "title": "Album 1",
+                    "author": "Artist 1",
+                    "type": "CD",
+                    "source": "Interessant für dich (Top-Interpret: Artist 1)",
+                }
             ]
 
             recommender._check_availability = MagicMock(side_effect=lambda item, cat: item)

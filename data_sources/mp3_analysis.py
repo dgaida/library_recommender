@@ -19,7 +19,7 @@ logger = get_logger(__name__)
 ALBUMS_FILE = os.path.join(DATA_DIR, "albums.json")
 
 
-def analyze_mp3_archive(archive_path: str) -> Counter:
+def analyze_mp3_archive(archive_path: str) -> Counter:  # noqa: C901
     """
     Analysiert das MP3-Archiv und zählt Titel pro Interpret.
 
