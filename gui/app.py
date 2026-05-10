@@ -284,7 +284,9 @@ def get_n_suggestions(category: str, n: Optional[int] = None, items_per_source: 
     if category == "films":
         suggestions = recommender.suggest_films(films, n=target_n, items_per_source=items_per_source)
     elif category == "albums":
-        suggestions = recommender.suggest_albums(albums, top_artists=personal_artists, n=target_n, items_per_source=items_per_source)
+        suggestions = recommender.suggest_albums(
+            albums, top_artists=personal_artists, n=target_n, items_per_source=items_per_source
+        )
     elif category == "books":
         suggestions = recommender.suggest_books(books, n=target_n, items_per_source=items_per_source)
     else:

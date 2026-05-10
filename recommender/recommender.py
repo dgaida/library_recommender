@@ -84,7 +84,7 @@ class Recommender:
 
         return items_by_source
 
-    def _pick_balanced_items(
+    def _pick_balanced_items(  # noqa: C901
         self, items: List[Dict[str, Any]], category: str, n: int = 25, items_per_source: int = 5, top_artists: List[str] = None
     ) -> List[Dict[str, Any]]:
         """
@@ -176,7 +176,7 @@ class Recommender:
                         break
 
                 if current_counts["Personalisiert"] > 0:
-                     found_item = True
+                    found_item = True
 
             # Wenn kein Item gefunden, markiere Quelle als erschöpft
             if not found_item:
@@ -540,7 +540,9 @@ class Recommender:
         logger.info(f"Erstelle {n} balancierte Filmvorschläge " f"({items_per_source} pro Quelle)")
         return self._pick_balanced_items(films, "films", n, items_per_source)
 
-    def suggest_albums(self, albums: List[Dict[str, Any]], n: int = 25, items_per_source: int = 5, top_artists: List[str] = None) -> List[Dict[str, Any]]:
+    def suggest_albums(
+        self, albums: List[Dict[str, Any]], n: int = 25, items_per_source: int = 5, top_artists: List[str] = None
+    ) -> List[Dict[str, Any]]:
         """
         Wählt verfügbare Musikalben aus, balanciert nach Quellen.
 
