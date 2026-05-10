@@ -10,6 +10,8 @@ import re
 import random
 from typing import List, Dict, Any, Optional
 from collections import defaultdict
+from utils.artist_blacklist import get_artist_blacklist, update_artist_blacklist_from_search_results
+from data_sources.mp3_analysis import search_artist_albums_in_library
 from .state import AppState
 from utils.blacklist import get_blacklist, Blacklist
 from utils.logging_config import get_logger
@@ -83,7 +85,7 @@ class Recommender:
         return items_by_source
 
     def _pick_balanced_items(  # noqa: C901
-        self, items: List[Dict[str, Any]], category: str, n: int = 25, items_per_source: int = 5
+        self, items: List[Dict[str, Any]], category: str, n: int = 25, items_per_source: int = 5, top_artists: List[str] = None
     ) -> List[Dict[str, Any]]:
         """
         Wählt Items aus, wobei aus jeder Quelle gleichmäßig gewählt wird.
@@ -93,6 +95,7 @@ class Recommender:
             category: Kategorie ('films', 'albums', 'books')
             n: Gesamtanzahl gewünschter Items (default: 25)
             items_per_source: Items pro Quelle (default: 5)
+            top_artists: Liste von Top-Interpreten für personalisierte Suche (nur Musik)
 
         Returns:
             Liste der ausgewählten Items, balanciert nach Quelle
@@ -102,9 +105,13 @@ class Recommender:
         # Gruppiere Items nach Quelle
         items_by_source = self._get_items_by_source(items)
 
-        if not items_by_source:
+        if not items_by_source and not (category == "albums" and top_artists):
             logger.warning(f"Keine Items für '{category}' gefunden")
             return []
+
+        # Falls wir Alben suchen und top_artists haben, stellen wir sicher, dass "Personalisiert" in den Quellen ist
+        if category == "albums" and top_artists and "Personalisiert" not in items_by_source:
+            items_by_source["Personalisiert"] = []
 
         selected_items: List[Dict[str, Any]] = []
         sources = list(items_by_source.keys())
@@ -155,6 +162,22 @@ class Recommender:
                     found_item = True
                     break
 
+            # Spezialfall für personalisierte Musik: Falls Quelle erschöpft, suche aktiv in der Bibliothek
+            if not found_item and current_source == "Personalisiert" and category == "albums" and top_artists:
+                logger.info("Keine weiteren personalisierten Alben im Cache - starte aktive Suche...")
+                new_available_items = self._search_more_personalized_albums(
+                    current_counts["Personalisiert"], items_per_source, top_artists
+                )
+                for item in new_available_items:
+                    selected_items.append(item)
+                    current_counts["Personalisiert"] += 1
+                    # Mark suggested wurde bereits in _search_more_personalized_albums gemacht
+                    if current_counts["Personalisiert"] >= items_per_source or len(selected_items) >= n:
+                        break
+
+                if current_counts["Personalisiert"] > 0:
+                    found_item = True
+
             # Wenn kein Item gefunden, markiere Quelle als erschöpft
             if not found_item:
                 # Entferne erschöpfte Quelle
@@ -175,17 +198,64 @@ class Recommender:
 
         return selected_items
 
-    """
-    Filtert Filmergebnisse nach dem "Uv" Kürzel der Stadtbibliothek Köln.
+    def _search_more_personalized_albums(
+        self, current_count: int, target_count: int, top_artists: List[str]
+    ) -> List[Dict[str, Any]]:
+        """
+        Sucht aktiv in der Bibliothek nach Alben von Top-Interpreten.
 
-    Args:
-        item: Das gesuchte Film-Item
-        category: Die Kategorie (sollte "films" sein)
-        hits: Die Liste der Suchergebnisse
+        Args:
+            current_count: Aktuelle Anzahl bereits gefundener personalisierter Alben
+            target_count: Zielanzahl an personalisierten Alben
+            top_artists: Liste der Top-Interpreten aus dem MP3-Archiv
 
-    Returns:
-        Liste der gefilterten Film-Hits oder None
-    """
+        Returns:
+            Liste neu gefundener, verfügbarer Alben
+        """
+        new_items = []
+        needed = target_count - current_count
+
+        if needed <= 0:
+            return []
+
+        logger.info(f"Suche aktiv nach {needed} weiteren verfügbaren Alben von Top-Interpreten...")
+
+        artist_blacklist = get_artist_blacklist()
+
+        for artist in top_artists:
+            if artist_blacklist.is_blacklisted(artist):
+                continue
+
+            # Wir suchen nach diesem Artist
+            logger.info(f"Aktive Suche für Artist: {artist}")
+            found_albums = search_artist_albums_in_library(artist, max_results=10)
+
+            found_any_available = False
+            for album in found_albums:
+                # Check if already suggested
+                if self.state.is_already_suggested("albums", album):
+                    continue
+
+                # Check availability
+                available_item = self._check_availability(album, "albums")
+                if available_item:
+                    new_items.append(available_item)
+                    self.state.mark_suggested("albums", album)
+                    found_any_available = True
+                    logger.info(f"  ✅ Verfügbares Album gefunden: {album['title']}")
+
+                    if len(new_items) >= needed:
+                        break
+
+            # Blacklist Update
+            update_artist_blacklist_from_search_results(
+                artist, 0, found_any_available or len(found_albums) > 0, artist_blacklist
+            )
+
+            if len(new_items) >= needed:
+                break
+
+        return new_items
 
     def _filter_film_uv(self, item: Dict[str, Any], category: str, hits):
         logger.debug("Filtere Filme nach 'Uv' Kürzel")
@@ -470,7 +540,9 @@ class Recommender:
         logger.info(f"Erstelle {n} balancierte Filmvorschläge " f"({items_per_source} pro Quelle)")
         return self._pick_balanced_items(films, "films", n, items_per_source)
 
-    def suggest_albums(self, albums: List[Dict[str, Any]], n: int = 25, items_per_source: int = 5) -> List[Dict[str, Any]]:
+    def suggest_albums(
+        self, albums: List[Dict[str, Any]], n: int = 25, items_per_source: int = 5, top_artists: List[str] = None
+    ) -> List[Dict[str, Any]]:
         """
         Wählt verfügbare Musikalben aus, balanciert nach Quellen.
 
@@ -481,12 +553,13 @@ class Recommender:
             albums: Liste von Alben mit Titel, Künstler und Typ
             n: Gesamtanzahl gewünschter Vorschläge (default: 25)
             items_per_source: Items pro Quelle (default: 5)
+            top_artists: Liste von Top-Interpreten für personalisierte Suche
 
         Returns:
             Liste der vorgeschlagenen Alben, balanciert nach Quelle
         """
         logger.info(f"Erstelle {n} balancierte Albumvorschläge " f"({items_per_source} pro Quelle)")
-        return self._pick_balanced_items(albums, "albums", n, items_per_source)
+        return self._pick_balanced_items(albums, "albums", n, items_per_source, top_artists=top_artists)
 
     def suggest_books(self, books: List[Dict[str, Any]], n: int = 25, items_per_source: int = 5) -> List[Dict[str, Any]]:
         """

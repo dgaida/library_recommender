@@ -30,3 +30,8 @@
   - `Grouping/Artist/Album/Title.mp3` (Fallback)  
 - Single-character folder names (A-Z) and the "#" folder are skipped as grouping folders.  
 - Generic names like "Various", "Unknown", or "Unbekannt" are ignored.  
+
+## Personalized Music Search
+- The recommender must ensure that for personalized music recommendations, a library search is performed until at least 5 available albums from the user's top artists are found.
+- If the cached recommendations (from `albums.json`) do not yield enough available items, the system must dynamically query the library for the next artists in the top-artists list until the goal is met.
+- Real-time searches should respect the `ArtistBlacklist` to avoid repeatedly searching for artists without available items in the library.
