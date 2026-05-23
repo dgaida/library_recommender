@@ -13,6 +13,7 @@ from collections import defaultdict
 from utils.artist_blacklist import get_artist_blacklist, update_artist_blacklist_from_search_results
 from data_sources.mp3_analysis import search_artist_albums_in_library
 from .state import AppState
+from preprocessing.filters import filter_existing_albums
 from utils.blacklist import get_blacklist, Blacklist
 from utils.logging_config import get_logger
 from utils.borrowed_blacklist import get_borrowed_blacklist
@@ -229,6 +230,9 @@ class Recommender:
             # Wir suchen nach diesem Artist
             logger.info(f"Aktive Suche für Artist: {artist}")
             found_albums = search_artist_albums_in_library(artist, max_results=10)
+            # Filtere bereits vorhandene Alben
+            found_albums = filter_existing_albums(found_albums, "H:\\MP3 Archiv")
+
 
             found_any_available = False
             for album in found_albums:
