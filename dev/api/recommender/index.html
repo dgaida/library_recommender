@@ -1645,8 +1645,7 @@ Medien vorgeschlagen werden (z.B. 5 pro Quelle).</p>
 
                   <details class="mkdocstrings-source">
                     <summary>Source code in <code>recommender/recommender.py</code></summary>
-                    <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-37">37</a></span>
-<span class="normal"><a href="#__codelineno-0-38">38</a></span>
+                    <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-38">38</a></span>
 <span class="normal"><a href="#__codelineno-0-39">39</a></span>
 <span class="normal"><a href="#__codelineno-0-40">40</a></span>
 <span class="normal"><a href="#__codelineno-0-41">41</a></span>
@@ -1664,26 +1663,27 @@ Medien vorgeschlagen werden (z.B. 5 pro Quelle).</p>
 <span class="normal"><a href="#__codelineno-0-53">53</a></span>
 <span class="normal"><a href="#__codelineno-0-54">54</a></span>
 <span class="normal"><a href="#__codelineno-0-55">55</a></span>
-<span class="normal"><a href="#__codelineno-0-56">56</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-37" name="__codelineno-0-37"></a><span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">library_search</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">state</span><span class="p">:</span> <span class="n">AppState</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-<a id="__codelineno-0-38" name="__codelineno-0-38"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<a id="__codelineno-0-39" name="__codelineno-0-39"></a><span class="sd">    Initialisiert den Recommender.</span>
-<a id="__codelineno-0-40" name="__codelineno-0-40"></a>
-<a id="__codelineno-0-41" name="__codelineno-0-41"></a><span class="sd">    Args:</span>
-<a id="__codelineno-0-42" name="__codelineno-0-42"></a><span class="sd">        library_search: KoelnLibrarySearch-Instanz für Bibliothekssuche</span>
-<a id="__codelineno-0-43" name="__codelineno-0-43"></a><span class="sd">        state: AppState für Zustandsverwaltung (vorgeschlagen/abgelehnt)</span>
-<a id="__codelineno-0-44" name="__codelineno-0-44"></a><span class="sd">    &quot;&quot;&quot;</span>
-<a id="__codelineno-0-45" name="__codelineno-0-45"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">library_search</span> <span class="o">=</span> <span class="n">library_search</span>
-<a id="__codelineno-0-46" name="__codelineno-0-46"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">state</span><span class="p">:</span> <span class="n">AppState</span> <span class="o">=</span> <span class="n">state</span>
-<a id="__codelineno-0-47" name="__codelineno-0-47"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">blacklist</span><span class="p">:</span> <span class="n">Blacklist</span> <span class="o">=</span> <span class="n">get_blacklist</span><span class="p">()</span>
-<a id="__codelineno-0-48" name="__codelineno-0-48"></a>
-<a id="__codelineno-0-49" name="__codelineno-0-49"></a>    <span class="c1"># Tracking für Quellen-Balance pro Kategorie</span>
-<a id="__codelineno-0-50" name="__codelineno-0-50"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">source_counts</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">int</span><span class="p">]]</span> <span class="o">=</span> <span class="p">{</span>
-<a id="__codelineno-0-51" name="__codelineno-0-51"></a>        <span class="s2">&quot;films&quot;</span><span class="p">:</span> <span class="n">defaultdict</span><span class="p">(</span><span class="nb">int</span><span class="p">),</span>
-<a id="__codelineno-0-52" name="__codelineno-0-52"></a>        <span class="s2">&quot;albums&quot;</span><span class="p">:</span> <span class="n">defaultdict</span><span class="p">(</span><span class="nb">int</span><span class="p">),</span>
-<a id="__codelineno-0-53" name="__codelineno-0-53"></a>        <span class="s2">&quot;books&quot;</span><span class="p">:</span> <span class="n">defaultdict</span><span class="p">(</span><span class="nb">int</span><span class="p">),</span>
-<a id="__codelineno-0-54" name="__codelineno-0-54"></a>    <span class="p">}</span>
-<a id="__codelineno-0-55" name="__codelineno-0-55"></a>
-<a id="__codelineno-0-56" name="__codelineno-0-56"></a>    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Recommender initialisiert mit Quellen-Balancing&quot;</span><span class="p">)</span>
+<span class="normal"><a href="#__codelineno-0-56">56</a></span>
+<span class="normal"><a href="#__codelineno-0-57">57</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-38" name="__codelineno-0-38"></a><span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">library_search</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">state</span><span class="p">:</span> <span class="n">AppState</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<a id="__codelineno-0-39" name="__codelineno-0-39"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<a id="__codelineno-0-40" name="__codelineno-0-40"></a><span class="sd">    Initialisiert den Recommender.</span>
+<a id="__codelineno-0-41" name="__codelineno-0-41"></a>
+<a id="__codelineno-0-42" name="__codelineno-0-42"></a><span class="sd">    Args:</span>
+<a id="__codelineno-0-43" name="__codelineno-0-43"></a><span class="sd">        library_search: KoelnLibrarySearch-Instanz für Bibliothekssuche</span>
+<a id="__codelineno-0-44" name="__codelineno-0-44"></a><span class="sd">        state: AppState für Zustandsverwaltung (vorgeschlagen/abgelehnt)</span>
+<a id="__codelineno-0-45" name="__codelineno-0-45"></a><span class="sd">    &quot;&quot;&quot;</span>
+<a id="__codelineno-0-46" name="__codelineno-0-46"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">library_search</span> <span class="o">=</span> <span class="n">library_search</span>
+<a id="__codelineno-0-47" name="__codelineno-0-47"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">state</span><span class="p">:</span> <span class="n">AppState</span> <span class="o">=</span> <span class="n">state</span>
+<a id="__codelineno-0-48" name="__codelineno-0-48"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">blacklist</span><span class="p">:</span> <span class="n">Blacklist</span> <span class="o">=</span> <span class="n">get_blacklist</span><span class="p">()</span>
+<a id="__codelineno-0-49" name="__codelineno-0-49"></a>
+<a id="__codelineno-0-50" name="__codelineno-0-50"></a>    <span class="c1"># Tracking für Quellen-Balance pro Kategorie</span>
+<a id="__codelineno-0-51" name="__codelineno-0-51"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">source_counts</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">int</span><span class="p">]]</span> <span class="o">=</span> <span class="p">{</span>
+<a id="__codelineno-0-52" name="__codelineno-0-52"></a>        <span class="s2">&quot;films&quot;</span><span class="p">:</span> <span class="n">defaultdict</span><span class="p">(</span><span class="nb">int</span><span class="p">),</span>
+<a id="__codelineno-0-53" name="__codelineno-0-53"></a>        <span class="s2">&quot;albums&quot;</span><span class="p">:</span> <span class="n">defaultdict</span><span class="p">(</span><span class="nb">int</span><span class="p">),</span>
+<a id="__codelineno-0-54" name="__codelineno-0-54"></a>        <span class="s2">&quot;books&quot;</span><span class="p">:</span> <span class="n">defaultdict</span><span class="p">(</span><span class="nb">int</span><span class="p">),</span>
+<a id="__codelineno-0-55" name="__codelineno-0-55"></a>    <span class="p">}</span>
+<a id="__codelineno-0-56" name="__codelineno-0-56"></a>
+<a id="__codelineno-0-57" name="__codelineno-0-57"></a>    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Recommender initialisiert mit Quellen-Balancing&quot;</span><span class="p">)</span>
 </code></pre></div></td></tr></table></div>
                   </details>
 
@@ -1820,11 +1820,7 @@ gleichmäßig Alben vorgeschlagen werden.</p>
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>recommender/recommender.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-543">543</a></span>
-<span class="normal"><a href="#__codelineno-0-544">544</a></span>
-<span class="normal"><a href="#__codelineno-0-545">545</a></span>
-<span class="normal"><a href="#__codelineno-0-546">546</a></span>
-<span class="normal"><a href="#__codelineno-0-547">547</a></span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-547">547</a></span>
 <span class="normal"><a href="#__codelineno-0-548">548</a></span>
 <span class="normal"><a href="#__codelineno-0-549">549</a></span>
 <span class="normal"><a href="#__codelineno-0-550">550</a></span>
@@ -1839,26 +1835,30 @@ gleichmäßig Alben vorgeschlagen werden.</p>
 <span class="normal"><a href="#__codelineno-0-559">559</a></span>
 <span class="normal"><a href="#__codelineno-0-560">560</a></span>
 <span class="normal"><a href="#__codelineno-0-561">561</a></span>
-<span class="normal"><a href="#__codelineno-0-562">562</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-543" name="__codelineno-0-543"></a><span class="k">def</span><span class="w"> </span><span class="nf">suggest_albums</span><span class="p">(</span>
-<a id="__codelineno-0-544" name="__codelineno-0-544"></a>    <span class="bp">self</span><span class="p">,</span> <span class="n">albums</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]],</span> <span class="n">n</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">25</span><span class="p">,</span> <span class="n">items_per_source</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">5</span><span class="p">,</span> <span class="n">top_artists</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
-<a id="__codelineno-0-545" name="__codelineno-0-545"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]:</span>
-<a id="__codelineno-0-546" name="__codelineno-0-546"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<a id="__codelineno-0-547" name="__codelineno-0-547"></a><span class="sd">    Wählt verfügbare Musikalben aus, balanciert nach Quellen.</span>
-<a id="__codelineno-0-548" name="__codelineno-0-548"></a>
-<a id="__codelineno-0-549" name="__codelineno-0-549"></a><span class="sd">    Stellt sicher, dass aus jeder Quelle (Radio Eins, Oscar, Personalisiert)</span>
-<a id="__codelineno-0-550" name="__codelineno-0-550"></a><span class="sd">    gleichmäßig Alben vorgeschlagen werden.</span>
-<a id="__codelineno-0-551" name="__codelineno-0-551"></a>
-<a id="__codelineno-0-552" name="__codelineno-0-552"></a><span class="sd">    Args:</span>
-<a id="__codelineno-0-553" name="__codelineno-0-553"></a><span class="sd">        albums: Liste von Alben mit Titel, Künstler und Typ</span>
-<a id="__codelineno-0-554" name="__codelineno-0-554"></a><span class="sd">        n: Gesamtanzahl gewünschter Vorschläge (default: 25)</span>
-<a id="__codelineno-0-555" name="__codelineno-0-555"></a><span class="sd">        items_per_source: Items pro Quelle (default: 5)</span>
-<a id="__codelineno-0-556" name="__codelineno-0-556"></a><span class="sd">        top_artists: Liste von Top-Interpreten für personalisierte Suche</span>
-<a id="__codelineno-0-557" name="__codelineno-0-557"></a>
-<a id="__codelineno-0-558" name="__codelineno-0-558"></a><span class="sd">    Returns:</span>
-<a id="__codelineno-0-559" name="__codelineno-0-559"></a><span class="sd">        Liste der vorgeschlagenen Alben, balanciert nach Quelle</span>
-<a id="__codelineno-0-560" name="__codelineno-0-560"></a><span class="sd">    &quot;&quot;&quot;</span>
-<a id="__codelineno-0-561" name="__codelineno-0-561"></a>    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Erstelle </span><span class="si">{</span><span class="n">n</span><span class="si">}</span><span class="s2"> balancierte Albumvorschläge &quot;</span> <span class="sa">f</span><span class="s2">&quot;(</span><span class="si">{</span><span class="n">items_per_source</span><span class="si">}</span><span class="s2"> pro Quelle)&quot;</span><span class="p">)</span>
-<a id="__codelineno-0-562" name="__codelineno-0-562"></a>    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_pick_balanced_items</span><span class="p">(</span><span class="n">albums</span><span class="p">,</span> <span class="s2">&quot;albums&quot;</span><span class="p">,</span> <span class="n">n</span><span class="p">,</span> <span class="n">items_per_source</span><span class="p">,</span> <span class="n">top_artists</span><span class="o">=</span><span class="n">top_artists</span><span class="p">)</span>
+<span class="normal"><a href="#__codelineno-0-562">562</a></span>
+<span class="normal"><a href="#__codelineno-0-563">563</a></span>
+<span class="normal"><a href="#__codelineno-0-564">564</a></span>
+<span class="normal"><a href="#__codelineno-0-565">565</a></span>
+<span class="normal"><a href="#__codelineno-0-566">566</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-547" name="__codelineno-0-547"></a><span class="k">def</span><span class="w"> </span><span class="nf">suggest_albums</span><span class="p">(</span>
+<a id="__codelineno-0-548" name="__codelineno-0-548"></a>    <span class="bp">self</span><span class="p">,</span> <span class="n">albums</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]],</span> <span class="n">n</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">25</span><span class="p">,</span> <span class="n">items_per_source</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">5</span><span class="p">,</span> <span class="n">top_artists</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+<a id="__codelineno-0-549" name="__codelineno-0-549"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]:</span>
+<a id="__codelineno-0-550" name="__codelineno-0-550"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<a id="__codelineno-0-551" name="__codelineno-0-551"></a><span class="sd">    Wählt verfügbare Musikalben aus, balanciert nach Quellen.</span>
+<a id="__codelineno-0-552" name="__codelineno-0-552"></a>
+<a id="__codelineno-0-553" name="__codelineno-0-553"></a><span class="sd">    Stellt sicher, dass aus jeder Quelle (Radio Eins, Oscar, Personalisiert)</span>
+<a id="__codelineno-0-554" name="__codelineno-0-554"></a><span class="sd">    gleichmäßig Alben vorgeschlagen werden.</span>
+<a id="__codelineno-0-555" name="__codelineno-0-555"></a>
+<a id="__codelineno-0-556" name="__codelineno-0-556"></a><span class="sd">    Args:</span>
+<a id="__codelineno-0-557" name="__codelineno-0-557"></a><span class="sd">        albums: Liste von Alben mit Titel, Künstler und Typ</span>
+<a id="__codelineno-0-558" name="__codelineno-0-558"></a><span class="sd">        n: Gesamtanzahl gewünschter Vorschläge (default: 25)</span>
+<a id="__codelineno-0-559" name="__codelineno-0-559"></a><span class="sd">        items_per_source: Items pro Quelle (default: 5)</span>
+<a id="__codelineno-0-560" name="__codelineno-0-560"></a><span class="sd">        top_artists: Liste von Top-Interpreten für personalisierte Suche</span>
+<a id="__codelineno-0-561" name="__codelineno-0-561"></a>
+<a id="__codelineno-0-562" name="__codelineno-0-562"></a><span class="sd">    Returns:</span>
+<a id="__codelineno-0-563" name="__codelineno-0-563"></a><span class="sd">        Liste der vorgeschlagenen Alben, balanciert nach Quelle</span>
+<a id="__codelineno-0-564" name="__codelineno-0-564"></a><span class="sd">    &quot;&quot;&quot;</span>
+<a id="__codelineno-0-565" name="__codelineno-0-565"></a>    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Erstelle </span><span class="si">{</span><span class="n">n</span><span class="si">}</span><span class="s2"> balancierte Albumvorschläge &quot;</span> <span class="sa">f</span><span class="s2">&quot;(</span><span class="si">{</span><span class="n">items_per_source</span><span class="si">}</span><span class="s2"> pro Quelle)&quot;</span><span class="p">)</span>
+<a id="__codelineno-0-566" name="__codelineno-0-566"></a>    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_pick_balanced_items</span><span class="p">(</span><span class="n">albums</span><span class="p">,</span> <span class="s2">&quot;albums&quot;</span><span class="p">,</span> <span class="n">n</span><span class="p">,</span> <span class="n">items_per_source</span><span class="p">,</span> <span class="n">top_artists</span><span class="o">=</span><span class="n">top_artists</span><span class="p">)</span>
 </code></pre></div></td></tr></table></div>
             </details>
     </div>
@@ -1969,11 +1969,7 @@ gleichmäßig Bücher vorgeschlagen werden.</p>
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>recommender/recommender.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-564">564</a></span>
-<span class="normal"><a href="#__codelineno-0-565">565</a></span>
-<span class="normal"><a href="#__codelineno-0-566">566</a></span>
-<span class="normal"><a href="#__codelineno-0-567">567</a></span>
-<span class="normal"><a href="#__codelineno-0-568">568</a></span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-568">568</a></span>
 <span class="normal"><a href="#__codelineno-0-569">569</a></span>
 <span class="normal"><a href="#__codelineno-0-570">570</a></span>
 <span class="normal"><a href="#__codelineno-0-571">571</a></span>
@@ -1985,23 +1981,27 @@ gleichmäßig Bücher vorgeschlagen werden.</p>
 <span class="normal"><a href="#__codelineno-0-577">577</a></span>
 <span class="normal"><a href="#__codelineno-0-578">578</a></span>
 <span class="normal"><a href="#__codelineno-0-579">579</a></span>
-<span class="normal"><a href="#__codelineno-0-580">580</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-564" name="__codelineno-0-564"></a><span class="k">def</span><span class="w"> </span><span class="nf">suggest_books</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">books</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]],</span> <span class="n">n</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">25</span><span class="p">,</span> <span class="n">items_per_source</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">5</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]:</span>
-<a id="__codelineno-0-565" name="__codelineno-0-565"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<a id="__codelineno-0-566" name="__codelineno-0-566"></a><span class="sd">    Wählt verfügbare Bücher aus, balanciert nach Quellen.</span>
-<a id="__codelineno-0-567" name="__codelineno-0-567"></a>
-<a id="__codelineno-0-568" name="__codelineno-0-568"></a><span class="sd">    Stellt sicher, dass aus jeder Quelle (NYT Kanon, Ratgeber)</span>
-<a id="__codelineno-0-569" name="__codelineno-0-569"></a><span class="sd">    gleichmäßig Bücher vorgeschlagen werden.</span>
-<a id="__codelineno-0-570" name="__codelineno-0-570"></a>
-<a id="__codelineno-0-571" name="__codelineno-0-571"></a><span class="sd">    Args:</span>
-<a id="__codelineno-0-572" name="__codelineno-0-572"></a><span class="sd">        books: Liste von Büchern mit Titel, Autor und Typ</span>
-<a id="__codelineno-0-573" name="__codelineno-0-573"></a><span class="sd">        n: Gesamtanzahl gewünschter Vorschläge (default: 25)</span>
-<a id="__codelineno-0-574" name="__codelineno-0-574"></a><span class="sd">        items_per_source: Items pro Quelle (default: 5)</span>
-<a id="__codelineno-0-575" name="__codelineno-0-575"></a>
-<a id="__codelineno-0-576" name="__codelineno-0-576"></a><span class="sd">    Returns:</span>
-<a id="__codelineno-0-577" name="__codelineno-0-577"></a><span class="sd">        Liste der vorgeschlagenen Bücher, balanciert nach Quelle</span>
-<a id="__codelineno-0-578" name="__codelineno-0-578"></a><span class="sd">    &quot;&quot;&quot;</span>
-<a id="__codelineno-0-579" name="__codelineno-0-579"></a>    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Erstelle </span><span class="si">{</span><span class="n">n</span><span class="si">}</span><span class="s2"> balancierte Buchvorschläge &quot;</span> <span class="sa">f</span><span class="s2">&quot;(</span><span class="si">{</span><span class="n">items_per_source</span><span class="si">}</span><span class="s2"> pro Quelle)&quot;</span><span class="p">)</span>
-<a id="__codelineno-0-580" name="__codelineno-0-580"></a>    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_pick_balanced_items</span><span class="p">(</span><span class="n">books</span><span class="p">,</span> <span class="s2">&quot;books&quot;</span><span class="p">,</span> <span class="n">n</span><span class="p">,</span> <span class="n">items_per_source</span><span class="p">)</span>
+<span class="normal"><a href="#__codelineno-0-580">580</a></span>
+<span class="normal"><a href="#__codelineno-0-581">581</a></span>
+<span class="normal"><a href="#__codelineno-0-582">582</a></span>
+<span class="normal"><a href="#__codelineno-0-583">583</a></span>
+<span class="normal"><a href="#__codelineno-0-584">584</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-568" name="__codelineno-0-568"></a><span class="k">def</span><span class="w"> </span><span class="nf">suggest_books</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">books</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]],</span> <span class="n">n</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">25</span><span class="p">,</span> <span class="n">items_per_source</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">5</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]:</span>
+<a id="__codelineno-0-569" name="__codelineno-0-569"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<a id="__codelineno-0-570" name="__codelineno-0-570"></a><span class="sd">    Wählt verfügbare Bücher aus, balanciert nach Quellen.</span>
+<a id="__codelineno-0-571" name="__codelineno-0-571"></a>
+<a id="__codelineno-0-572" name="__codelineno-0-572"></a><span class="sd">    Stellt sicher, dass aus jeder Quelle (NYT Kanon, Ratgeber)</span>
+<a id="__codelineno-0-573" name="__codelineno-0-573"></a><span class="sd">    gleichmäßig Bücher vorgeschlagen werden.</span>
+<a id="__codelineno-0-574" name="__codelineno-0-574"></a>
+<a id="__codelineno-0-575" name="__codelineno-0-575"></a><span class="sd">    Args:</span>
+<a id="__codelineno-0-576" name="__codelineno-0-576"></a><span class="sd">        books: Liste von Büchern mit Titel, Autor und Typ</span>
+<a id="__codelineno-0-577" name="__codelineno-0-577"></a><span class="sd">        n: Gesamtanzahl gewünschter Vorschläge (default: 25)</span>
+<a id="__codelineno-0-578" name="__codelineno-0-578"></a><span class="sd">        items_per_source: Items pro Quelle (default: 5)</span>
+<a id="__codelineno-0-579" name="__codelineno-0-579"></a>
+<a id="__codelineno-0-580" name="__codelineno-0-580"></a><span class="sd">    Returns:</span>
+<a id="__codelineno-0-581" name="__codelineno-0-581"></a><span class="sd">        Liste der vorgeschlagenen Bücher, balanciert nach Quelle</span>
+<a id="__codelineno-0-582" name="__codelineno-0-582"></a><span class="sd">    &quot;&quot;&quot;</span>
+<a id="__codelineno-0-583" name="__codelineno-0-583"></a>    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Erstelle </span><span class="si">{</span><span class="n">n</span><span class="si">}</span><span class="s2"> balancierte Buchvorschläge &quot;</span> <span class="sa">f</span><span class="s2">&quot;(</span><span class="si">{</span><span class="n">items_per_source</span><span class="si">}</span><span class="s2"> pro Quelle)&quot;</span><span class="p">)</span>
+<a id="__codelineno-0-584" name="__codelineno-0-584"></a>    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_pick_balanced_items</span><span class="p">(</span><span class="n">books</span><span class="p">,</span> <span class="s2">&quot;books&quot;</span><span class="p">,</span> <span class="n">n</span><span class="p">,</span> <span class="n">items_per_source</span><span class="p">)</span>
 </code></pre></div></td></tr></table></div>
             </details>
     </div>
@@ -2112,11 +2112,7 @@ Filme vorgeschlagen werden.</p>
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>recommender/recommender.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-525">525</a></span>
-<span class="normal"><a href="#__codelineno-0-526">526</a></span>
-<span class="normal"><a href="#__codelineno-0-527">527</a></span>
-<span class="normal"><a href="#__codelineno-0-528">528</a></span>
-<span class="normal"><a href="#__codelineno-0-529">529</a></span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-529">529</a></span>
 <span class="normal"><a href="#__codelineno-0-530">530</a></span>
 <span class="normal"><a href="#__codelineno-0-531">531</a></span>
 <span class="normal"><a href="#__codelineno-0-532">532</a></span>
@@ -2128,23 +2124,27 @@ Filme vorgeschlagen werden.</p>
 <span class="normal"><a href="#__codelineno-0-538">538</a></span>
 <span class="normal"><a href="#__codelineno-0-539">539</a></span>
 <span class="normal"><a href="#__codelineno-0-540">540</a></span>
-<span class="normal"><a href="#__codelineno-0-541">541</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-525" name="__codelineno-0-525"></a><span class="k">def</span><span class="w"> </span><span class="nf">suggest_films</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">films</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]],</span> <span class="n">n</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">25</span><span class="p">,</span> <span class="n">items_per_source</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">5</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]:</span>
-<a id="__codelineno-0-526" name="__codelineno-0-526"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<a id="__codelineno-0-527" name="__codelineno-0-527"></a><span class="sd">    Wählt verfügbare Filme aus, balanciert nach Quellen.</span>
-<a id="__codelineno-0-528" name="__codelineno-0-528"></a>
-<a id="__codelineno-0-529" name="__codelineno-0-529"></a><span class="sd">    Stellt sicher, dass aus jeder Quelle (BBC, FBW, Oscar, IMDb) gleichmäßig</span>
-<a id="__codelineno-0-530" name="__codelineno-0-530"></a><span class="sd">    Filme vorgeschlagen werden.</span>
-<a id="__codelineno-0-531" name="__codelineno-0-531"></a>
-<a id="__codelineno-0-532" name="__codelineno-0-532"></a><span class="sd">    Args:</span>
-<a id="__codelineno-0-533" name="__codelineno-0-533"></a><span class="sd">        films: Liste von Filmen mit Titeln, Autoren und Typ</span>
-<a id="__codelineno-0-534" name="__codelineno-0-534"></a><span class="sd">        n: Gesamtanzahl gewünschter Vorschläge (default: 25)</span>
-<a id="__codelineno-0-535" name="__codelineno-0-535"></a><span class="sd">        items_per_source: Items pro Quelle (default: 5)</span>
-<a id="__codelineno-0-536" name="__codelineno-0-536"></a>
-<a id="__codelineno-0-537" name="__codelineno-0-537"></a><span class="sd">    Returns:</span>
-<a id="__codelineno-0-538" name="__codelineno-0-538"></a><span class="sd">        Liste der vorgeschlagenen Filme, balanciert nach Quelle</span>
-<a id="__codelineno-0-539" name="__codelineno-0-539"></a><span class="sd">    &quot;&quot;&quot;</span>
-<a id="__codelineno-0-540" name="__codelineno-0-540"></a>    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Erstelle </span><span class="si">{</span><span class="n">n</span><span class="si">}</span><span class="s2"> balancierte Filmvorschläge &quot;</span> <span class="sa">f</span><span class="s2">&quot;(</span><span class="si">{</span><span class="n">items_per_source</span><span class="si">}</span><span class="s2"> pro Quelle)&quot;</span><span class="p">)</span>
-<a id="__codelineno-0-541" name="__codelineno-0-541"></a>    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_pick_balanced_items</span><span class="p">(</span><span class="n">films</span><span class="p">,</span> <span class="s2">&quot;films&quot;</span><span class="p">,</span> <span class="n">n</span><span class="p">,</span> <span class="n">items_per_source</span><span class="p">)</span>
+<span class="normal"><a href="#__codelineno-0-541">541</a></span>
+<span class="normal"><a href="#__codelineno-0-542">542</a></span>
+<span class="normal"><a href="#__codelineno-0-543">543</a></span>
+<span class="normal"><a href="#__codelineno-0-544">544</a></span>
+<span class="normal"><a href="#__codelineno-0-545">545</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-529" name="__codelineno-0-529"></a><span class="k">def</span><span class="w"> </span><span class="nf">suggest_films</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">films</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]],</span> <span class="n">n</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">25</span><span class="p">,</span> <span class="n">items_per_source</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">5</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]:</span>
+<a id="__codelineno-0-530" name="__codelineno-0-530"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<a id="__codelineno-0-531" name="__codelineno-0-531"></a><span class="sd">    Wählt verfügbare Filme aus, balanciert nach Quellen.</span>
+<a id="__codelineno-0-532" name="__codelineno-0-532"></a>
+<a id="__codelineno-0-533" name="__codelineno-0-533"></a><span class="sd">    Stellt sicher, dass aus jeder Quelle (BBC, FBW, Oscar, IMDb) gleichmäßig</span>
+<a id="__codelineno-0-534" name="__codelineno-0-534"></a><span class="sd">    Filme vorgeschlagen werden.</span>
+<a id="__codelineno-0-535" name="__codelineno-0-535"></a>
+<a id="__codelineno-0-536" name="__codelineno-0-536"></a><span class="sd">    Args:</span>
+<a id="__codelineno-0-537" name="__codelineno-0-537"></a><span class="sd">        films: Liste von Filmen mit Titeln, Autoren und Typ</span>
+<a id="__codelineno-0-538" name="__codelineno-0-538"></a><span class="sd">        n: Gesamtanzahl gewünschter Vorschläge (default: 25)</span>
+<a id="__codelineno-0-539" name="__codelineno-0-539"></a><span class="sd">        items_per_source: Items pro Quelle (default: 5)</span>
+<a id="__codelineno-0-540" name="__codelineno-0-540"></a>
+<a id="__codelineno-0-541" name="__codelineno-0-541"></a><span class="sd">    Returns:</span>
+<a id="__codelineno-0-542" name="__codelineno-0-542"></a><span class="sd">        Liste der vorgeschlagenen Filme, balanciert nach Quelle</span>
+<a id="__codelineno-0-543" name="__codelineno-0-543"></a><span class="sd">    &quot;&quot;&quot;</span>
+<a id="__codelineno-0-544" name="__codelineno-0-544"></a>    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Erstelle </span><span class="si">{</span><span class="n">n</span><span class="si">}</span><span class="s2"> balancierte Filmvorschläge &quot;</span> <span class="sa">f</span><span class="s2">&quot;(</span><span class="si">{</span><span class="n">items_per_source</span><span class="si">}</span><span class="s2"> pro Quelle)&quot;</span><span class="p">)</span>
+<a id="__codelineno-0-545" name="__codelineno-0-545"></a>    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_pick_balanced_items</span><span class="p">(</span><span class="n">films</span><span class="p">,</span> <span class="s2">&quot;films&quot;</span><span class="p">,</span> <span class="n">n</span><span class="p">,</span> <span class="n">items_per_source</span><span class="p">)</span>
 </code></pre></div></td></tr></table></div>
             </details>
     </div>
