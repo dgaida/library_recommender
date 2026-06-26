@@ -40,8 +40,8 @@ class Recommender:
         Initialisiert den Recommender.
 
         Args:
-            library_search: KoelnLibrarySearch-Instanz für Bibliothekssuche
-            state: AppState für Zustandsverwaltung (vorgeschlagen/abgelehnt)
+            library_search: KoelnLibrarySearch-Instanz für Bibliothekssuche.
+            state (AppState): AppState für Zustandsverwaltung (vorgeschlagen/abgelehnt).
         """
         self.library_search = library_search
         self.state: AppState = state
@@ -61,10 +61,10 @@ class Recommender:
         Gruppiert Items nach ihrer Quelle.
 
         Args:
-            items: Liste von Medien mit 'source' Attribut
+            items (List[Dict[str, Any]]): Liste von Medien mit 'source' Attribut.
 
         Returns:
-            Dictionary mit Quelle als Key und Liste von Items als Value
+            Dict[str, List[Dict[str, Any]]]: Dictionary mit Quelle als Key und Liste von Items als Value.
         """
         items_by_source: Dict[str, List[Dict[str, Any]]] = defaultdict(list)
 
@@ -74,8 +74,6 @@ class Recommender:
             # Handle personalisierte Empfehlungen
             if "Interessant für dich" in source:
                 source = "Personalisiert"
-            # elif "besten Ratgeber" in source:
-            #    source = "Ratgeber"
 
             items_by_source[source].append(item)
 
@@ -92,14 +90,14 @@ class Recommender:
         Wählt Items aus, wobei aus jeder Quelle gleichmäßig gewählt wird.
 
         Args:
-            items: Liste aller verfügbaren Items
-            category: Kategorie ('films', 'albums', 'books')
-            n: Gesamtanzahl gewünschter Items (default: 25)
-            items_per_source: Items pro Quelle (default: 5)
-            top_artists: Liste von Top-Interpreten für personalisierte Suche (nur Musik)
+            items (List[Dict[str, Any]]): Liste aller verfügbaren Items.
+            category (str): Kategorie ('films', 'albums', 'books').
+            n (int): Gesamtanzahl gewünschter Items (default: 25).
+            items_per_source (int): Items pro Quelle (default: 5).
+            top_artists (List[str], optional): Liste von Top-Interpreten für personalisierte Suche (nur Musik).
 
         Returns:
-            Liste der ausgewählten Items, balanciert nach Quelle
+            List[Dict[str, Any]]: Liste der ausgewählten Items, balanciert nach Quelle.
         """
         logger.info(f"Wähle {n} balancierte Items für '{category}' " f"({items_per_source} pro Quelle)")
 
@@ -141,10 +139,12 @@ class Recommender:
             # Durchsuche Items dieser Quelle
             found_item = False
             for item in source_items:
-                # Überspringe bereits vorgeschlagene oder geblacklistete Items
+                # Überspringe bereits vorgeschlagene, geblacklistete oder in dieser Session als nicht verfügbar erkannte Items
                 if self.state.is_already_suggested(category, item):
                     continue
                 if self.blacklist.is_blacklisted(category, item):
+                    continue
+                if self.state.is_item_unavailable(category, item):
                     continue
 
                 # Prüfe Verfügbarkeit in Bibliothek
@@ -162,6 +162,9 @@ class Recommender:
 
                     found_item = True
                     break
+                else:
+                    # Markiere als session-unavailable, um wiederholte Suchen in diesem Lauf zu vermeiden
+                    self.state.mark_item_unavailable(category, item)
 
             # Spezialfall für personalisierte Musik: Falls Quelle erschöpft, suche aktiv in der Bibliothek
             if not found_item and current_source == "Personalisiert" and category == "albums" and top_artists:
@@ -206,12 +209,12 @@ class Recommender:
         Sucht aktiv in der Bibliothek nach Alben von Top-Interpreten.
 
         Args:
-            current_count: Aktuelle Anzahl bereits gefundener personalisierter Alben
-            target_count: Zielanzahl an personalisierten Alben
-            top_artists: Liste der Top-Interpreten aus dem MP3-Archiv
+            current_count (int): Aktuelle Anzahl bereits gefundener personalisierter Alben.
+            target_count (int): Zielanzahl an personalisierten Alben.
+            top_artists (List[str]): Liste der Top-Interpreten aus dem MP3-Archiv.
 
         Returns:
-            Liste neu gefundener, verfügbarer Alben
+            List[Dict[str, Any]]: Liste neu gefundener, verfügbarer Alben.
         """
         new_items = []
         needed = target_count - current_count
@@ -227,9 +230,18 @@ class Recommender:
             if artist_blacklist.is_blacklisted(artist):
                 continue
 
+            # Prüfe ob dieser Artist in dieser Session bereits durchsucht wurde
+            if self.state.is_artist_searched(artist):
+                logger.debug(f"Artist '{artist}' bereits in dieser Session durchsucht - überspringe")
+                continue
+
             # Wir suchen nach diesem Artist
             logger.info(f"Aktive Suche für Artist: {artist}")
             found_albums = search_artist_albums_in_library(artist, max_results=10)
+
+            # Markiere Artist als in dieser Session durchsucht
+            self.state.mark_artist_searched(artist)
+
             # Filtere bereits vorhandene Alben
             found_albums = filter_existing_albums(found_albums, "H:\\MP3 Archiv")
 
@@ -238,6 +250,10 @@ class Recommender:
             for album in found_albums:
                 # Check if already suggested
                 if self.state.is_already_suggested("albums", album):
+                    continue
+
+                # Check session cache
+                if self.state.is_item_unavailable("albums", album):
                     continue
 
                 # Check availability
@@ -250,6 +266,9 @@ class Recommender:
 
                     if len(new_items) >= needed:
                         break
+                else:
+                    # Mark as session-unavailable
+                    self.state.mark_item_unavailable("albums", album)
 
             # Blacklist Update
             update_artist_blacklist_from_search_results(
@@ -261,7 +280,18 @@ class Recommender:
 
         return new_items
 
-    def _filter_film_uv(self, item: Dict[str, Any], category: str, hits):
+    def _filter_film_uv(self, item: Dict[str, Any], category: str, hits: List[Dict[str, Any]]) -> Optional[List[Dict[str, Any]]]:
+        """
+        Filtert Film-Hits nach UV-Kürzel.
+
+        Args:
+            item (Dict[str, Any]): Das zu suchende Medium.
+            category (str): Kategorie ('films', 'albums', 'books').
+            hits (List[Dict[str, Any]]): Die Suchergebnisse der Bibliothek.
+
+        Returns:
+            Optional[List[Dict[str, Any]]]: Liste der gefilterten Hits oder None.
+        """
         logger.debug("Filtere Filme nach 'Uv' Kürzel")
         film_hits = []
 
@@ -279,51 +309,46 @@ class Recommender:
 
         return film_hits
 
-    """
-    Filtert Suchergebnisse nach Autor und Titel mit einem Ähnlichkeits-Threshold.
+    def _filter_hits_author(self, item: Dict[str, Any], category: str, hits: List[Dict[str, Any]]) -> Optional[List[Dict[str, Any]]]:
+        """
+        Filtert Hits nach Autor-Matching.
 
-    Args:
-        item: Das Ziel-Item mit erwartetem Autor/Titel
-        category: Die Medienkategorie
-        hits: Die Liste der Suchergebnisse
+        Args:
+            item (Dict[str, Any]): Das zu suchende Medium.
+            category (str): Kategorie ('films', 'albums', 'books').
+            hits (List[Dict[str, Any]]): Die Suchergebnisse der Bibliothek.
 
-    Returns:
-        Liste der gefilterten Hits oder None
-    """
-
-    def _filter_hits_author(self, item: Dict[str, Any], category: str, hits):
+        Returns:
+            Optional[List[Dict[str, Any]]]: Liste der gefilterten Hits oder None.
+        """
         expected_author = item.get("author", "")
         expected_title = item.get("title", "")
-        filtered_hits = []
 
         if expected_author:
             logger.info(f"Filtere nach Autor '{expected_author}' + Titel '{expected_title}'")
-
             filtered_hits = filter_results_by_author(hits, expected_author, expected_title=expected_title, threshold=0.7)
 
             if filtered_hits:
                 logger.info(f"Nach Filter: {len(filtered_hits)} Treffer")
+                return filtered_hits
             else:
                 logger.warning("Filter entfernte alle Treffer")
                 self.blacklist.add_to_blacklist(category, item, reason="Keine exakten Treffer")
                 return None
+        return hits
 
-        return filtered_hits
+    def _check_all_bibs(self, item: Dict[str, Any], hits: List[Dict[str, Any]], borrowed_blacklist: Any) -> tuple:
+        """
+        Prüft alle Bibliotheken auf Verfügbarkeit.
 
-    """
-    Prüft die Verfügbarkeit in allen Bibliotheksstandorten für eine Liste von Hits.
+        Args:
+            item (Dict[str, Any]): Das zu prüfende Item.
+            hits (List[Dict[str, Any]]): Suchergebnisse aus der Bibliothek.
+            borrowed_blacklist: Instanz der BorrowedBlacklist.
 
-    Args:
-        item: Das gesuchte Medium
-        hits: Liste der Suchergebnisse aus der Bibliothek
-        borrowed_blacklist: Instanz der BorrowedBlacklist
-
-    Returns:
-        Tupel mit Verfügbarkeits-Flags und Details
-    """
-
-    def _check_all_bibs(self, item: Dict[str, Any], hits, borrowed_blacklist):
-        # Tracking
+        Returns:
+            tuple: Verfügbarkeitsdaten (Z_AV, Z_EX, S_AV, B_ITEMS, O_LINK, O_TEXT).
+        """
         status = {
             "zentralbib_available": False,
             "zentralbib_exists": False,
@@ -339,14 +364,10 @@ class Recommender:
                 continue
 
             availability_dict = self.library_search.get_availability_details(detail_url)
-            if not availability_dict:
-                continue
-
-            logger.debug(f"Prüfe {len(availability_dict)} Standorte für '{item['title']}'")
             self._process_availability_dict(hit, availability_dict, status)
 
-        # Entliehene Items auf Borrowed-Blacklist
-        if status["borrowed_items"]:
+        # Update borrowed blacklist
+        if not status["zentralbib_available"] and status["borrowed_items"]:
             for borrowed_item in status["borrowed_items"]:
                 borrowed_blacklist.add_to_blacklist(
                     title=borrowed_item["title"],
@@ -365,8 +386,15 @@ class Recommender:
             status["onleihe_text"],
         )
 
-    def _process_availability_dict(self, hit: Dict[str, Any], availability_dict: Dict[str, Any], status: Dict[str, Any]):
-        """Hilfsfunktion zum Verarbeiten des Verfügbarkeits-Dictionaries."""
+    def _process_availability_dict(self, hit: Dict[str, Any], availability_dict: Dict[str, Any], status: Dict[str, Any]) -> None:
+        """
+        Hilfsfunktion zum Verarbeiten des Verfügbarkeits-Dictionaries.
+
+        Args:
+            hit (Dict[str, Any]): Aktuelles Suchergebnis.
+            availability_dict (Dict[str, Any]): Verfügbarkeitsdetails von der Webseite.
+            status (Dict[str, Any]): Sammelobjekt für Verfügbarkeitsstatus.
+        """
         # Prüfe Onleihe-Link
         if "_onleihe_link" in availability_dict and not status["onleihe_link"]:
             status["onleihe_link"] = availability_dict["_onleihe_link"]
@@ -389,8 +417,15 @@ class Recommender:
             else:
                 self._process_stadtbib_availability(location_lower, availability_text, status)
 
-    def _process_stadtbib_availability(self, location_lower: str, availability_text: str, status: Dict[str, Any]):
-        """Hilfsfunktion zum Verarbeiten der Stadtteilbibliothek-Verfügbarkeit."""
+    def _process_stadtbib_availability(self, location_lower: str, availability_text: str, status: Dict[str, Any]) -> None:
+        """
+        Hilfsfunktion zum Verarbeiten der Stadtteilbibliothek-Verfügbarkeit.
+
+        Args:
+            location_lower (str): Standortname kleingeschrieben.
+            availability_text (str): Verfügbarkeitstext vom Katalog.
+            status (Dict[str, Any]): Sammelobjekt für Verfügbarkeitsstatus.
+        """
         for stadtbib in STADTTEILBIBLIOTHEKEN.keys():
             stadtbib_short = stadtbib.replace("stadtteilbibliothek ", "")
             if stadtbib_short in location_lower:
@@ -399,20 +434,18 @@ class Recommender:
                     logger.debug(f"✅ {stadtbib} verfügbar")
                 break
 
-    """
-    Interne Methode zur Prüfung der Verfügbarkeit eines Items.
-
-    Args:
-        item: Das zu prüfende Item-Dictionary
-        category: Die Medienkategorie
-
-    Returns:
-        Angereichertes Item-Dictionary bei Verfügbarkeit, sonst None
-    """
-
     def _check_availability(self, item: Dict[str, Any], category: str) -> Optional[Dict[str, Any]]:
+        """
+        Prüft Verfügbarkeit eines Mediums in der Bibliothek.
+
+        Args:
+            item (Dict[str, Any]): Das zu prüfende Medium.
+            category (str): Kategorie ('films', 'albums', 'books').
+
+        Returns:
+            Optional[Dict[str, Any]]: Angereichertes Item bei Verfügbarkeit, sonst None.
+        """
         logger.info(f"Prüfe Verfügbarkeit für: '{item['title']}' von '{item.get('author', 'Unbekannt')}'")
-        """Prüft Verfügbarkeit eines Mediums in der Bibliothek."""
         # Prüfe Entleih-Blacklist
         borrowed_blacklist = get_borrowed_blacklist()
         if borrowed_blacklist.is_blacklisted(item.get("title", ""), item.get("author", "")):
@@ -451,7 +484,16 @@ class Recommender:
         return None
 
     def _search_and_filter_hits(self, item: Dict[str, Any], category: str) -> Optional[List[Dict[str, Any]]]:
-        """Sucht Titel und wendet Autor/Film-Filter an."""
+        """
+        Sucht Titel und wendet Autor/Film-Filter an.
+
+        Args:
+            item (Dict[str, Any]): Das zu suchende Medium.
+            category (str): Kategorie ('films', 'albums', 'books').
+
+        Returns:
+            Optional[List[Dict[str, Any]]]: Suchergebnisse der Bibliothek.
+        """
         media_type = item.get("type", "")
         if media_type == "Buch":
             query = f"{item.get('author', '')} {item.get('title')} {media_type}".strip()
@@ -474,7 +516,17 @@ class Recommender:
         return hits
 
     def _create_digital_item(self, item: Dict[str, Any], onleihe_link: str, onleihe_text: str) -> Dict[str, Any]:
-        """Erstellt ein Item-Dictionary für digitale Verfügbarkeit."""
+        """
+        Erstellt ein Item-Dictionary für digitale Verfügbarkeit.
+
+        Args:
+            item (Dict[str, Any]): Das Original-Item.
+            onleihe_link (str): Link zur Onleihe.
+            onleihe_text (str): Beschreibungstext der Onleihe.
+
+        Returns:
+            Dict[str, Any]: Angereichertes Item-Dictionary.
+        """
         logger.info("📱 Onleihe verfügbar → digitale Empfehlung")
         result_item = item.copy()
         result_item["title"] = f"📱 {item['title']}"
@@ -484,7 +536,16 @@ class Recommender:
         return result_item
 
     def _create_zentralbib_item(self, item: Dict[str, Any], hits: List[Dict[str, Any]]) -> Dict[str, Any]:
-        """Erstellt ein Item-Dictionary für Zentralbibliothek-Verfügbarkeit."""
+        """
+        Erstellt ein Item-Dictionary für Zentralbibliothek-Verfügbarkeit.
+
+        Args:
+            item (Dict[str, Any]): Das Original-Item.
+            hits (List[Dict[str, Any]]): Suchergebnisse.
+
+        Returns:
+            Dict[str, Any]: Angereichertes Item-Dictionary.
+        """
         logger.info("✅ Zentralbibliothek verfügbar → normale Empfehlung")
         for hit in hits:
             detail_url = hit.get("link", "")
@@ -492,14 +553,23 @@ class Recommender:
                 zentralbib_info = self.library_search.get_zentralbibliothek_info(detail_url, return_full=False)
                 if zentralbib_info:
                     result_item = item.copy()
-                    result_item["bib_number"] = self._truncate_text(zentralbib_info, 300)
+                    result_item["bib_number"] = self._truncate_text(str(zentralbib_info), 300)
                     return result_item
         result_item = item.copy()
         result_item["bib_number"] = "Verfügbar in Zentralbibliothek"
         return result_item
 
     def _create_stadtbib_item(self, item: Dict[str, Any], stadtbib_info_dict: Dict[str, Any]) -> Dict[str, Any]:
-        """Erstellt ein Item-Dictionary für Stadtteilbibliothek-Verfügbarkeit."""
+        """
+        Erstellt ein Item-Dictionary für Stadtteilbibliothek-Verfügbarkeit.
+
+        Args:
+            item (Dict[str, Any]): Das Original-Item.
+            stadtbib_info_dict (Dict[str, Any]): Informationen über Stadtteilbibliothek.
+
+        Returns:
+            Dict[str, Any]: Angereichertes Item-Dictionary.
+        """
         location = stadtbib_info_dict["location"]
         info = stadtbib_info_dict["info"]
         abbreviation = get_stadtbib_abbreviation(location)
@@ -515,11 +585,11 @@ class Recommender:
         Kürzt Text auf maximale Länge.
 
         Args:
-            text: Zu kürzender Text
-            max_length: Maximale Länge (default: 400)
+            text (str): Zu kürzender Text.
+            max_length (int): Maximale Länge (default: 400).
 
         Returns:
-            Gekürzter Text mit "..." falls nötig
+            str: Gekürzter Text mit "..." falls nötig.
         """
         if not text or len(text) <= max_length:
             return text
@@ -530,16 +600,13 @@ class Recommender:
         """
         Wählt verfügbare Filme aus, balanciert nach Quellen.
 
-        Stellt sicher, dass aus jeder Quelle (BBC, FBW, Oscar, IMDb) gleichmäßig
-        Filme vorgeschlagen werden.
-
         Args:
-            films: Liste von Filmen mit Titeln, Autoren und Typ
-            n: Gesamtanzahl gewünschter Vorschläge (default: 25)
-            items_per_source: Items pro Quelle (default: 5)
+            films (List[Dict[str, Any]]): Liste von Filmen.
+            n (int): Gesamtanzahl gewünschter Vorschläge (default: 25).
+            items_per_source (int): Items pro Quelle (default: 5).
 
         Returns:
-            Liste der vorgeschlagenen Filme, balanciert nach Quelle
+            List[Dict[str, Any]]: Liste der vorgeschlagenen Filme.
         """
         logger.info(f"Erstelle {n} balancierte Filmvorschläge " f"({items_per_source} pro Quelle)")
         return self._pick_balanced_items(films, "films", n, items_per_source)
@@ -550,17 +617,14 @@ class Recommender:
         """
         Wählt verfügbare Musikalben aus, balanciert nach Quellen.
 
-        Stellt sicher, dass aus jeder Quelle (Radio Eins, Oscar, Personalisiert)
-        gleichmäßig Alben vorgeschlagen werden.
-
         Args:
-            albums: Liste von Alben mit Titel, Künstler und Typ
-            n: Gesamtanzahl gewünschter Vorschläge (default: 25)
-            items_per_source: Items pro Quelle (default: 5)
-            top_artists: Liste von Top-Interpreten für personalisierte Suche
+            albums (List[Dict[str, Any]]): Liste von Alben.
+            n (int): Gesamtanzahl gewünschter Vorschläge (default: 25).
+            items_per_source (int): Items pro Quelle (default: 5).
+            top_artists (List[str], optional): Liste von Top-Interpreten.
 
         Returns:
-            Liste der vorgeschlagenen Alben, balanciert nach Quelle
+            List[Dict[str, Any]]: Liste der vorgeschlagenen Alben.
         """
         logger.info(f"Erstelle {n} balancierte Albumvorschläge " f"({items_per_source} pro Quelle)")
         return self._pick_balanced_items(albums, "albums", n, items_per_source, top_artists=top_artists)
@@ -569,16 +633,13 @@ class Recommender:
         """
         Wählt verfügbare Bücher aus, balanciert nach Quellen.
 
-        Stellt sicher, dass aus jeder Quelle (NYT Kanon, Ratgeber)
-        gleichmäßig Bücher vorgeschlagen werden.
-
         Args:
-            books: Liste von Büchern mit Titel, Autor und Typ
-            n: Gesamtanzahl gewünschter Vorschläge (default: 25)
-            items_per_source: Items pro Quelle (default: 5)
+            books (List[Dict[str, Any]]): Liste von Büchern.
+            n (int): Gesamtanzahl gewünschter Vorschläge (default: 25).
+            items_per_source (int): Items pro Quelle (default: 5).
 
         Returns:
-            Liste der vorgeschlagenen Bücher, balanciert nach Quelle
+            List[Dict[str, Any]]: Liste der vorgeschlagenen Bücher.
         """
         logger.info(f"Erstelle {n} balancierte Buchvorschläge " f"({items_per_source} pro Quelle)")
         return self._pick_balanced_items(books, "books", n, items_per_source)
