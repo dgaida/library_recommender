@@ -2,6 +2,7 @@ import pytest
 from unittest.mock import MagicMock, patch
 from recommender.recommender import Recommender
 
+
 class TestOnleiheSupport:
     @pytest.fixture
     def mock_lib_search(self):
@@ -11,6 +12,7 @@ class TestOnleiheSupport:
     @pytest.fixture
     def mock_state(self):
         from recommender.state import AppState
+
         state = AppState()
         # Reset session caches
         state.session_unavailable = {"films": set(), "albums": set(), "books": set()}
@@ -32,7 +34,7 @@ class TestOnleiheSupport:
         # This is what _check_all_bibs calls via get_availability_details
         mock_lib_search.get_availability_details.return_value = {
             "_onleihe_link": "http://onleihe.de/test",
-            "_onleihe_text": "Onleihe-Titel"
+            "_onleihe_text": "Onleihe-Titel",
         }
 
         # Mock author match to return hits
@@ -43,6 +45,7 @@ class TestOnleiheSupport:
             # or the mock was not correctly returning from _check_availability.
             # Let's ensure the blacklist is empty.
             from utils.blacklist import get_blacklist
+
             get_blacklist().clear_blacklist()
 
             result = recommender._check_availability(item, "books")

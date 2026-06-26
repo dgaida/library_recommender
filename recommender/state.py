@@ -262,7 +262,7 @@ class AppState:
             if count > 0:
                 print(f"  - {category.capitalize()}: {count}")
 
-        print(f"Session-Caches:")
+        print("Session-Caches:")
         print(f"  - Nicht verfügbare Medien: {stats['session_unavailable_total']}")
         print(f"  - Durchsuchte Künstler: {stats['session_searched_artists']}")
         print("=" * 50 + "\n")

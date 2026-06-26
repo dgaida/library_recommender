@@ -236,51 +236,67 @@ class Recommender:
                 continue
 
             # Wir suchen nach diesem Artist
-            logger.info(f"Aktive Suche für Artist: {artist}")
-            found_albums = search_artist_albums_in_library(artist, max_results=10)
-
-            # Markiere Artist als in dieser Session durchsucht
-            self.state.mark_artist_searched(artist)
-
-            # Filtere bereits vorhandene Alben
-            found_albums = filter_existing_albums(found_albums, "H:\\MP3 Archiv")
-
-
-            found_any_available = False
-            for album in found_albums:
-                # Check if already suggested
-                if self.state.is_already_suggested("albums", album):
-                    continue
-
-                # Check session cache
-                if self.state.is_item_unavailable("albums", album):
-                    continue
-
-                # Check availability
-                available_item = self._check_availability(album, "albums")
-                if available_item:
-                    new_items.append(available_item)
-                    self.state.mark_suggested("albums", album)
-                    found_any_available = True
-                    logger.info(f"  ✅ Verfügbares Album gefunden: {album['title']}")
-
-                    if len(new_items) >= needed:
-                        break
-                else:
-                    # Mark as session-unavailable
-                    self.state.mark_item_unavailable("albums", album)
-
-            # Blacklist Update
-            update_artist_blacklist_from_search_results(
-                artist, 0, found_any_available or len(found_albums) > 0, artist_blacklist
-            )
+            artist_albums = self._process_artist_search(artist, needed - len(new_items), artist_blacklist)
+            new_items.extend(artist_albums)
 
             if len(new_items) >= needed:
                 break
 
         return new_items
 
-    def _filter_film_uv(self, item: Dict[str, Any], category: str, hits: List[Dict[str, Any]]) -> Optional[List[Dict[str, Any]]]:
+    def _process_artist_search(self, artist: str, needed: int, artist_blacklist: Any) -> List[Dict[str, Any]]:
+        """
+        Sucht Alben für einen spezifischen Künstler und prüft deren Verfügbarkeit.
+
+        Args:
+            artist (str): Name des Künstlers.
+            needed (int): Anzahl noch benötigter Alben.
+            artist_blacklist: Die Artist-Blacklist Instanz.
+
+        Returns:
+            List[Dict[str, Any]]: Liste gefundener verfügbarer Alben.
+        """
+        found_items = []
+        logger.info(f"Aktive Suche für Artist: {artist}")
+        found_albums = search_artist_albums_in_library(artist, max_results=10)
+
+        # Markiere Artist als in dieser Session durchsucht
+        self.state.mark_artist_searched(artist)
+
+        # Filtere bereits vorhandene Alben
+        found_albums = filter_existing_albums(found_albums, "H:\\MP3 Archiv")
+
+        found_any_available = False
+        for album in found_albums:
+            # Check if already suggested
+            if self.state.is_already_suggested("albums", album):
+                continue
+
+            # Check session cache
+            if self.state.is_item_unavailable("albums", album):
+                continue
+
+            # Check availability
+            available_item = self._check_availability(album, "albums")
+            if available_item:
+                found_items.append(available_item)
+                self.state.mark_suggested("albums", album)
+                found_any_available = True
+                logger.info(f"  ✅ Verfügbares Album gefunden: {album['title']}")
+
+                if len(found_items) >= needed:
+                    break
+            else:
+                # Mark as session-unavailable
+                self.state.mark_item_unavailable("albums", album)
+
+        # Blacklist Update
+        update_artist_blacklist_from_search_results(artist, 0, found_any_available or len(found_albums) > 0, artist_blacklist)
+        return found_items
+
+    def _filter_film_uv(
+        self, item: Dict[str, Any], category: str, hits: List[Dict[str, Any]]
+    ) -> Optional[List[Dict[str, Any]]]:
         """
         Filtert Film-Hits nach UV-Kürzel.
 
@@ -309,7 +325,9 @@ class Recommender:
 
         return film_hits
 
-    def _filter_hits_author(self, item: Dict[str, Any], category: str, hits: List[Dict[str, Any]]) -> Optional[List[Dict[str, Any]]]:
+    def _filter_hits_author(
+        self, item: Dict[str, Any], category: str, hits: List[Dict[str, Any]]
+    ) -> Optional[List[Dict[str, Any]]]:
         """
         Filtert Hits nach Autor-Matching.
 
@@ -386,7 +404,9 @@ class Recommender:
             status["onleihe_text"],
         )
 
-    def _process_availability_dict(self, hit: Dict[str, Any], availability_dict: Dict[str, Any], status: Dict[str, Any]) -> None:
+    def _process_availability_dict(
+        self, hit: Dict[str, Any], availability_dict: Dict[str, Any], status: Dict[str, Any]
+    ) -> None:
         """
         Hilfsfunktion zum Verarbeiten des Verfügbarkeits-Dictionaries.
 
