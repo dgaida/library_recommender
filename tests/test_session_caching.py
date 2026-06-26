@@ -3,6 +3,7 @@ from unittest.mock import MagicMock, patch
 from recommender.recommender import Recommender
 from recommender.state import AppState
 
+
 def test_no_redundant_artist_search():
     mock_lib_search = MagicMock()
     state = AppState()
@@ -10,7 +11,11 @@ def test_no_redundant_artist_search():
     state.reset_session_cache()
     recommender = Recommender(mock_lib_search, state)
 
-    with patch("recommender.recommender.search_artist_albums_in_library") as mock_search_lib,          patch("recommender.recommender.get_artist_blacklist") as mock_get_blacklist,          patch("recommender.recommender.update_artist_blacklist_from_search_results") as _,          patch("recommender.recommender.filter_existing_albums", side_effect=lambda albums, path: albums):
+    with patch("recommender.recommender.search_artist_albums_in_library") as mock_search_lib, patch(
+        "recommender.recommender.get_artist_blacklist"
+    ) as mock_get_blacklist, patch("recommender.recommender.update_artist_blacklist_from_search_results") as _, patch(
+        "recommender.recommender.filter_existing_albums", side_effect=lambda albums, path: albums
+    ):
 
         mock_blacklist = MagicMock()
         mock_blacklist.is_blacklisted.return_value = False
@@ -29,6 +34,7 @@ def test_no_redundant_artist_search():
         # Second call should NOT trigger search
         recommender.suggest_albums(albums, n=1, items_per_source=1, top_artists=top_artists)
         assert mock_search_lib.call_count == 1
+
 
 def test_no_redundant_item_search():
     mock_lib_search = MagicMock()
@@ -49,6 +55,7 @@ def test_no_redundant_item_search():
         # Second call should NOT trigger check (skipped due to session_unavailable)
         recommender.suggest_films(films, n=1, items_per_source=1)
         assert mock_check.call_count == 1
+
 
 if __name__ == "__main__":
     pytest.main([__file__])
