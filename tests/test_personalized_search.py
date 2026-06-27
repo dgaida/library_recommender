@@ -10,8 +10,12 @@ class TestPersonalizedSearch:
 
     @pytest.fixture
     def mock_state(self):
-        state = MagicMock()
-        state.is_already_suggested.return_value = False
+        from recommender.state import AppState
+
+        state = AppState()
+        # Reset session caches
+        state.session_unavailable = {"films": set(), "albums": set(), "books": set()}
+        state.session_searched_artists = set()
         return state
 
     @pytest.fixture
@@ -25,7 +29,9 @@ class TestPersonalizedSearch:
 
         with patch("recommender.recommender.search_artist_albums_in_library") as mock_search_lib, patch(
             "recommender.recommender.get_artist_blacklist"
-        ) as mock_get_blacklist, patch("recommender.recommender.update_artist_blacklist_from_search_results") as _:
+        ) as mock_get_blacklist, patch("recommender.recommender.update_artist_blacklist_from_search_results") as _, patch(
+            "recommender.recommender.filter_existing_albums", side_effect=lambda albums, path: albums
+        ):
 
             mock_blacklist = MagicMock()
             mock_blacklist.is_blacklisted.return_value = False
@@ -54,7 +60,9 @@ class TestPersonalizedSearch:
 
         with patch("recommender.recommender.search_artist_albums_in_library") as mock_search_lib, patch(
             "recommender.recommender.get_artist_blacklist"
-        ) as mock_get_blacklist, patch("recommender.recommender.update_artist_blacklist_from_search_results") as _:
+        ) as mock_get_blacklist, patch("recommender.recommender.update_artist_blacklist_from_search_results") as _, patch(
+            "recommender.recommender.filter_existing_albums", side_effect=lambda albums, path: albums
+        ):
 
             mock_blacklist = MagicMock()
             mock_blacklist.is_blacklisted.return_value = False
@@ -98,7 +106,9 @@ class TestPersonalizedSearch:
 
         with patch("recommender.recommender.search_artist_albums_in_library") as mock_search_lib, patch(
             "recommender.recommender.get_artist_blacklist"
-        ) as mock_get_blacklist, patch("recommender.recommender.update_artist_blacklist_from_search_results") as _:
+        ) as mock_get_blacklist, patch("recommender.recommender.update_artist_blacklist_from_search_results") as _, patch(
+            "recommender.recommender.filter_existing_albums", side_effect=lambda albums, path: albums
+        ):
 
             mock_blacklist = MagicMock()
             mock_blacklist.is_blacklisted.return_value = False

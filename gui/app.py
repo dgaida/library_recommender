@@ -391,8 +391,7 @@ def create_media_html(youtube_id: Optional[str], cover_url: Optional[str], media
 
     # YouTube-Video einbetten (nur für Filme)
     if youtube_id and media_type == "film":
-        html_parts.append(
-            f"""
+        html_parts.append(f"""
             <div style="margin-bottom: 20px;">
                 <h4 style="margin-bottom: 10px; color: #333;">🎬 Trailer</h4>
                 <iframe
@@ -406,8 +405,7 @@ def create_media_html(youtube_id: Optional[str], cover_url: Optional[str], media
                     style="max-width: 100%; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
                 </iframe>
             </div>
-        """
-        )
+        """)
 
     # Cover-Image anzeigen
     if media_type == "film":
@@ -420,8 +418,7 @@ def create_media_html(youtube_id: Optional[str], cover_url: Optional[str], media
         label = "🖼️ Cover"
 
     if cover_url:
-        html_parts.append(
-            f"""
+        html_parts.append(f"""
             <div style="margin-bottom: 20px;">
                 <h4 style="margin-bottom: 10px; color: #333;">{label}</h4>
                 <img
@@ -434,12 +431,10 @@ def create_media_html(youtube_id: Optional[str], cover_url: Optional[str], media
                     Cover konnte nicht geladen werden
                 </p>
             </div>
-        """
-        )
+        """)
     else:
         # Platzhalter für fehlendes Cover
-        html_parts.append(
-            f"""
+        html_parts.append(f"""
             <div style="margin-bottom: 20px;">
                 <h4 style="margin-bottom: 10px; color: #333;">{label}</h4>
                 <div style="
@@ -458,8 +453,7 @@ def create_media_html(youtube_id: Optional[str], cover_url: Optional[str], media
                     Kein Cover gefunden
                 </div>
             </div>
-        """
-        )
+        """)
 
     html_parts.append("</div>")
 
@@ -1942,8 +1936,7 @@ def create_header_section() -> None:
     Returns:
         None: Komponenten werden direkt in Gradio-Block erstellt
     """
-    gr.HTML(
-        """
+    gr.HTML("""
         <div style="text-align: center; margin-bottom: 2rem;">
             <h1 style="
                 font-size: 2.5rem;
@@ -1957,8 +1950,7 @@ def create_header_section() -> None:
                 🎬📀📚 Bibliothek-Empfehlungen
             </h1>
         </div>
-        """
-    )
+        """)
 
     gr.Markdown(
         """
@@ -2362,15 +2354,13 @@ with gr.Blocks(theme=create_custom_theme(), css=css, title="Bibliothek-Empfehlun
 
             book_message = gr.HTML(value="", visible=False, elem_classes=["success-message"])
     with gr.Tab("⭐ Favoriten"):
-        gr.Markdown(
-            """
+        gr.Markdown("""
             ### 🔍 Individuelle Mediensuche
 
             Suchen Sie gezielt nach spezifischen Medien oder entdecken Sie Werke
             Ihrer Lieblingskünstler. Gefundene Medien werden automatisch zu den
             entsprechenden Tabs hinzugefügt und als Favoriten gespeichert.
-            """
-        )
+            """)
 
         with gr.Row():
             with gr.Column(scale=2):
@@ -2406,8 +2396,7 @@ with gr.Blocks(theme=create_custom_theme(), css=css, title="Bibliothek-Empfehlun
 
         saved_favorites_display = gr.Markdown(value="", visible=False)
 
-        gr.Markdown(
-            """
+        gr.Markdown("""
             ---
 
             ### 💡 Tipps
@@ -2426,8 +2415,7 @@ with gr.Blocks(theme=create_custom_theme(), css=css, title="Bibliothek-Empfehlun
             - Film: `Christopher Nolan` + `Inception` + `DVD`
             - Musik: `Radiohead` + (leer) + `CD` → findet 2 verfügbare Alben
             - Buch: `Stephen King` + `Es` + `Buch`
-            """
-        )
+            """)
 
         # Event Handler
         fav_search_btn.click(

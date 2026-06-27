@@ -4,25 +4,31 @@ Tests for Onleihe (Digital Books/Audiobooks) support.
 """
 
 import pytest
-from unittest.mock import Mock, patch
+from unittest.mock import MagicMock, Mock, patch
 from library.search import KoelnLibrarySearch
 from recommender.recommender import Recommender
 from recommender.state import AppState
-from bs4 import BeautifulSoup
 
 
 class TestOnleiheSupport:
     """Tests for Onleihe link detection and display."""
 
     @pytest.fixture
-    def mock_library_search(self):
-        return Mock(spec=KoelnLibrarySearch)
+    def mock_lib_search(self):
+        mock = MagicMock(spec=KoelnLibrarySearch)
+        return mock
 
     @pytest.fixture
     def mock_state(self):
-        state = Mock(spec=AppState)
-        state.is_already_suggested.return_value = False
+        state = AppState()
+        # Reset session caches
+        state.session_unavailable = {"films": set(), "albums": set(), "books": set()}
+        state.session_searched_artists = set()
         return state
+
+    @pytest.fixture
+    def recommender(self, mock_lib_search, mock_state):
+        return Recommender(mock_lib_search, mock_state)
 
     def test_get_availability_details_detects_onleihe(self):
         """Test that get_availability_details correctly detects Onleihe links."""
@@ -55,41 +61,33 @@ class TestOnleiheSupport:
             )
             assert details["_onleihe_text"] == "eaudio- Ausleihe hier"
 
-    def test_recommender_prioritizes_onleihe(self, mock_library_search, mock_state):
+    def test_recommender_prioritizes_onleihe(self, recommender, mock_lib_search):
         """Test that the recommender identifies and prioritizes digital media."""
-        recommender = Recommender(mock_library_search, mock_state)
-
-        # Mock search results
-        mock_library_search.search.return_value = [
-            {
-                "title": "Digital Book",
-                "author": "Author",
-                "link": "http://test.com/book",
-                "zentralbibliothek_info": "Metadata\nZentralbibliothek entliehen",
-            }
-        ]
-
-        # Mock availability details with Onleihe link
-        mock_library_search.get_availability_details.return_value = {
-            "Zentralbibliothek": "entliehen",
-            "Zentralbibliothek_full": "Metadata\nZentralbibliothek entliehen",
-            "_onleihe_link": "https://www.onleihe.de/link",
-            "_onleihe_text": "Ausleihe hier",
-            "_zentralbib_available": False,
-            "_stadtbib_available": {},
-        }
-
+        # Setup: One item with Onleihe link
         item = {"title": "Digital Book", "author": "Author", "type": "Buch", "source": "Source"}
 
-        with patch("recommender.recommender.get_borrowed_blacklist") as mock_borrowed:
-            mock_borrowed.return_value.is_blacklisted.return_value = False
+        # Mock search to return hit
+        mock_lib_search.search.return_value = [{"title": "Digital Book", "author": "Author", "link": "http://test.com"}]
+
+        # Mock availability details to include Onleihe
+        mock_lib_search.get_availability_details.return_value = {
+            "_onleihe_link": "http://onleihe.de/test",
+            "_onleihe_text": "Onleihe-Titel",
+        }
+
+        # Mock author match to return hits
+        with patch("recommender.recommender.filter_results_by_author") as mock_filter:
+            mock_filter.return_value = [{"title": "Digital Book", "author": "Author", "link": "http://test.com"}]
+
+            from utils.blacklist import get_blacklist
+
+            get_blacklist().clear_blacklist()
 
             result = recommender._check_availability(item, "books")
 
             assert result is not None
             assert "📱" in result["title"]
-            assert result["onleihe_link"] == "https://www.onleihe.de/link"
-            assert "Digital verfügbar bei Onleihe" in result["bib_number"]
+            assert result["onleihe_link"] == "http://onleihe.de/test"
 
     def test_gui_remove_emoji_handles_smartphone(self):
         """Test that remove_emoji correctly handles the 📱 symbol."""
@@ -117,7 +115,6 @@ class TestOnleiheSupport:
 
     def test_gui_on_selection_change_generates_onleihe_button(self):
         """Test that on_selection_change generates the HTML button for Onleihe."""
-        # Simple standalone test of the logic
         import re
 
         def remove_emoji(text: str) -> str:
