@@ -67,6 +67,7 @@ jobs:
             mike set-default --push latest
           else
             mike deploy --push --update-aliases dev
+            mike set-default --push dev
           fi
 
       - name: Build Documentation (Verification)
