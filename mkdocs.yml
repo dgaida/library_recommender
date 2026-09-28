@@ -51,7 +51,7 @@ plugins:
             import:
               - https://docs.python.org/3/objects.inv
   - mermaid2:
-      version: '10.0.0'
+      version: '10.9.0'
   - mike
 
 markdown_extensions:
