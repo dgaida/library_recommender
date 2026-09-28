@@ -80,23 +80,51 @@ def test_search_media_info(mocker):
     assert results[0]["title"] == "Result"
 
 
-def test_summarize_with_groq(mocker):
-    """Test summarizing with Groq API."""
-    mocker.patch("os.getenv", return_value="fake_key")
-    mock_groq = mocker.patch("utils.search_utils.Groq")
-    mock_client = mock_groq.return_value
-    mock_client.chat.completions.create.return_value.choices[0].message.content = "This is a summary."
+def test_summarize_with_llm_config_exists(mocker, tmp_path):
+    """Test summarize_with_llm when config file exists."""
+    config_file = tmp_path / "llm_config.yaml"
+    config_file.write_text("default_provider: groq\n")
+
+    mock_llm_client_cls = mocker.patch("utils.search_utils.LLMClient")
+    mock_client_inst = mock_llm_client_cls.from_config.return_value
+    mock_client_inst.chat_completion.return_value = "This is an LLM summary."
+
+    from utils.search_utils import summarize_with_llm
+
+    summary = summarize_with_llm([{"title": "T", "body": "B"}], "Title", config_path=str(config_file))
+    assert summary == "This is an LLM summary."
+    mock_llm_client_cls.from_config.assert_called_once_with(str(config_file))
+
+
+def test_summarize_with_llm_no_config(mocker):
+    """Test summarize_with_llm when config file does not exist."""
+    mocker.patch("os.path.exists", return_value=False)
+    mock_llm_client_cls = mocker.patch("utils.search_utils.LLMClient")
+    mock_client_inst = mock_llm_client_cls.return_value
+    mock_client_inst.chat_completion.return_value = "Default LLM summary."
+
+    from utils.search_utils import summarize_with_llm
+
+    summary = summarize_with_llm([{"title": "T", "body": "B"}], "Title")
+    assert summary == "Default LLM summary."
+    mock_llm_client_cls.assert_called_once()
+
+
+def test_summarize_with_groq_legacy(mocker):
+    """Test summarize_with_groq legacy function."""
+    mock_summarize = mocker.patch("utils.search_utils.summarize_with_llm", return_value="Legacy summary.")
 
     from utils.search_utils import summarize_with_groq
 
     summary = summarize_with_groq([{"title": "T", "body": "B"}], "Title")
-    assert summary == "This is a summary."
+    assert summary == "Legacy summary."
+    mock_summarize.assert_called_once()
 
 
 def test_get_media_summary(mocker):
     """Test get_media_summary combined function."""
     mocker.patch("utils.search_utils.search_media_info", return_value=[{"title": "T", "body": "B"}])
-    mocker.patch("utils.search_utils.summarize_with_groq", return_value="Summary")
+    mocker.patch("utils.search_utils.summarize_with_llm", return_value="Summary")
     mocker.patch("utils.search_utils.search_youtube_trailer", return_value="vid123")
     mocker.patch("utils.search_utils.search_cover_image", return_value="http://img.jpg")
 

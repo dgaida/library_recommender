@@ -33,11 +33,29 @@ pip install -r requirements.txt
 
 ## 5. Optionale Features
 
-### Groq API (für KI-Zusammenfassungen)
+### LLM Konfiguration (für KI-Zusammenfassungen)
 
-1. Holen Sie sich einen API-Key von [Groq](https://groq.com).  
-2. Erstellen Sie eine `secrets.env` Datei im Hauptverzeichnis:  
+Die KI-Zusammenfassungen werden über die [llm_client](https://dgaida.github.io/llm_client/dev/) Bibliothek bereitgestellt. Sie können Ihren bevorzugten Anbieter (z. B. Groq, OpenAI, Gemini oder Ollama) in `llm_config.yaml` angeben.
+
+1. Erstellen oder bearbeiten Sie die Datei `llm_config.yaml`:
+```yaml
+default_provider: groq
+
+providers:
+  groq:
+    model: llama-3.3-70b-versatile
+  openai:
+    model: gpt-4o-mini
+  gemini:
+    model: gemini-2.5-flash
+  ollama:
+    model: llama3.2:1b
+```
+
+2. Erstellen Sie eine `secrets.env` Datei im Hauptverzeichnis für API-Keys:
 
 ```env
 GROQ_API_KEY=gsk_...
+# OPENAI_API_KEY=sk-...
+# GEMINI_API_KEY=...
 ```

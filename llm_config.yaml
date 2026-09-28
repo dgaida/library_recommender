@@ -1,0 +1,29 @@
+# LLM Configuration File for llm_client
+# Documentation: https://dgaida.github.io/llm_client/dev/configuration/
+
+default_provider: groq
+
+global_settings:
+  temperature: 0.3
+  max_tokens: 150
+
+providers:
+  groq:
+    model: llama-3.3-70b-versatile
+    temperature: 0.3
+    max_tokens: 150
+
+  openai:
+    model: gpt-4o-mini
+    temperature: 0.3
+    max_tokens: 150
+
+  gemini:
+    model: gemini-2.5-flash
+    temperature: 0.3
+    max_tokens: 150
+
+  ollama:
+    model: llama3.2:1b
+    temperature: 0.3
+    max_tokens: 150

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Such- und Zusammenfassungs-Utilities für Medien-Empfehlungen
-MIT YouTube-Trailer, Cover-Images und visueller Integration
+mit YouTube-Trailer, Cover-Images und LLM-Integration.
 """
 
 import os
@@ -9,7 +9,7 @@ import re
 from typing import Optional, Dict, Any, List, Tuple
 import requests
 from ddgs import DDGS
-from groq import Groq
+from llm_client import LLMClient
 from utils.logging_config import get_logger
 
 logger = get_logger(__name__)
@@ -226,38 +226,39 @@ def search_media_info(title: str, author: Optional[str] = None, media_type: str 
         return []
 
 
-def summarize_with_groq(
-    search_results: List[Dict[str, Any]], title: str, author: Optional[str] = None, media_type: str = "film"
+def summarize_with_llm(
+    search_results: List[Dict[str, Any]],
+    title: str,
+    author: Optional[str] = None,
+    media_type: str = "film",
+    config_path: str = "llm_config.yaml",
 ) -> str:
     """
-    Erstellt eine kurze Zusammenfassung mit der Groq API.
+    Erstellt eine kurze Zusammenfassung mit der LLM Client Bibliothek.
 
-    Nutzt ein moonshotai/kimi-k2-instruct-0905 über die Groq API, um aus
-    Suchergebnissen eine prägnante 2-3 Sätze Zusammenfassung zu erstellen.
+    Nutzt llm_client (konfiguriert via Config-Datei oder Standard-Anbieter), um aus
+    Suchergebnissen eine prägnante 2-3 Sätze Zusammenfassung auf Deutsch zu erstellen.
 
     Args:
         search_results: Suchergebnisse von DuckDuckGo
         title: Titel des Mediums
         author: Autor/Regisseur/Künstler (optional)
         media_type: Art des Mediums ('film', 'album', 'book')
+        config_path: Pfad zur LLM-Konfigurationsdatei (optional)
 
     Returns:
         2-3 Sätze Zusammenfassung auf Deutsch
 
-    Note:
-        Benötigt GROQ_API_KEY Umgebungsvariable
-
     Example:
-        >>> summary = summarize_with_groq(results, "Der Pate", "Coppola", "film")
+        >>> summary = summarize_with_llm(results, "Der Pate", "Coppola", "film")
         >>> print(summary)
         'Der Pate ist ein Mafia-Drama von 1972...'
     """
     try:
-        api_key = os.getenv("GROQ_API_KEY")
-        if not api_key:
-            return "Groq API Key nicht gefunden. Bitte GROQ_API_KEY Umgebungsvariable setzen."
-
-        client = Groq(api_key=api_key)
+        if os.path.exists(config_path):
+            client = LLMClient.from_config(config_path)
+        else:
+            client = LLMClient()
 
         # Suchergebnisse zu Text zusammenfassen
         search_text = ""
@@ -287,19 +288,30 @@ Suchergebnisse:
 
 Antwort (maximal 3 Sätze auf Deutsch):"""
 
-        response = client.chat.completions.create(
-            messages=[{"role": "user", "content": prompt}],
-            model="moonshotai/kimi-k2-instruct-0905",
-            temperature=0.3,
-            max_tokens=150,
-        )
-
-        summary = response.choices[0].message.content.strip()
-        return summary
+        summary = client.chat_completion(messages=[{"role": "user", "content": prompt}])
+        return summary.strip() if summary else "Keine Zusammenfassung generiert."
 
     except Exception as e:
-        logger.error(f"Fehler bei Groq API: {e}")
+        logger.error(f"Fehler bei LLM Client API: {e}")
         return f"Fehler beim Erstellen der Zusammenfassung: {str(e)}"
+
+
+def summarize_with_groq(
+    search_results: List[Dict[str, Any]], title: str, author: Optional[str] = None, media_type: str = "film"
+) -> str:
+    """
+    Erstellt eine kurze Zusammenfassung mit dem LLM Client (Veraltet, nutzt nun summarize_with_llm).
+
+    Args:
+        search_results: Suchergebnisse von DuckDuckGo
+        title: Titel des Mediums
+        author: Autor/Regisseur/Künstler (optional)
+        media_type: Art des Mediums ('film', 'album', 'book')
+
+    Returns:
+        2-3 Sätze Zusammenfassung auf Deutsch
+    """
+    return summarize_with_llm(search_results, title, author, media_type)
 
 
 def get_media_summary(title: str, author: Optional[str] = None, media_type: str = "film") -> Dict[str, Any]:
@@ -336,7 +348,7 @@ def get_media_summary(title: str, author: Optional[str] = None, media_type: str 
     if not search_results:
         result["summary"] = f"Keine Informationen zu '{title}' gefunden."
     else:
-        result["summary"] = summarize_with_groq(search_results, title, author, media_type)
+        result["summary"] = summarize_with_llm(search_results, title, author, media_type)
 
     # Für Filme: YouTube-Trailer suchen
     if media_type == "film":
