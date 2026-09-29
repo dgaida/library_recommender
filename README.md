@@ -49,7 +49,7 @@ Eine intelligente Empfehlungs-App für die **Stadtbibliothek Köln**, die verfü
 - **Mehrfachauswahl**: Mehrere Titel gleichzeitig verwalten  
 - **🏷️ Quellen-Emojis**: Zeigen Herkunft jeder Empfehlung (🏆 Oscar, ⭐ FBW, 📻 Radio, 💎 Personalisiert, 📖 Ratgeber)  
 - **🔍 KI-Google-Suche**:  
-  - 1-2 Sätze Zusammenfassung zu jedem Medium via `llm_client` (Groq, OpenAI, Gemini, Ollama)
+  - 1-2 Sätze Zusammenfassung zu jedem Medium via `llm_client` (Groq, OpenAI, Gemini, Ollama)  
   - 🎬 YouTube-Trailer für Filme  
   - 🖼️ Cover-Images für alle Medien  
 - **Persistente Ablehnungen**: Abgelehnte Titel nie wieder angezeigt  
@@ -229,7 +229,7 @@ add_top_artist_albums_to_collection("H:\\MP3 Archiv", top_n=40)  # Standard: 30
 
 ### APIs & Libraries  
 - **DuckDuckGo Search**: Kostenlose Websuche  
-- **llm_client**: Einheitliche LLM-Schnittstelle für Groq, OpenAI, Gemini, Ollama etc.
+- **llm_client**: Einheitliche LLM-Schnittstelle für Groq, OpenAI, Gemini, Ollama etc.  
 - **BeautifulSoup**: HTML-Parsing für Web Scraping  
 - **Gradio**: Moderne Web-UI  
 
@@ -252,8 +252,8 @@ Beiträge sind willkommen! Bitte lies [CONTRIBUTING.md](CONTRIBUTING.md) für De
 - Blacklist zurücksetzen: `rm data/blacklist_*.json`  
 
 **Google-Suche funktioniert nicht**  
-- `llm_config.yaml` vorhanden und gewünschter Provider korrekt konfiguriert?
-- API Key in `secrets.env` oder Umgebungsvariablen gesetzt?
+- `llm_config.yaml` vorhanden und gewünschter Provider korrekt konfiguriert?  
+- API Key in `secrets.env` oder Umgebungsvariablen gesetzt?  
 - DuckDuckGo erreichbar?  
 
 **MP3-Archiv wird nicht gefunden**  
@@ -286,7 +286,7 @@ MIT License - Siehe [LICENSE](LICENSE) für Details.
 - **New York Times** für Literatur-Kanon  
 - **die-besten-aller-zeiten.de** für Ratgeber-Listen  
 - **Stadtbibliothek Köln** für öffentlichen Katalog-Zugang  
-- **Gradio, llm_client, DuckDuckGo** für fantastische Tools
+- **Gradio, llm_client, DuckDuckGo** für fantastische Tools  
 
 ---
 
@@ -302,6 +302,6 @@ MIT License - Siehe [LICENSE](LICENSE) für Details.
 - 📖 Ratgeber-Kategorie  
 - ⚫ Intelligente Blacklist-Systeme  
 - 🏷️ Quellen-Tracking mit Emojis  
-- 🔍 KI-Powered Google-Suche mit Multi-LLM Provider Support (`llm_client`)
+- 🔍 KI-Powered Google-Suche mit Multi-LLM Provider Support (`llm_client`)  
 
 Details: [CHANGELOG.md](CHANGELOG.md)

@@ -37,7 +37,7 @@ pip install -r requirements.txt
 
 AI summaries use the [llm_client](https://dgaida.github.io/llm_client/dev/) library. You can configure your preferred provider (e.g., Groq, OpenAI, Gemini, or Ollama) in `llm_config.yaml`.
 
-1. Create or edit `llm_config.yaml`:
+1. Create or edit `llm_config.yaml`:  
 ```yaml
 default_provider: groq
 
@@ -52,7 +52,7 @@ providers:
     model: llama3.2:1b
 ```
 
-2. Create a `secrets.env` file in the root directory for API keys:
+2. Create a `secrets.env` file in the root directory for API keys:  
 
 ```env
 GROQ_API_KEY=gsk_...
