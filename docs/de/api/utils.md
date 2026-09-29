@@ -3,6 +3,9 @@
 ::: utils.search_utils.get_media_summary
     options:
       inventory: true
+::: utils.search_utils.summarize_with_llm
+    options:
+      inventory: true
 ::: utils.search_utils.summarize_with_groq
     options:
       inventory: true

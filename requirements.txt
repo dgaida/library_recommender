@@ -1,6 +1,6 @@
-# Zusätzliche Abhängigkeiten für Google-Suche und Zusammenfassung
+# Zusätzliche Abhängigkeiten für Google-Suche und LLM Zusammenfassung
 ddgs>=9.0.0
-groq>=0.4.0
+llm-client @ git+https://github.com/dgaida/llm_client.git
 
 # Bereits vorhandene Abhängigkeiten (falls noch nicht installiert)
 fpdf2>=2.8.4

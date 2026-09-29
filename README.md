@@ -49,7 +49,7 @@ Eine intelligente Empfehlungs-App für die **Stadtbibliothek Köln**, die verfü
 - **Mehrfachauswahl**: Mehrere Titel gleichzeitig verwalten  
 - **🏷️ Quellen-Emojis**: Zeigen Herkunft jeder Empfehlung (🏆 Oscar, ⭐ FBW, 📻 Radio, 💎 Personalisiert, 📖 Ratgeber)  
 - **🔍 KI-Google-Suche**:  
-  - 1-2 Sätze Zusammenfassung zu jedem Medium  
+  - 1-2 Sätze Zusammenfassung zu jedem Medium via `llm_client` (Groq, OpenAI, Gemini, Ollama)
   - 🎬 YouTube-Trailer für Filme  
   - 🖼️ Cover-Images für alle Medien  
 - **Persistente Ablehnungen**: Abgelehnte Titel nie wieder angezeigt  
@@ -82,16 +82,37 @@ cd library_recommender
 pip install -r requirements.txt
 ```
 
-### 3. Groq API Key einrichten (optional, für Google-Suche mit visuellen Medien)
-Kostenlosen Account erstellen: https://groq.com
+### 3. LLM Provider API Key & Konfiguration einrichten (optional)
+Für KI-Zusammenfassungen nutzt die App die [llm_client](https://dgaida.github.io/llm_client/dev/) Bibliothek.
+Der gewünschte LLM-Anbieter (z. B. Groq, OpenAI, Gemini, Ollama) kann einfach über die `llm_config.yaml` Datei konfiguriert werden.
 
-Erstelle eine `secrets.env` mit:
+Beispiel `llm_config.yaml`:
+```yaml
+default_provider: groq
+
+global_settings:
+  temperature: 0.3
+  max_tokens: 150
+
+providers:
+  groq:
+    model: llama-3.3-70b-versatile
+  openai:
+    model: gpt-4o-mini
+  gemini:
+    model: gemini-2.5-flash
+  ollama:
+    model: llama3.2:1b
+```
+
+API Keys in einer `secrets.env` angeben:
 ```
 GROQ_API_KEY=gsk_...
+# OPENAI_API_KEY=sk-...
+# GEMINI_API_KEY=...
 ```
 
-> **Hinweis**: Ohne Groq API Key funktioniert die Google-Suche mit Zusammenfassungen,
-> Trailer-Suche und Cover-Images nicht. Alle anderen Features bleiben verfügbar.
+> **Hinweis**: Ohne API Key oder Ollama funktioniert die KI-Zusammenfassung nicht, alle anderen Features bleiben verfügbar.
 
 ### 4. MP3-Archiv Pfad anpassen (optional)
 Für personalisierte Musikempfehlungen bearbeite `data_sources/mp3_analysis.py`:
@@ -130,6 +151,7 @@ Die App öffnet sich automatisch im Browser unter `http://localhost:7860`
 library_recommender/
 ├── main.py                        # Hauptanwendung (Gradio UI)
 ├── requirements.txt               # Python-Abhängigkeiten
+├── llm_config.yaml                # LLM-Konfigurationsdatei für llm_client
 ├── README.md                      # Diese Datei
 ├── CONTRIBUTING.md                # Richtlinien für Beiträge
 ├── CHANGELOG.md                   # Änderungshistorie
@@ -166,7 +188,7 @@ library_recommender/
 │
 └── utils/                         # Hilfsfunktionen
     ├── io.py                      # Datei I/O & Markdown-Export
-    ├── search_utils.py            # Google-Suche & KI-Zusammenfassung
+    ├── search_utils.py            # Google-Suche & KI-Zusammenfassung via llm_client
     ├── sources.py                 # Quellen-Konstanten & Emoji-Mapping
     ├── blacklist.py               # Blacklist-Verwaltung
     ├── artist_blacklist.py        # Artist-Blacklist für MP3-Analyse
@@ -174,6 +196,9 @@ library_recommender/
 ```
 
 ## ⚙️ Konfiguration
+
+### LLM-Konfiguration (`llm_config.yaml`)
+Steuert den verwendeten LLM-Anbieter und dessen Einstellungen für Inhaltszusammenfassungen. Details siehe [llm_client Dokumentation](https://dgaida.github.io/llm_client/dev/configuration/).
 
 ### MP3-Archiv Pfad
 In `data_sources/albums.py` und `data_sources/mp3_analysis.py` ändern:
@@ -204,7 +229,7 @@ add_top_artist_albums_to_collection("H:\\MP3 Archiv", top_n=40)  # Standard: 30
 
 ### APIs & Libraries  
 - **DuckDuckGo Search**: Kostenlose Websuche  
-- **Groq API**: Schnelle LLM-Zusammenfassungen  
+- **llm_client**: Einheitliche LLM-Schnittstelle für Groq, OpenAI, Gemini, Ollama etc.
 - **BeautifulSoup**: HTML-Parsing für Web Scraping  
 - **Gradio**: Moderne Web-UI  
 
@@ -227,7 +252,8 @@ Beiträge sind willkommen! Bitte lies [CONTRIBUTING.md](CONTRIBUTING.md) für De
 - Blacklist zurücksetzen: `rm data/blacklist_*.json`  
 
 **Google-Suche funktioniert nicht**  
-- Groq API Key gesetzt? `secrets.env` vorhanden?  
+- `llm_config.yaml` vorhanden und gewünschter Provider korrekt konfiguriert?
+- API Key in `secrets.env` oder Umgebungsvariablen gesetzt?
 - DuckDuckGo erreichbar?  
 
 **MP3-Archiv wird nicht gefunden**  
@@ -260,7 +286,7 @@ MIT License - Siehe [LICENSE](LICENSE) für Details.
 - **New York Times** für Literatur-Kanon  
 - **die-besten-aller-zeiten.de** für Ratgeber-Listen  
 - **Stadtbibliothek Köln** für öffentlichen Katalog-Zugang  
-- **Gradio, Groq, DuckDuckGo** für fantastische Tools  
+- **Gradio, llm_client, DuckDuckGo** für fantastische Tools
 
 ---
 
@@ -276,6 +302,6 @@ MIT License - Siehe [LICENSE](LICENSE) für Details.
 - 📖 Ratgeber-Kategorie  
 - ⚫ Intelligente Blacklist-Systeme  
 - 🏷️ Quellen-Tracking mit Emojis  
-- 🔍 KI-Powered Google-Suche  
+- 🔍 KI-Powered Google-Suche mit Multi-LLM Provider Support (`llm_client`)
 
 Details: [CHANGELOG.md](CHANGELOG.md)
