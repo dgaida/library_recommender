@@ -507,7 +507,10 @@ def google_search_selected(selected_items: List[str], category: str) -> Tuple[st
             if s.get("author"):
                 display_text += f" - {s['author']}"
 
-            if display_text == selected_item_clean:
+            if display_text == selected_item_clean or (
+                suggestion_title_clean.lower() == title.lower()
+                and (not author or (s.get("author") and author.lower() in s.get("author", "").lower()))
+            ):
                 s["cover_url"] = media_data.get("cover_url")
                 s["summary"] = media_data.get("summary")
                 s["youtube_id"] = media_data.get("youtube_id")

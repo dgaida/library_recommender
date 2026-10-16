@@ -169,9 +169,20 @@ def _add_album_cover(pdf, item, y_before):
     x_pos = 160
     w_size = 35
 
-    if item.get("cover_url"):
+    cover_url = item.get("cover_url")
+    if not cover_url and item.get("title"):
         try:
-            response = requests.get(item["cover_url"], timeout=5)
+            from utils.search_utils import search_cover_image
+
+            cover_url = search_cover_image(item["title"], item.get("author"), "album")
+            if cover_url:
+                item["cover_url"] = cover_url
+        except Exception as e:
+            logger.warning(f"Konnte Cover für {item['title']} nicht suchen: {e}")
+
+    if cover_url:
+        try:
+            response = requests.get(cover_url, timeout=5)
             if response.status_code == 200:
                 img_data = BytesIO(response.content)
                 # Kleines Cover (35x35 mm) rechts vom Text
