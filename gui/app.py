@@ -502,24 +502,19 @@ def google_search_selected(selected_items: List[str], category: str) -> Tuple[st
         suggestions = current_suggestions.get(category, [])
         for s in suggestions:
             # Titel in current_suggestions kann Emojis haben (z.B. 📱)
-            s_title_clean = remove_emoji(s["title"]).strip()
-            display_text = f"{s_title_clean}"
+            suggestion_title_clean = remove_emoji(s["title"]).strip()
+            display_text = f"{suggestion_title_clean}"
             if s.get("author"):
                 display_text += f" - {s['author']}"
 
-            s_title = s_title_clean.lower()
-            s_author = (s.get("author") or "").strip().lower()
-            search_title = title.lower().strip()
-            search_author = (author or "").strip().lower()
-
-            title_matches = s_title == search_title
-            author_matches = not search_author or search_author == s_author or search_author in s_author or s_author in search_author
-
-            if display_text == selected_item_clean or (title_matches and author_matches):
+            if display_text == selected_item_clean or (
+                suggestion_title_clean.lower() == title.lower()
+                and (not author or (s.get("author") and author.lower() in s.get("author", "").lower()))
+            ):
                 s["cover_url"] = media_data.get("cover_url")
                 s["summary"] = media_data.get("summary")
                 s["youtube_id"] = media_data.get("youtube_id")
-                logger.info(f"Daten für '{s['title']}' in current_suggestions aktualisiert.")
+                logger.info(f"Daten für '{title}' in current_suggestions aktualisiert.")
                 break
 
         text_result = f"🔍 Informationen zu: {title}"
