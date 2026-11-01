@@ -121,3 +121,27 @@ def remove_emoji(text: str) -> str:
         flags=re.UNICODE,
     )
     return emoji_pattern.sub("", text)
+
+
+def clean_media_title(title: str) -> str:
+    """
+    Bereinigt Medientitel von Emojis und Bibliotheksstandort-Kürzeln für Vergleiche.
+
+    Entfernt:
+    - Emojis (wie 📱) am Anfang oder im Titel
+    - Standortkürzel in Klammern am Ende (z.B. '(CW)', '(PO)', '(SZ)', '(ZB)')
+    - Überflüssige Leerzeichen
+
+    Args:
+        title (str): Der ursprüngliche Titel des Mediums.
+
+    Returns:
+        str: Der bereinigte Titel.
+    """
+    if not title:
+        return ""
+    # Emojis entfernen
+    cleaned = remove_emoji(title).strip()
+    # Standort-Kürzel am Ende in Klammern entfernen (z.B. (CW), (PO), (ZB), (BM))
+    cleaned = re.sub(r"\s*\([A-Za-z0-9]{2,4}\)$", "", cleaned).strip()
+    return cleaned

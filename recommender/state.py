@@ -10,6 +10,7 @@ from typing import Dict, List, Any, Union, Set
 
 from utils.io import DATA_DIR
 from utils.logging_config import get_logger
+from utils.text_utils import clean_media_title
 
 logger = get_logger(__name__)
 
@@ -95,12 +96,19 @@ class AppState:
             bool: True wenn bereits vorgeschlagen oder abgelehnt, sonst False.
         """
         title_lower = item["title"].lower()
+        title_clean = clean_media_title(item["title"]).lower()
 
         # Prüfe ob schon in diesem Lauf vorgeschlagen
-        already_suggested_this_run = any(x["title"].lower() == title_lower for x in self.suggested.get(category, []))
+        already_suggested_this_run = any(
+            x["title"].lower() == title_lower or clean_media_title(x["title"]).lower() == title_clean
+            for x in self.suggested.get(category, [])
+        )
 
         # Prüfe ob explizit abgelehnt (persistent)
-        already_rejected = any(x["title"].lower() == title_lower for x in self.rejected.get(category, []))
+        already_rejected = any(
+            x["title"].lower() == title_lower or clean_media_title(x["title"]).lower() == title_clean
+            for x in self.rejected.get(category, [])
+        )
 
         if already_suggested_this_run:
             logger.debug(f"'{item['title']}' bereits in diesem Lauf vorgeschlagen")
@@ -138,11 +146,18 @@ class AppState:
             self.rejected[category] = []
 
         title_lower = item["title"].lower()
+        title_clean = clean_media_title(item["title"]).lower()
 
         # Prüfe ob schon in abgelehnten Items
-        if not any(x["title"].lower() == title_lower for x in self.rejected[category]):
-            self.rejected[category].append(item)
-            logger.info(f"'{item['title']}' als abgelehnt markiert")
+        if not any(
+            x["title"].lower() == title_lower or clean_media_title(x["title"]).lower() == title_clean
+            for x in self.rejected[category]
+        ):
+            # Speichere Item mit bereinigtem Titel
+            clean_item = item.copy()
+            clean_item["title"] = clean_media_title(item["title"])
+            self.rejected[category].append(clean_item)
+            logger.info(f"'{clean_item['title']}' als abgelehnt markiert")
 
             # Speichere sofort persistent
             self.save_rejected_state(self.rejected)

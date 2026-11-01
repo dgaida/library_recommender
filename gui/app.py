@@ -31,7 +31,7 @@ from utils.borrowed_blacklist import get_borrowed_blacklist
 from utils.blacklist import get_blacklist
 from utils.io import DATA_DIR
 from utils.favorites import get_favorites_manager
-from utils.text_utils import remove_emoji
+from utils.text_utils import remove_emoji, clean_media_title
 
 logger = get_logger(__name__)
 
@@ -575,9 +575,11 @@ def reject_selected(  # noqa: C901
             if display_text == selected_item_clean:
                 rejected_titles.append(s["title"])
                 indices_to_remove.append(i)
-                rejected_item = {"title": s["title"]}
+                rejected_item = {"title": clean_media_title(s["title"])}
+                if s.get("author"):
+                    rejected_item["author"] = s["author"]
                 state.reject(category, rejected_item)
-                logger.debug(f"Item abgelehnt: {s['title']}")
+                logger.debug(f"Item abgelehnt: {rejected_item['title']}")
                 break
 
     # Entferne Items (von hinten nach vorne)

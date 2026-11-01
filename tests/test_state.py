@@ -141,6 +141,37 @@ class TestAppState:
             state2 = AppState()
             assert state2.rejected["films"][0]["title"] == "Rejected"
 
+    def test_is_already_suggested_with_branch_suffix_and_emojis(self, tmp_path):
+        """Testet, dass abgelehnte Alben mit Suffixen oder Emojis beim Neustart erkannt werden."""
+        from recommender.state import AppState
+
+        state_file = tmp_path / "state.json"
+
+        with patch("recommender.state.STATE_FILE", str(state_file)):
+            state = AppState()
+            # Album mit Filial-Kürzel ablehnen (z.B. nach Empfehlung aus einer Zweigstelle)
+            state.reject("albums", {"title": "Abbey Road (CW)", "author": "The Beatles"})
+
+            # Digitales Album mit Emoji ablehnen
+            state.reject("albums", {"title": "📱 Revolver", "author": "The Beatles"})
+
+            # Neuer Start der App (lädt aus Datei)
+            state_reloaded = AppState()
+
+            # Rohes Album (z.B. aus albums.json oder Live-Suche)
+            raw_album_1 = {"title": "Abbey Road", "author": "The Beatles"}
+            raw_album_2 = {"title": "Revolver", "author": "The Beatles"}
+
+            assert state_reloaded.is_already_suggested("albums", raw_album_1) is True
+            assert state_reloaded.is_already_suggested("albums", raw_album_2) is True
+
+            # Auch Varianten mit anderen Suffixen / Emojis sollten erkannt werden
+            assert state_reloaded.is_already_suggested("albums", {"title": "📱 Abbey Road (PO)"}) is True
+            assert state_reloaded.is_already_suggested("albums", {"title": "Revolver (SZ)"}) is True
+
+            # Nicht abgelehnte Alben dürfen nicht blockiert werden
+            assert state_reloaded.is_already_suggested("albums", {"title": "Help!", "author": "The Beatles"}) is False
+
 
 # ============================================================================
 # Pytest Configuration
